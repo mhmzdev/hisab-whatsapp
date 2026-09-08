@@ -1,0 +1,11 @@
+services:
+  hisab:
+    build: .
+    env_file: .env
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./vault:/app/vault          # your ledger — open this folder in Obsidian
+      - hisab-data:/app/data        # offset, message store, media
+    restart: unless-stopped
+volumes:
+  hisab-data:
