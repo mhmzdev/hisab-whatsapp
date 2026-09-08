@@ -111,14 +111,18 @@ class Hisab:
                 print(f"poll failed: {e}; retrying in 5s", file=sys.stderr)
                 time.sleep(5)
                 continue
-            if nxt and nxt != offset:
-                offset = nxt
-                self.store.set_offset(offset)
             for m in msgs:
+                # idempotent by WhatsApp message id: a replayed batch (crash, restart, backlog drain) never posts twice
+                if m.get("id") and self.store.lookup(m["id"]):
+                    continue
                 try:
                     self._handle_wa(wa, m)
                 except Exception:
                     traceback.print_exc()
+            # offset advances only after the batch is handled, so a crash mid-batch replays rather than drops
+            if nxt and nxt != offset:
+                offset = nxt
+                self.store.set_offset(offset)
 
     def _handle_wa(self, wa, m):
         frm, typ, mid = m.get("from"), m.get("type"), m.get("id")
