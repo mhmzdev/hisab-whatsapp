@@ -1,0 +1,22 @@
+# secrets
+.env
+*.token
+
+# runtime state (per install, never shared)
+data/
+*.jsonl
+offset
+session_id
+__pycache__/
+*.pyc
+.venv/
+
+# a user's real ledger, if someone mounts it inside the repo
+vault/
+ledger/
+daily/_done/
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/
