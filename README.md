@@ -10,6 +10,13 @@ A ledger you text. Send **"2500 coffee"**, a voice note in Urdu, Roman Urdu or E
 
 Expense tracking dies at the moment of paying. The app has to be opened, a category picked, and the moment passes. WhatsApp is already open. A voice note takes three seconds and works in whatever language you actually think in. The agent is useful *because* it lives where the money moment happens.
 
+## Why this is not a chatbot on WhatsApp
+
+- **Undo is a reply.** Quote the old message, say *undo*, and that entry reverses. A native WhatsApp gesture is the agent's control surface.
+- **Every ledger line links to the message that made it.** Entries carry a number; the message store maps it to the WhatsApp message id. The chat is the audit trail.
+- **Capture happens where the money moves.** A voice note at the till beats a form you open later.
+- **Private by platform.** A WhatsApp agent talks only to the person who created it. There is no server, no account with us, nothing to breach.
+
 ## What's under it
 
 - **hledger** — a real plain-text accounting engine. The ledger is a markdown file you can open anywhere. Every append is validated; a bad entry rolls back.
