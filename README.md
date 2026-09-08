@@ -4,7 +4,7 @@ A ledger you text. Send **"2500 coffee"**, a voice note in Urdu, Roman Urdu or E
 
 *Hisab* (حساب) is the word every Urdu speaker already uses for exactly this.
 
-> **Status:** scaffold, pre-hackathon. Built for the AI Tinkerers global hackathon *Agents, Everywhere* on 2026-09-12. Extracted from a personal system running since early September 2026; the public version is being written here.
+> **Status:** pre-hackathon build. Core, setup, tools and Docker in place; model and voice tests pending. Built for the AI Tinkerers global hackathon *Agents, Everywhere* on 2026-09-12. Extracted from a personal system running since early September 2026; the public version is being written here.
 
 ## Why WhatsApp
 
@@ -16,6 +16,26 @@ Expense tracking dies at the moment of paying. The app has to be opened, a categ
 - **A small tool-calling agent loop** on OpenRouter — one key for the model and for voice transcription. Six tools, nothing else: append, undo, report, learn a category rule, read accounts, add account. No shell, no file access.
 - **The WhatsApp Agent Platform** — a long-poll API with one hard rule: an agent talks only to the person who created it. Private by construction.
 - **Setup is a conversation** — the first message triggers up to eight questions and writes your chart of accounts.
+
+## Run it
+
+You need: an Android phone with WhatsApp, Docker, and an [OpenRouter](https://openrouter.ai) key.
+
+1. In WhatsApp: Settings → Agents → Create an agent → Chat info → copy the API key.
+2. `cp .env.example .env` and paste the WhatsApp key and your OpenRouter key.
+3. `cp config.example.yaml config.yaml`. The defaults are fine; change the model if you like.
+4. `docker compose up -d`
+5. Send your agent any message. It asks up to eight questions, writes your chart of accounts, then posts what you sent.
+
+Your ledger lives in `./vault/` on your machine. Open that folder in Obsidian for the dashboard (below). Nothing goes to anyone but your model provider through OpenRouter; there is no server of ours.
+
+Without WhatsApp, the same pipeline runs in a terminal: `python -m hisab.loop --stdin`.
+
+**Setting it up for someone else** (the shop case): they create the agent on *their* phone and send you the key; you run the container. They text, they get replies. You only ever see the ledger file, and only if they show you.
+
+## Try the sample
+
+`sample-vault/` is a kiryana store, two weeks, fake numbers. Point `ledger.path` at it and ask *Metro ko kitna dena hai*, *is mahine vs pichla*, *balances*. Open it in Obsidian with hledger-dashboard to see the budget tab populated from its `~ monthly` rules.
 
 ## Viewing
 
