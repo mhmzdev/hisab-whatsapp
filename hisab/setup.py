@@ -53,11 +53,19 @@ class Setup:
         key = st["flow"][st["step"]]
         t = text.strip()
         if key == "mode":
-            mode = "shop" if re.search(r"shop|dukan|dukaan|store|business|kiryana|karyana", t, re.I) else "personal"
+            if re.search(r"shop|dukan|dukaan|store|business|kiryana|karyana", t, re.I):
+                mode = "shop"
+            elif re.search(r"personal|apna|mera|myself|me\b|home|ghar", t, re.I):
+                mode = "personal"
+            else:
+                return "Reply *personal* or *shop*.", False, None
             st["answers"]["mode"] = mode
             st["flow"] = SHOP if mode == "shop" else PERSONAL
         elif key == "currency":
-            st["answers"]["currency"] = (re.sub(r"[^A-Za-z]", "", t).upper() or "PKR")[:4]
+            cur = re.sub(r"[^A-Za-z]", "", t).upper()
+            if not (3 <= len(cur) <= 4):
+                return "Reply with a currency code, e.g. *PKR*.", False, None
+            st["answers"]["currency"] = cur
         else:
             st["answers"][key] = t
         st["step"] += 1
