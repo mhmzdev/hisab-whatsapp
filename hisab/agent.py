@@ -1,6 +1,7 @@
 """Raw tool-calling loop on OpenRouter chat completions. One key, any model."""
 import json
 import os
+import time
 from datetime import date
 import requests
 from .tools import SCHEMAS, Tools
@@ -73,9 +74,18 @@ class Agent:
         pin = self.cfg["model"].get("provider_pin")
         if pin:
             body["provider"] = {"order": [pin], "allow_fallbacks": False}
-        r = requests.post(f"{self.base}/chat/completions", headers={"Authorization": f"Bearer {self.key}", "HTTP-Referer": "https://github.com/mhmzdev/hisab-whatsapp",
-                                        "X-Title": "Hisab on WhatsApp"}, json=body, timeout=120)
-        if r.status_code // 100 != 2:
-            raise RuntimeError(f"model call failed: HTTP {r.status_code} {r.text[:300]}")
-        choice = r.json()["choices"][0]["message"]
-        return {k: v for k, v in choice.items() if k in ("role", "content", "tool_calls")}
+        headers = {"Authorization": f"Bearer {self.key}", "HTTP-Referer": "https://github.com/mhmzdev/hisab-whatsapp", "X-Title": "Hisab on WhatsApp"}
+        last = None
+        for attempt in range(4):  # 0s, 2s, 4s, 8s — hotspot blips and 429/5xx, not a hung demo
+            try:
+                r = requests.post(f"{self.base}/chat/completions", headers=headers, json=body, timeout=90)
+                if r.status_code // 100 == 2:
+                    choice = r.json()["choices"][0]["message"]
+                    return {k: v for k, v in choice.items() if k in ("role", "content", "tool_calls")}
+                last = f"HTTP {r.status_code} {r.text[:200]}"
+                if r.status_code not in (408, 409, 425, 429, 500, 502, 503, 504):
+                    break
+            except (requests.ConnectionError, requests.Timeout) as e:
+                last = f"{type(e).__name__}"
+            time.sleep(2 ** attempt)
+        raise RuntimeError(f"model call failed after retries: {last}")

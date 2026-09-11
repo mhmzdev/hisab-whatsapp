@@ -46,6 +46,7 @@ class Tools:
     def __init__(self, ledger: Ledger):
         self.ledger = ledger
         self.last_entry = None  # entry number posted during this turn, if any
+        self.last_block = None
 
     def call(self, name, args):
         try:
@@ -64,6 +65,7 @@ class Tools:
         p = [(x["account"], x.get("amount"), x.get("currency")) for x in (postings or [])]
         n, block = self.ledger.append(d, description, p, tags)
         self.last_entry = n
+        self.last_block = block
         return {"entry": n, "block": block, "month": self.ledger.month_summary()}
 
     def t_undo_last(self, entry_number=None):

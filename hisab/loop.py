@@ -70,6 +70,7 @@ class Hisab:
             content = prefix + text
         try:
             reply, tools = self.agent.run(history, content, hint)
+            self._last_block = tools.last_block
             return reply, tools.last_entry
         except LedgerError as e:
             return f"Not posted: {e}", None
@@ -158,8 +159,9 @@ class Hisab:
             self._mark_entry(mid, entry)
 
     def _mark_entry(self, mid, entry):
-        # re-record the inbound with its entry so a later quoted reply resolves to the number
-        self.store.add(mid, "note", "", entry=entry)
+        # re-record the inbound with its entry number AND the posted block: a quoted reply resolves to the number,
+        # and the ledger is replayable from the store alone (every entry sits next to the message that made it)
+        self.store.add(mid, "note", "", entry=entry, extra={"block": getattr(self, "_last_block", None)})
 
 
 def main():
