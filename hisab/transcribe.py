@@ -1,19 +1,48 @@
-"""Voice notes → text through OpenRouter's transcription endpoint (same key as the model)."""
+"""Voice notes → text. Provider "openrouter" uses the transcription endpoint (same key as the model);
+provider "gemini" uses google-genai directly with the audio bytes (accepts WhatsApp's OGG as-is)."""
+import os
+from pathlib import Path
 import requests
 
-URL = "https://openrouter.ai/api/v1/audio/transcriptions"
+OPENROUTER_URL = "https://openrouter.ai/api/v1/audio/transcriptions"
+PROMPT = ("Transcribe this voice note exactly as spoken. Keep the language as is: English stays English, Urdu may be "
+          "written in Urdu script or Roman Urdu as the speaker would type it. Numbers as digits. Output only the transcript.")
 
 
-def transcribe(path, api_key, model="openai/whisper-1", language=None):
+def transcribe(path, cfg):
+    path = Path(path)
+    tc = cfg["transcription"]
+    provider = (tc.get("provider") or "openrouter").lower()
+    if provider == "gemini":
+        return _gemini(path, os.environ.get("GEMINI_API_KEY", ""), tc.get("gemini_model") or "gemini-2.5-flash")
+    return _openrouter(path, cfg["secrets"]["openrouter_key"], tc.get("model") or "openai/whisper-1", tc.get("language"))
+
+
+def _openrouter(path, api_key, model, language=None):
     data = {"model": model}
     if language:
         data["language"] = language
     with open(path, "rb") as f:
-        r = requests.post(URL, headers={"Authorization": f"Bearer {api_key}"},
-                          data=data, files={"file": (path.name, f)}, timeout=120)
+        r = requests.post(OPENROUTER_URL, headers={"Authorization": f"Bearer {api_key}"}, data=data,
+                          files={"file": (path.name, f)}, timeout=120)
     if r.status_code // 100 != 2:
         raise RuntimeError(f"transcription failed: HTTP {r.status_code} {r.text[:300]}")
     text = (r.json().get("text") or "").strip()
+    if not text:
+        raise RuntimeError("transcription returned no text")
+    return text
+
+
+def _gemini(path, api_key, model):
+    if not api_key:
+        raise RuntimeError("GEMINI_API_KEY is not set")
+    from google import genai
+    from google.genai import types
+    mime = {".ogg": "audio/ogg", ".oga": "audio/ogg", ".opus": "audio/ogg", ".m4a": "audio/mp4", ".aac": "audio/aac",
+            ".mp3": "audio/mpeg", ".amr": "audio/amr", ".wav": "audio/wav"}.get(path.suffix.lower(), "audio/ogg")
+    client = genai.Client(api_key=api_key)
+    resp = client.models.generate_content(model=model, contents=[types.Part.from_bytes(data=path.read_bytes(), mime_type=mime), PROMPT])
+    text = (resp.text or "").strip()
     if not text:
         raise RuntimeError("transcription returned no text")
     return text

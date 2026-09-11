@@ -7,11 +7,15 @@ ledger:
 
 model:
   id: openai/gpt-4o-mini   # any OpenRouter model id; decided by testing the setup chat and Roman Urdu entries
+  base_url: null           # any OpenAI-compatible endpoint; null = OpenRouter. e.g. https://generativelanguage.googleapis.com/v1beta/openai
+  api_key_env: null        # env var holding the key for that endpoint; null = OPENROUTER_API_KEY
   provider_pin: null       # e.g. "openai" to keep requests on one provider (OpenRouter provider routing)
   agents_sdk: false        # experimental: run the loop through the OpenAI Agents SDK instead of the raw tool-calling loop
 
 transcription:
-  model: openai/whisper-1  # via OpenRouter /audio/transcriptions; accepts WhatsApp's OGG voice notes
+  provider: openrouter     # openrouter | gemini (gemini = google-genai with GEMINI_API_KEY; accepts OGG as-is)
+  model: openai/whisper-1  # openrouter provider: via /audio/transcriptions
+  gemini_model: gemini-2.5-flash
   language: null           # null = auto (English, Urdu, Roman Urdu); "ur" to force Urdu
 
 memory:

@@ -5,8 +5,8 @@ import yaml
 
 DEFAULTS = {
     "ledger": {"path": "./vault", "template": "personal", "currency": "PKR"},
-    "model": {"id": "openai/gpt-4o-mini", "provider_pin": None, "agents_sdk": False},
-    "transcription": {"model": "openai/whisper-1", "language": None},
+    "model": {"id": "openai/gpt-4o-mini", "base_url": None, "api_key_env": None, "provider_pin": None, "agents_sdk": False},
+    "transcription": {"provider": "openrouter", "model": "openai/whisper-1", "language": None, "gemini_model": "gemini-2.5-flash"},
     "memory": {"window_turns": 20, "keep_days": 30},
     "whatsapp": {"poll_timeout": 20, "chunk_chars": 3500},
     "state": {"path": "./data"},

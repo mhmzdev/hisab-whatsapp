@@ -137,7 +137,7 @@ class Hisab:
             if not path:
                 wa.send(frm, "Couldn't fetch that voice note."); return
             try:
-                text = transcribe(path, self.cfg["secrets"]["openrouter_key"], self.cfg["transcription"]["model"], self.cfg["transcription"]["language"])
+                text = transcribe(path, self.cfg)
             except Exception as e:
                 wa.send(frm, f"Couldn't transcribe that voice note ({str(e)[:120]}). Send it as text."); return
             text = f"[Voice note]: {text}"

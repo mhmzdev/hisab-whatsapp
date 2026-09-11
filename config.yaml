@@ -1,23 +1,15 @@
-# Copy to config.yaml. Everything here is safe to commit; secrets live in .env.
-
 ledger:
-  path: ./vault            # folder holding hisab.md, accounts.md, rules.md, the quarter files
-  template: personal       # personal | shop — used only when the folder is empty and setup runs
+  path: ./vault
+  template: personal
   currency: PKR
-
 model:
-  id: openai/gpt-4o-mini   # any OpenRouter model id; decided by testing the setup chat and Roman Urdu entries
-  provider_pin: null       # e.g. "openai" to keep requests on one provider (OpenRouter provider routing)
-  agents_sdk: false        # experimental: run the loop through the OpenAI Agents SDK instead of the raw tool-calling loop
-
+  id: gemini-3.8-flash
+  base_url: https://generativelanguage.googleapis.com/v1beta/openai
+  api_key_env: GEMINI_API_KEY
 transcription:
-  model: openai/whisper-1  # via OpenRouter /audio/transcriptions; accepts WhatsApp's OGG voice notes
-  language: null           # null = auto (English, Urdu, Roman Urdu); "ur" to force Urdu
-
+  provider: gemini
+  gemini_model: gemini-2.5-flash
 memory:
-  window_turns: 20         # rolling context from the message store
-  keep_days: 30            # message store retention
-
-whatsapp:
-  poll_timeout: 20         # seconds, max 25
-  chunk_chars: 3500        # replies longer than this are split (WhatsApp caps at 4096)
+  window_turns: 20
+state:
+  path: ./data

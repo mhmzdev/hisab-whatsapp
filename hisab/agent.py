@@ -1,10 +1,11 @@
 """Raw tool-calling loop on OpenRouter chat completions. One key, any model."""
 import json
+import os
 from datetime import date
 import requests
 from .tools import SCHEMAS, Tools
 
-URL = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER = "https://openrouter.ai/api/v1"
 
 SYSTEM = """You are Hisab, a ledger that lives in WhatsApp. The user texts money moments; you post them to a double-entry hledger ledger through your tools and reply in ONE short line.
 
@@ -30,7 +31,11 @@ class Agent:
     def __init__(self, cfg, ledger):
         self.cfg = cfg
         self.ledger = ledger
-        self.key = cfg["secrets"]["openrouter_key"]
+        self.base = (cfg["model"].get("base_url") or OPENROUTER).rstrip("/")
+        key_env = cfg["model"].get("api_key_env") or "OPENROUTER_API_KEY"
+        self.key = os.environ.get(key_env, "").strip() or cfg["secrets"]["openrouter_key"]
+        if not self.key:
+            raise RuntimeError(f"no API key: set {key_env} in .env")
 
     def system(self):
         names = self.ledger.account_names()
@@ -68,7 +73,7 @@ class Agent:
         pin = self.cfg["model"].get("provider_pin")
         if pin:
             body["provider"] = {"order": [pin], "allow_fallbacks": False}
-        r = requests.post(URL, headers={"Authorization": f"Bearer {self.key}", "HTTP-Referer": "https://github.com/mhmzdev/hisab-whatsapp",
+        r = requests.post(f"{self.base}/chat/completions", headers={"Authorization": f"Bearer {self.key}", "HTTP-Referer": "https://github.com/mhmzdev/hisab-whatsapp",
                                         "X-Title": "Hisab on WhatsApp"}, json=body, timeout=120)
         if r.status_code // 100 != 2:
             raise RuntimeError(f"model call failed: HTTP {r.status_code} {r.text[:300]}")

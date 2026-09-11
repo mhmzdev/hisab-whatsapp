@@ -20,3 +20,8 @@ daily/_done/
 .DS_Store
 .idea/
 .vscode/
+
+# local config and scratch
+config.yaml
+config-*.yaml
+scratch-*/
