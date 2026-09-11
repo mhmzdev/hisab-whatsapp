@@ -22,7 +22,7 @@ Expense tracking dies at the moment of paying. The app has to be opened, a categ
 - **hledger** — a real plain-text accounting engine. The ledger is a markdown file you can open anywhere. Every append is validated; a bad entry rolls back.
 - **A small tool-calling agent loop** on OpenRouter — one key for the model and for voice transcription. Six tools, nothing else: append, undo, report, learn a category rule, read accounts, add account. No shell, no file access.
 - **The WhatsApp Agent Platform** — a long-poll API with one hard rule: an agent talks only to the person who created it. Private by construction.
-- **Setup is a conversation** — the first message triggers up to eight questions and writes your chart of accounts.
+- **Setup is a conversation, in your language** — the first message asks English, اردو or Roman Urdu, then up to eight questions in that language, and writes your chart of accounts. Every reply after that follows the same choice; `/lang` changes it.
 
 ## Run it
 

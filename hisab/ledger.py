@@ -3,6 +3,7 @@ number, reports, category rules. No personal assumptions; the chart of accounts 
 """
 import csv
 import io
+import json
 import re
 import subprocess
 from datetime import date, datetime
@@ -35,6 +36,23 @@ class Ledger:
     def check(self):
         self.hledger("check", "--strict")
         return True
+
+    # ---------- settings (language, mode, currency) ----------
+    def settings(self):
+        f = self.dir / "settings.json"
+        try:
+            return json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+        except json.JSONDecodeError:
+            return {}
+
+    def set_settings(self, updates):
+        cur = self.settings(); cur.update(updates)
+        self.dir.mkdir(parents=True, exist_ok=True)
+        (self.dir / "settings.json").write_text(json.dumps(cur, ensure_ascii=False, indent=1), encoding="utf-8")
+        return cur
+
+    def language(self):
+        return self.settings().get("language", "en")
 
     # ---------- files ----------
     def quarter_file(self, d=None, create=True):

@@ -13,8 +13,8 @@ from .ledger import Ledger, LedgerError
 from .setup import Setup
 from .store import Store
 from .transcribe import transcribe
+from .i18n import s, parse_lang
 
-HELP = "Hisab: send an entry (*2500 coffee*, a voice note, a receipt photo), a question (*month*, *balances*, *what do I owe*), *undo*, or reply to an old message with *undo*. /setup redoes setup, /clear forgets the conversation."
 
 
 class Hisab:
@@ -31,13 +31,20 @@ class Hisab:
         """One inbound message → (reply text, entry number or None)."""
         t = (text or "").strip()
         low = t.lower()
+        lang = self.setup.lang() if self.setup.active() else (self.ledger.language() if self.ledger.exists() else "en")
         if low in ("/clear", "clear", "start fresh", "new session"):
             self.store.mark_clear()
-            return "Cleared.", None
+            return s("cleared", lang), None
         if low in ("/help", "help", "?"):
-            return HELP, None
+            return s("help", lang), None
         if low == "/setup":
             return self.setup.start(), None
+        if low.startswith("/lang"):
+            lg = parse_lang(low[5:])
+            if lg and self.ledger.exists():
+                self.ledger.set_settings({"language": lg})
+                return s("lang_set", lg), None
+            return s("lang_ask", lang), None
         if self.setup.active():
             reply, done, parked = self.setup.answer(t)
             if done and parked:
@@ -48,8 +55,8 @@ class Hisab:
             looks_like_entry = bool(t) and not t.startswith("/") and bool(re.search(r"\d", t))
             if looks_like_entry:
                 q = self.setup.start(parked=t)
-                return "No ledger here yet — quick setup first, then I'll post what you sent.\n\n" + q, None
-            return "No ledger here yet — quick setup first.\n\n" + self.setup.start(), None
+                return s("no_ledger_parked", "en") + "\n\n" + q, None
+            return s("no_ledger", "en") + "\n\n" + self.setup.start(), None
         return self._agent(t, quoted_id, image)
 
     def _agent(self, text, quoted_id, image=None):
@@ -75,9 +82,9 @@ class Hisab:
             self._last_block = tools.last_block
             return reply, tools.last_entry
         except LedgerError as e:
-            return f"Not posted: {e}", None
+            return s("not_posted", self.ledger.language(), err=str(e)), None
         except Exception as e:  # network / model
-            return f"Something failed on my side: {str(e)[:200]}", None
+            return s("failed", self.ledger.language(), err=str(e)[:200]), None
 
     # ---------- transports ----------
     def run_stdin(self):
@@ -138,20 +145,20 @@ class Hisab:
         elif typ == "audio":
             path, _ = wa.download(m["audio"]["id"], self.media_dir)
             if not path:
-                wa.send(frm, "Couldn't fetch that voice note."); return
+                wa.send(frm, s("fetch_fail", self._lang())); return
             try:
                 text = transcribe(path, self.cfg)
             except Exception as e:
-                wa.send(frm, f"Couldn't transcribe that voice note ({str(e)[:120]}). Send it as text."); return
+                wa.send(frm, s("voice_fail", self._lang(), err=str(e)[:120])); return
             text = f"[Voice note]: {text}"
         elif typ == "image":
             path, _ = wa.download(m["image"]["id"], self.media_dir)
             if not path:
-                wa.send(frm, "Couldn't fetch that image."); return
+                wa.send(frm, s("fetch_fail", self._lang())); return
             image = path
             text = (m["image"].get("caption") or "").strip()
         else:
-            wa.send(frm, f"Can't read {typ} yet — text, voice notes and photos only."); return
+            wa.send(frm, s("unsupported", self._lang(), typ=typ)); return
         self.store.add(mid, "in", text or "[image]")
         t0 = time.time()
         print(f"[{time.strftime('%H:%M:%S')}] in  {typ:<5} {(text or '[image]')[:80]!r}", flush=True)
@@ -162,6 +169,9 @@ class Hisab:
             self.store.add(i, "out", reply, entry=entry)
         if entry:
             self._mark_entry(mid, entry)
+
+    def _lang(self):
+        return self.setup.lang() if self.setup.active() else (self.ledger.language() if self.ledger.exists() else "en")
 
     def _mark_entry(self, mid, entry):
         # re-record the inbound with its entry number AND the posted block: a quoted reply resolves to the number,

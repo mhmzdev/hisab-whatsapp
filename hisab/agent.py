@@ -5,6 +5,7 @@ import time
 from datetime import date
 import requests
 from .tools import SCHEMAS, Tools
+from .i18n import MODEL_LANG, s as i18n_s
 
 OPENROUTER = "https://openrouter.ai/api/v1"
 
@@ -22,6 +23,7 @@ Rules:
 - A forwarded bank or wallet SMS (HBL, Meezan, Alfalah, JazzCash, Easypaisa, SadaPay, NayaPay…) is an entry: read the amount, the direction (debited/paid/sent = out, credited/received = in), the merchant or counterparty for the description, and the masked account digits to pick the money account if one matches. Post it without asking unless the category is unclear.
 - "what can I afford" / "kitna bacha hai" / "free cash": call report kind=afford and reply with its lines.
 - Today is {today}.
+- Language: {language}
 
 Declared accounts:
 {accounts}
@@ -42,7 +44,7 @@ class Agent:
         names = self.ledger.account_names()
         money = [a for a in names if a.startswith("assets:") and not a.startswith(("assets:receivable", "assets:staff"))]
         return SYSTEM.format(currency=self.ledger.currency, default_money=(money[0] if money else "assets:cash"),
-                             today=date.today().isoformat(), accounts="\n".join(names))
+                             today=date.today().isoformat(), accounts="\n".join(names), language=MODEL_LANG.get(self.ledger.language(), MODEL_LANG["en"]))
 
     def run(self, history, user_content, hint=None, max_rounds=6):
         """history: prior turns [{role, content}]. user_content: str or multimodal list. Returns (reply, tools)."""
@@ -67,7 +69,7 @@ class Agent:
                     args = {}
                 result = tools.call(name, args)
                 messages.append({"role": "tool", "tool_call_id": c["id"], "content": json.dumps(result, ensure_ascii=False)})
-        return "Too many steps for one message; try a shorter one.", tools
+        return i18n_s("too_many", self.ledger.language()), tools
 
     def _chat(self, messages):
         body = {"model": self.cfg["model"]["id"], "messages": messages, "tools": SCHEMAS, "tool_choice": "auto", "temperature": 0.2}

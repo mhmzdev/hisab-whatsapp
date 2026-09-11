@@ -13,7 +13,7 @@ readme = (out / "README.md").read_text(encoding="utf-8") if (out / "README.md").
 shutil.rmtree(out, ignore_errors=True)
 led = Ledger(out); tmp = Path(tempfile.mkdtemp())
 su = Setup(led, Store(tmp)); su.start()
-for a in ["shop", "PKR", "cash, Meezan bank", "Metro, Ali traders", "Bilal", "none", "rent 40000, salaries 60000"]:
+for a in ["English", "shop", "PKR", "cash, Meezan bank", "Metro, Ali traders", "Bilal", "none", "rent 40000, salaries 60000"]:
     su.answer(a)
 shutil.rmtree(tmp)
 A = lambda d, desc, posts, tags=None: led.append(d, desc, posts, tags)

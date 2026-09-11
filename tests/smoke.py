@@ -9,10 +9,10 @@ from hisab.wa import to_whatsapp, _chunks
 
 tmp = Path(tempfile.mkdtemp())
 try:
-    for mode, answers in (("personal", ["personal", "PKR", "Alfalah bank, cash, Easypaisa wallet", "Alfalah 15", "salary, freelance", "Meezan fund", "yes"]),
-                          ("shop", ["shop", "PKR", "cash, Meezan bank", "Metro, Ali traders", "Bilal, Ahmed", "none", "rent 40000, salaries 60000"])):
+    for mode, answers in (("personal", ["English", "personal", "PKR", "Alfalah bank, cash, Easypaisa wallet", "Alfalah 15", "salary, freelance", "Meezan fund", "yes"]),
+                          ("shop", ["English", "shop", "PKR", "cash, Meezan bank", "Metro, Ali traders", "Bilal, Ahmed", "none", "rent 40000, salaries 60000"])):
         led = Ledger(tmp / mode); st = Store(tmp / f"state-{mode}"); su = Setup(led, st)
-        q = su.start(parked="2500 coffee")
+        q = su.start(parked="2500 coffee"); assert "اردو" in q
         for ans in answers:
             q, done, parked = su.answer(ans)
         assert done and parked == "2500 coffee", (mode, done, parked)
@@ -55,6 +55,14 @@ try:
     assert [d for d, _ in af["not_yet_paid_this_month"]] == [], af  # rent and salaries both have September postings
     af8 = sample.afford("2026-08"); assert len(af8["not_yet_paid_this_month"]) == 2, af8
     print("afford:", af["can_afford"], "| August pending:", af8["not_yet_paid_this_month"])
+    # urdu flow: questions come back in urdu script, settings persisted
+    led = Ledger(tmp / "ur"); st = Store(tmp / "state-ur"); su = Setup(led, st); su.start()
+    r, _, _ = su.answer("اردو"); assert "ذاتی" in r, r
+    r, _, _ = su.answer("ذاتی"); assert "کرنسی" in r, r
+    for a in ["PKR", "cash", "نہیں", "salary", "نہیں", "نہیں"]:
+        r, done, _ = su.answer(a)
+    assert done and led.language() == "ur" and "سیٹ اپ مکمل" in r, (done, r)
+    print("urdu setup ok")
     print("ALL OK")
 finally:
     shutil.rmtree(tmp)
