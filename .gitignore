@@ -25,3 +25,6 @@ daily/_done/
 config.yaml
 config-*.yaml
 scratch-*/
+
+# misc
+NOTES.md

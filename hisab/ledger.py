@@ -104,6 +104,7 @@ class Ledger:
             if m:
                 block = m.group(1)
                 new = (text + "\n").replace("\n" + block, "\n", 1)
+                new = re.sub(r"\n{3,}", "\n\n", new)
                 f.write_text(new.rstrip("\n") + "\n", encoding="utf-8")
                 self.hledger("check", "--strict")
                 return block.strip()

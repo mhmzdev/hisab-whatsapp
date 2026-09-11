@@ -1,6 +1,7 @@
 """Main loop: poll WhatsApp → setup or agent → reply. `--stdin` runs the same pipeline from the terminal."""
 import argparse
 import base64
+import re
 import sys
 import time
 import traceback
@@ -44,10 +45,11 @@ class Hisab:
                 return reply + "\n\n" + r2, entry
             return reply, None
         if not self.ledger.exists():
-            if image or (t and not t.startswith("/")):
-                q = self.setup.start(parked=t if not image else None)
+            looks_like_entry = bool(t) and not t.startswith("/") and bool(re.search(r"\d", t))
+            if looks_like_entry:
+                q = self.setup.start(parked=t)
                 return "No ledger here yet — quick setup first, then I'll post what you sent.\n\n" + q, None
-            return self.setup.start(), None
+            return "No ledger here yet — quick setup first.\n\n" + self.setup.start(), None
         return self._agent(t, quoted_id, image)
 
     def _agent(self, text, quoted_id, image=None):
@@ -151,8 +153,11 @@ class Hisab:
         else:
             wa.send(frm, f"Can't read {typ} yet — text, voice notes and photos only."); return
         self.store.add(mid, "in", text or "[image]")
+        t0 = time.time()
+        print(f"[{time.strftime('%H:%M:%S')}] in  {typ:<5} {(text or '[image]')[:80]!r}", flush=True)
         reply, entry = self.handle(text, mid, quoted, image)
         ids = wa.send(frm, reply)
+        print(f"[{time.strftime('%H:%M:%S')}] out {time.time()-t0:5.1f}s entry={entry} {reply[:80]!r}", flush=True)
         for i in ids:
             self.store.add(i, "out", reply, entry=entry)
         if entry:
