@@ -50,6 +50,11 @@ try:
     st.mark_clear(); st.add("c", "in", "after"); assert len(st.window(20)) == 1
     assert to_whatsapp("**bold** and [[page|label]]\n# Head\n- item") == "*bold* and label\n*Head*\n• item"
     assert len(_chunks("a" * 8000, 3500)) == 3 and _chunks("p1\n\np2", 3500) == ["p1\n\np2"]
+    sample = Ledger(Path(__file__).resolve().parent.parent / "sample-vault")
+    af = sample.afford("2026-09"); assert len(sample.periodic_rules()) == 2, sample.periodic_rules()
+    assert [d for d, _ in af["not_yet_paid_this_month"]] == [], af  # rent and salaries both have September postings
+    af8 = sample.afford("2026-08"); assert len(af8["not_yet_paid_this_month"]) == 2, af8
+    print("afford:", af["can_afford"], "| August pending:", af8["not_yet_paid_this_month"])
     print("ALL OK")
 finally:
     shutil.rmtree(tmp)

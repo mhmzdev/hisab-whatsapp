@@ -21,9 +21,9 @@ SCHEMAS = [
         "parameters": {"type": "object", "properties": {"entry_number": {"type": ["integer", "null"]}}}}},
     {"type": "function", "function": {
         "name": "report",
-        "description": "Read-only numbers. kind: month (in/out/saved/top categories), week, balances, owed (receivables and payables), category (needs arg = account), register (recent entries, arg optional filter).",
+        "description": "Read-only numbers. kind: month (in/out/saved/top categories), week, balances, owed (receivables and payables), category (needs arg = account), register (recent entries, arg optional filter), afford (liquid money minus cards owed minus this month's fixed costs not yet paid).",
         "parameters": {"type": "object", "properties": {
-            "kind": {"type": "string", "enum": ["month", "week", "balances", "owed", "category", "register"]},
+            "kind": {"type": "string", "enum": ["month", "week", "balances", "owed", "category", "register", "afford"]},
             "arg": {"type": ["string", "null"]}, "period": {"type": ["string", "null"], "description": "YYYY-MM or hledger period like 'last month'"}},
             "required": ["kind"]}}},
     {"type": "function", "function": {

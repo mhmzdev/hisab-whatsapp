@@ -161,6 +161,47 @@ class Ledger:
             f.write(f"{kws} => {account}\n")
         return kws
 
+    # ---------- periodic rules ----------
+    def periodic_rules(self):
+        """`~ …` rules in accounts.md as dicts: desc, account, amount (Decimal), from."""
+        lines = self.accounts.read_text(encoding="utf-8").splitlines()
+        rules, i = [], 0
+        while i < len(lines):
+            line = lines[i]
+            if not line.startswith("~ "):
+                i += 1; continue
+            head = line[2:].split(";")[0]
+            parts = re.split(r"\s{2,}", head.strip(), maxsplit=1)
+            desc = parts[1].strip() if len(parts) > 1 else ""
+            postings, j = [], i + 1
+            while j < len(lines) and lines[j][:1] in (" ", "\t") and lines[j].strip():
+                p = lines[j].strip().split(";")[0].rstrip()
+                if p:
+                    ap = re.split(r"\s{2,}", p, maxsplit=1)
+                    postings.append((ap[0], ap[1].strip() if len(ap) > 1 else ""))
+                j += 1
+            if len(postings) >= 2:
+                rules.append({"desc": desc, "account": postings[0][0], "amount": _num(postings[0][1]), "from": postings[1][0]})
+            i = j
+        return rules
+
+    def afford(self, ym=None):
+        """Liquid money − cards owed − this month's periodic items whose account has no posting yet this month."""
+        ym = ym or date.today().strftime("%Y-%m")
+        liquid = {k: v for k, v in self._bal("assets").items()
+                  if not k.startswith(("assets:receivable", "assets:staff", "assets:investments", "assets:plots"))}
+        liquid_total = sum(liquid.values(), Decimal(0))
+        cards = -sum(self._bal("liabilities:card").values(), Decimal(0))
+        cards = cards if cards > 0 else Decimal(0)
+        pending = []
+        for r in self.periodic_rules():
+            if self._total(f"^{re.escape(r['account'])}$", "not:tag:opening", period=ym) == 0:
+                pending.append((r["desc"], r["amount"]))
+        pending_total = sum(v for _, v in pending)
+        return {"month": ym, "liquid": {k: fmt(v) for k, v in liquid.items()}, "liquid_total": fmt(liquid_total),
+                "cards_owed": fmt(cards), "not_yet_paid_this_month": [(d, fmt(v)) for d, v in pending],
+                "pending_total": fmt(pending_total), "can_afford": fmt(liquid_total - cards - pending_total)}
+
     # ---------- reports ----------
     def _bal(self, *query, period=None, depth=None):
         args = ["balance", "-N", "--flat", "-O", "csv", "-X", self.currency, "--infer-market-prices"]
@@ -214,7 +255,9 @@ class Ledger:
         if kind == "register":
             reg = self.hledger("register", "-p", period or "this month", "not:tag:opening", *( [arg] if arg else []), check=False).stdout
             return {"lines": [l.rstrip() for l in reg.splitlines()[-25:]]}
-        raise LedgerError(f"unknown report {kind}; use month, week, balances, owed, category, register")
+        if kind == "afford":
+            return self.afford(period)
+        raise LedgerError(f"unknown report {kind}; use month, week, balances, owed, category, register, afford")
 
 
 def _num(s):
