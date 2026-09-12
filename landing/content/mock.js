@@ -28,4 +28,7 @@ export const CONNECTED = {
   lastActivity: '12 minutes ago',
   entriesThisMonth: 47,
   language: 'Roman Urdu',
+  plan: 'PKR 300 / month · first month free',
+  quotaUsed: 212,
+  quotaTotal: 1000,
 }
