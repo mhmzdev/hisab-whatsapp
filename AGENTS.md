@@ -50,6 +50,9 @@ Dockerfile · docker-compose.yml · config.example.yaml · .env.example
 | The check (run before calling anything done) | `python3 tests/smoke.py` |
 | Regenerate the sample ledger | `python3 tests/make_sample.py` |
 | Terminal demo on a copy of the sample (needs a model key in `.env`) | `bash tests/demo_terminal.sh` |
+| Validate a pasted key: model, tools, transcription | `python3 tests/check_endpoint.py [--audio note.ogg]` |
+| Compare a model on the fixed demo script | `bash tests/bakeoff.sh <model-id>` |
+| Switch endpoint | `cp examples/config.openrouter.yaml config.yaml` or `examples/config.gemini.yaml` |
 | Terminal mode on the configured ledger | `python3 -m hisab.loop --stdin` |
 | Container | `docker compose up -d --build` · `docker compose logs -f` |
 | Strict check on any ledger | `hledger -f <dir>/hisab.md check --strict` |

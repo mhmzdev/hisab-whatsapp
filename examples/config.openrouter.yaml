@@ -1,0 +1,30 @@
+# Event / production config: one OpenRouter key for the model and voice transcription.
+# cp examples/config.openrouter.yaml config.yaml   and put OPENROUTER_API_KEY in .env
+
+ledger:
+  path: ./vault
+  template: personal
+  currency: PKR
+
+model:
+  id: openai/gpt-4.1-mini        # tools verified on OpenRouter; run tests/bakeoff.sh to compare candidates
+  base_url: null                 # null = OpenRouter
+  api_key_env: null              # null = OPENROUTER_API_KEY
+  provider_pin: null
+  agents_sdk: false
+
+transcription:
+  provider: openrouter
+  model: openai/whisper-1        # alternatives: openai/gpt-4o-transcribe, openai/whisper-large-v3
+  language: null                 # null = auto-detect (English, Urdu, Roman Urdu)
+
+memory:
+  window_turns: 20
+  keep_days: 30
+
+whatsapp:
+  poll_timeout: 20
+  chunk_chars: 3500
+
+state:
+  path: ./data

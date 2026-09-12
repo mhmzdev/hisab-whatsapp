@@ -14,7 +14,8 @@ No phone, no WhatsApp, one key. The same pipeline, against a committed sample le
 git clone https://github.com/mhmzdev/hisab-whatsapp && cd hisab-whatsapp
 pip install -r requirements.txt            # needs python3 and hledger on PATH (brew install hledger / apt install hledger)
 cp .env.example .env                       # put an OpenRouter key on the OPENROUTER_API_KEY line
-cp config.example.yaml config.yaml
+cp examples/config.openrouter.yaml config.yaml
+python3 tests/check_endpoint.py             # key valid, model has tools, transcription answers
 bash tests/demo_terminal.sh
 ```
 
