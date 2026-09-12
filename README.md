@@ -4,61 +4,86 @@ A ledger you text. Send **"2500 coffee"**, a voice note in Urdu, Roman Urdu or E
 
 *Hisab* (حساب) is the word every Urdu speaker already uses for exactly this.
 
-> **Status:** pre-hackathon build. Core, setup, tools and Docker in place; model and voice tests pending. Built for the AI Tinkerers global hackathon *Agents, Everywhere* on 2026-09-12. Extracted from a personal system running since early September 2026; the public version is being written here.
+> Built for the AI Tinkerers global hackathon *Agents, Everywhere* (2026-09-12). Extracted from a personal system the author has run since early September 2026; this is the public, API-level rewrite. Android only for the WhatsApp path — the platform has not shipped agent creation on iOS — so the terminal path below is how anyone else verifies it.
 
-## Why WhatsApp
+## Run it in your terminal, right now
 
-Expense tracking dies at the moment of paying. The app has to be opened, a category picked, and the moment passes. WhatsApp is already open. A voice note takes three seconds and works in whatever language you actually think in. The agent is useful *because* it lives where the money moment happens.
+No phone, no WhatsApp, one key. The same pipeline, against a committed sample ledger (a kiryana store, two weeks, fake numbers).
+
+```bash
+git clone https://github.com/mhmzdev/hisab-whatsapp && cd hisab-whatsapp
+pip install -r requirements.txt            # needs python3 and hledger on PATH (brew install hledger / apt install hledger)
+cp .env.example .env                       # put an OpenRouter key on the OPENROUTER_API_KEY line
+cp config.example.yaml config.yaml
+bash tests/demo_terminal.sh
+```
+
+Then type, one per line:
+
+```
+Metro ko kitna dena hai
+is mahine vs pichla
+aaj ki sale 45000
+what can I afford
+undo
+```
+
+You will see the supplier balance, a two-column month table, a posted entry with its number, an affordability block, and the entry reversed. Every reply is the model calling one of six tools against `hledger`; nothing is scripted.
 
 ## Why this is not a chatbot on WhatsApp
 
 - **Undo is a reply.** Quote the old message, say *undo*, and that entry reverses. A native WhatsApp gesture is the agent's control surface.
-- **Every ledger line links to the message that made it.** Entries carry a number; the message store maps it to the WhatsApp message id. The chat is the audit trail.
-- **Capture happens where the money moves.** A voice note at the till beats a form you open later.
-- **Private by platform.** A WhatsApp agent talks only to the person who created it. There is no server, no account with us, nothing to breach.
+- **Every ledger line sits beside the message that made it.** Entries carry a number; the store maps it to the WhatsApp message id and keeps the posted block. The chat is the audit trail.
+- **Private by platform.** A WhatsApp agent talks only to the person who created it. There is no server of ours, no account, nothing to breach.
 
 ## What's under it
 
-- **hledger** — a real plain-text accounting engine. The ledger is a markdown file you can open anywhere. Every append is validated; a bad entry rolls back.
-- **A small tool-calling agent loop** on OpenRouter — one key for the model and for voice transcription. Six tools, nothing else: append, undo, report, learn a category rule, read accounts, add account. No shell, no file access.
-- **The WhatsApp Agent Platform** — a long-poll API with one hard rule: an agent talks only to the person who created it. Private by construction.
-- **Setup is a conversation, in your language** — the first message asks English, اردو or Roman Urdu, then up to eight questions in that language, and writes your chart of accounts. Every reply after that follows the same choice; `/lang` changes it.
+- **hledger**, a real plain-text accounting engine, not a categoriser. The ledger is a markdown file you can open anywhere. Every append runs `hledger check --strict`; a bad entry rolls back. Transfers are transfers, not spend, so the month total is honest.
+- **A small tool-calling loop** on any OpenAI-compatible endpoint (OpenRouter by default, one key for the model and voice transcription). **Six tools, nothing else:** append, undo, report, learn a category rule, read accounts, add account. No shell, no file access.
+- **The WhatsApp Agent Platform**: long-poll, one creator, thirty days of buffered messages. Idempotent by message id; the offset advances only after a batch, so a crash replays rather than drops or doubles. Model calls retry with backoff.
+- **Setup is a conversation, in your language.** The first message asks English, اردو or Roman Urdu, then up to eight questions in that language, and writes your chart of accounts. Every reply after that follows the same choice; `/lang` changes it.
+- **Forwarded bank SMS are entries.** Long-press the bank's message, share it to the agent, done.
 
-## Run it
+Architecture in one page: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
-You need: an Android phone with WhatsApp, Docker, and an [OpenRouter](https://openrouter.ai) key.
+## Run it for real
+
+You need an Android phone with WhatsApp, Docker, and an [OpenRouter](https://openrouter.ai) key.
 
 1. In WhatsApp: Settings → Agents → Create an agent → Chat info → copy the API key.
 2. `cp .env.example .env` and paste the WhatsApp key and your OpenRouter key.
 3. `cp config.example.yaml config.yaml`. The defaults are fine; change the model if you like.
 4. `docker compose up -d`
-5. Send your agent any message. It asks up to eight questions, writes your chart of accounts, then posts what you sent.
+5. Send your agent any message. It asks your language, then up to eight questions, writes your chart of accounts, and posts what you sent.
 
-Your ledger lives in `./vault/` on your machine. Open that folder in Obsidian for the dashboard (below). Nothing goes to anyone but your model provider through OpenRouter; there is no server of ours.
+Your ledger lives in `./vault/` on your machine. Nothing goes to anyone but your model provider.
 
-Without WhatsApp, the same pipeline runs in a terminal: `python -m hisab.loop --stdin`.
-
-**Setting it up for someone else** (the shop case): they create the agent on *their* phone and send you the key; you run the container. They text, they get replies. You only ever see the ledger file, and only if they show you.
-
-## Try the sample
-
-`sample-vault/` is a kiryana store, two weeks, fake numbers. Point `ledger.path` at it and ask *Metro ko kitna dena hai*, *is mahine vs pichla*, *balances*. Open it in Obsidian with hledger-dashboard to see the budget tab populated from its `~ monthly` rules.
+**Setting it up for someone else** (a shop): they create the agent on *their* phone and send you the key; you run the container. They text, they get replies. You only ever see the ledger file, and only if they show you.
 
 ## Viewing
 
-The ledger is a markdown file. Open it in Obsidian with [hledger-dashboard](https://github.com/cousine/hledger-dashboard) for a balance sheet, monthly trends, a register and budget-versus-actual. [Hledger Notes](https://github.com/bzimor/obsidian_hledger) is a desk-side entry modal for batch backfill. Neither is part of this project.
+The ledger is a markdown file. Open the folder in Obsidian with [hledger-dashboard](https://github.com/cousine/hledger-dashboard) for a balance sheet, monthly trends, a register, transfers and budget-versus-actual, all read from the same file. [Hledger Notes](https://github.com/bzimor/obsidian_hledger) is a desk-side entry modal for batch backfill. Neither is part of this project. `hledger` on the command line reads the folder as-is.
 
-## Android only, for now
+## What else this pattern does
 
-The WhatsApp Agent Platform has not shipped agent creation on iOS.
+The same shape, one creator, long-poll, a fenced tool surface, is a different product with different tools. None of these is built here.
+
+- **A coding agent in your pocket.** Read-only over a repo by default; *what did I leave broken in auth yesterday* from the bus. This is where Hisab came from.
+- **Personal ops.** A morning message with today's three things; an evening voice note captured to a file.
+- **Small-business back office.** Stock counts, supplier orders, staff attendance, the same six-tool discipline.
+- **Field capture.** Site visits, deliveries, inspections: a photo plus a sentence, where the moment happens.
+
+## Privacy
+
+Entries, voice notes and receipt photos go to the model provider you configured, through OpenRouter or the endpoint you set. Nothing goes to the author. To keep one provider, set `model.provider_pin`. The ledger, the message store and your keys never leave the machine you run this on.
 
 ## What's next
 
 A hosted version for people who will never run Docker: sign up with a phone number, paste your agent's key, and we run the worker. Your key and ledger would then live on our server, encrypted, and you could take the ledger and revoke the key any time. Design notes in [`docs/brainstorm/hosted-portal.md`](docs/brainstorm/hosted-portal.md). Not part of this submission.
 
-## Related
+## Origin and related
 
-[`whatsapp-agent-relay`](https://github.com/mhmzdev/whatsapp-agent-relay) — the generic WhatsApp → coding-agent relay this project grew out of. Separate repo, after the event.
+Extracted from a personal system running since September 2026: a bash relay on a VPS between a WhatsApp agent and Claude Code over a private vault, plus a ledger skill. This repo is the public rewrite as a plain API loop so it runs with any model. The relay itself is [`whatsapp-agent-relay`](https://github.com/mhmzdev/whatsapp-agent-relay), a separate repo, after the event.
 
 ## License
 
