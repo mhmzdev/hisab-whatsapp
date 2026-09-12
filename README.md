@@ -1,5 +1,7 @@
 # Hisab on WhatsApp
 
+![Hisab — a ledger you text](showcase/hisab-cover.png)
+
 A ledger you text. Send **"2500 coffee"**, a voice note in Urdu, Roman Urdu or English, or a photo of a receipt to your own WhatsApp agent, and it posts a real double-entry transaction to a plain-text ledger you own. One line comes back: the entry number and where the month stands.
 
 *Hisab* (حساب) is the word every Urdu speaker already uses for exactly this.
@@ -35,7 +37,7 @@ You will see the supplier balance, a two-column month table, a posted entry with
 
 - **Undo is a reply.** Quote the old message, say *undo*, and that entry reverses. A native WhatsApp gesture is the agent's control surface.
 - **Every ledger line sits beside the message that made it.** Entries carry a number; the store maps it to the WhatsApp message id and keeps the posted block. The chat is the audit trail.
-- **Private by platform.** A WhatsApp agent talks only to the person who created it. There is no server of ours, no account, nothing to breach.
+- **Private by platform.** A WhatsApp agent talks only to the person who created it. Self-hosted, there is no server of ours, no account, nothing to breach.
 
 ## What's under it
 
@@ -44,6 +46,7 @@ You will see the supplier balance, a two-column month table, a posted entry with
 - **The WhatsApp Agent Platform**: long-poll, one creator, thirty days of buffered messages. Idempotent by message id; the offset advances only after a batch, so a crash replays rather than drops or doubles. Model calls retry with backoff.
 - **Setup is a conversation, in your language.** The first message asks English, اردو or Roman Urdu, then up to eight questions in that language, and writes your chart of accounts. Every reply after that follows the same choice; `/lang` changes it.
 - **Forwarded bank SMS are entries.** Long-press the bank's message, share it to the agent, done.
+- **`export-ledger` returns your books.** Send it to the agent and the ledger folder comes back as a ZIP document: no keys, no chat history.
 
 Architecture in one page: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
@@ -63,9 +66,9 @@ Your ledger lives in `./vault/` on your machine. Nothing goes to anyone but your
 
 ## Hosted Hisab (in progress)
 
-For people who will never run Docker: paste your agent's key into a hosted portal and we run the worker. Your key and your ledger would then live on our server, encrypted — exportable and revocable any time — while self-host (above) keeps both on your own machine. 300 PKR/month is the presentation price; it is not yet collectable anywhere in this repo.
+For people who will never run Docker: sign in with a phone number, paste your agent's key, send the code the portal shows you to your agent, and we run the worker. Your key and ledger then live on our server, encrypted. Send `export-ledger` to your agent and the ledger comes back as a ZIP; revoke stops the worker and deletes the key. Self-host (above) keeps both on your own machine. 300 PKR/month is the presentation price; nothing in this repo collects it.
 
-`make up` runs the worker and serves the landing page at `http://localhost:3030`; `make landing` builds it alone. See [`landing/README.md`](landing/README.md). Design notes: [`docs/brainstorm/hosted-portal.md`](docs/brainstorm/hosted-portal.md).
+What exists today: the landing page and portal shell in `landing/` (`make up` serves it at `http://localhost:3030`, `make landing` builds it alone), the runner in `runner/` that turns a Firestore tenant into one isolated worker, and the `export-ledger` command. Nonce verification, quota and revoke are open issues #5–#7. Design: [`docs/brainstorm/hosted-portal.md`](docs/brainstorm/hosted-portal.md); spec: [`docs/specs/001-hosted-portal.md`](docs/specs/001-hosted-portal.md).
 
 ## Viewing
 
@@ -83,10 +86,6 @@ The same shape, one creator, long-poll, a fenced tool surface, is a different pr
 ## Privacy
 
 Entries, voice notes and receipt photos go to the model provider you configured, through OpenRouter or the endpoint you set. Nothing goes to the author. To keep one provider, set `model.provider_pin`. The ledger, the message store and your keys never leave the machine you run this on.
-
-## What's next
-
-A hosted version for people who will never run Docker: sign up with a phone number, paste your agent's key, and we run the worker. Your key and ledger would then live on our server, encrypted, and you could take the ledger and revoke the key any time. Design notes in [`docs/brainstorm/hosted-portal.md`](docs/brainstorm/hosted-portal.md). Not part of this submission.
 
 ## Origin and related
 
