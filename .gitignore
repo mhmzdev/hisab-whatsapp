@@ -28,3 +28,5 @@ scratch-*/
 
 # misc
 NOTES.md
+# Obsidian config when a ledger folder is opened as a vault
+.obsidian/
