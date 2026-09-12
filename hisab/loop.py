@@ -9,10 +9,12 @@ from pathlib import Path
 
 from . import config as cfgmod
 from .agent import Agent
+from .archive import build_export_zip
 from .ledger import Ledger, LedgerError
 from .setup import Setup
 from .store import Store
 from .transcribe import transcribe
+from .wa import MAX_DOCUMENT_BYTES
 from .i18n import s, parse_lang
 
 
@@ -28,10 +30,16 @@ class Hisab:
         self.media_dir.mkdir(parents=True, exist_ok=True)
 
     def handle(self, text, msg_id=None, quoted_id=None, image=None):
-        """One inbound message → (reply text, entry number or None)."""
+        """One inbound message → (reply text, entry number or None). Sets self._pending_document when the
+        reply should ship as a WhatsApp document instead of (or alongside) the text — export-ledger only."""
         t = (text or "").strip()
         low = t.lower()
         lang = self.setup.lang() if self.setup.active() else (self.ledger.language() if self.ledger.exists() else "en")
+        self._pending_document = None
+        if low == "export-ledger":
+            # intercepted before setup/agent dispatch: an exact runner-level command, not a model tool,
+            # so it never touches the six-tool contract or spends model quota
+            return self._export_ledger(lang)
         if low in ("/clear", "clear", "start fresh", "new session"):
             self.store.mark_clear()
             return s("cleared", lang), None
@@ -86,6 +94,19 @@ class Hisab:
         except Exception as e:  # network / model
             return s("failed", self.ledger.language(), err=str(e)[:200]), None
 
+    def _export_ledger(self, lang):
+        if not self.ledger.exists():
+            return s("no_ledger", lang), None
+        export_dir = self.media_dir.parent / "exports"
+        dest = export_dir / f"hisab-export-{time.strftime('%Y%m%d-%H%M%S')}.zip"
+        build_export_zip(self.ledger, dest)
+        size = dest.stat().st_size
+        if size > MAX_DOCUMENT_BYTES:
+            dest.unlink(missing_ok=True)
+            return s("export_too_large", lang, mb=f"{size / (1024 * 1024):.1f}"), None
+        self._pending_document = dest
+        return s("export_ready", lang), None
+
     # ---------- transports ----------
     def run_stdin(self):
         print("Hisab, terminal mode. Type a message; 'quit' to stop.")
@@ -104,7 +125,8 @@ class Hisab:
             self.store.add(f"stdin-out:{i}", "out", reply, entry=entry)
             if entry:
                 self._mark_entry(mid, entry)
-            print(reply)
+            doc = self._pending_document
+            print(f"{reply} (zip at {doc})" if doc else reply)
 
     def run_whatsapp(self):
         from .wa import WhatsApp
@@ -169,7 +191,16 @@ class Hisab:
         t0 = time.time()
         print(f"[{time.strftime('%H:%M:%S')}] in  {typ:<5} {(text or '[image]')[:80]!r}", flush=True)
         reply, entry = self.handle(text, mid, quoted, image)
-        ids = wa.send(frm, reply)
+        doc = self._pending_document
+        if doc:
+            try:
+                ids = [wa.send_document(frm, doc, filename=doc.name, caption=reply)]
+            except Exception as e:
+                ids = wa.send(frm, s("export_fail", self._lang(), err=str(e)[:120]))
+            finally:
+                doc.unlink(missing_ok=True)
+        else:
+            ids = wa.send(frm, reply)
         print(f"[{time.strftime('%H:%M:%S')}] out {time.time()-t0:5.1f}s entry={entry} {reply[:80]!r}", flush=True)
         for i in ids:
             self.store.add(i, "out", reply, entry=entry)

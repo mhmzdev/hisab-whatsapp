@@ -17,9 +17,9 @@ S = {
   "roman": "Abhi koi khata nahi — pehle chhota sa setup."},
  "cleared": {"en": "Cleared.", "ur": "صاف کر دیا۔", "roman": "Clear kar diya."},
  "help": {
-  "en": "Hisab: send an entry (*2500 coffee*, a voice note, a receipt photo), a question (*month*, *balances*, *what do I owe*), *undo*, or reply to an old message with *undo*. /setup redoes setup, /lang changes language, /clear forgets the conversation.",
-  "ur": "حساب: اندراج بھیجیں (*2500 chai*، وائس نوٹ، رسید کی تصویر)، سوال پوچھیں (*mahina*، *balance*، *kitna dena hai*)، *undo* لکھیں، یا پرانے پیغام پر ریپلائی کر کے *undo*۔ /setup سیٹ اپ دوبارہ، /lang زبان، /clear گفتگو بھول جاؤ۔",
-  "roman": "Hisab: entry bhejein (*2500 chai*, voice note, receipt ki photo), sawal poochein (*mahina*, *balance*, *kitna dena hai*), *undo* likhein, ya purane message par reply kar ke *undo*. /setup dobara setup, /lang zabaan, /clear guftagu bhool jao."},
+  "en": "Hisab: send an entry (*2500 coffee*, a voice note, a receipt photo), a question (*month*, *balances*, *what do I owe*), *undo*, or reply to an old message with *undo*. /setup redoes setup, /lang changes language, /clear forgets the conversation, *export-ledger* sends a ZIP backup.",
+  "ur": "حساب: اندراج بھیجیں (*2500 chai*، وائس نوٹ، رسید کی تصویر)، سوال پوچھیں (*mahina*، *balance*، *kitna dena hai*)، *undo* لکھیں، یا پرانے پیغام پر ریپلائی کر کے *undo*۔ /setup سیٹ اپ دوبارہ، /lang زبان، /clear گفتگو بھول جاؤ، *export-ledger* سے ZIP بیک اپ۔",
+  "roman": "Hisab: entry bhejein (*2500 chai*, voice note, receipt ki photo), sawal poochein (*mahina*, *balance*, *kitna dena hai*), *undo* likhein, ya purane message par reply kar ke *undo*. /setup dobara setup, /lang zabaan, /clear guftagu bhool jao, *export-ledger* se ZIP backup."},
  "lang_set": {"en": "Language: English.", "ur": "زبان: اردو۔", "roman": "Zabaan: Roman Urdu."},
  "lang_ask": {"en": "Reply *English*, *اردو* or *Roman Urdu*.", "ur": "*English*، *اردو* یا *Roman Urdu* لکھیں۔", "roman": "*English*, *اردو* ya *Roman Urdu* likhein."},
  "voice_fail": {
@@ -34,6 +34,17 @@ S = {
  "not_posted": {"en": "Not posted: {err}", "ur": "درج نہیں ہوا: {err}", "roman": "Post nahi hua: {err}"},
  "failed": {"en": "Something failed on my side: {err}", "ur": "میری طرف سے مسئلہ ہوا: {err}", "roman": "Meri taraf se masla hua: {err}"},
  "too_many": {"en": "Too many steps for one message; try a shorter one.", "ur": "ایک پیغام کے لیے بہت زیادہ مراحل؛ چھوٹا پیغام بھیجیں۔", "roman": "Ek message ke liye bohat zyada steps; chhota message bhejein."},
+ "export_ready": {
+  "en": "Here's your ledger — the canonical markdown files, nothing else.",
+  "ur": "یہ آپ کا کھاتہ ہے — صرف اصل مارک ڈاؤن فائلیں، کچھ اور نہیں۔",
+  "roman": "Yeh raha aap ka khata — sirf asal markdown files, aur kuch nahi."},
+ "export_too_large": {
+  "en": "Ledger export is {mb} MB, over WhatsApp's 16 MB document limit.",
+  "ur": "کھاتے کی فائل {mb} MB ہے، WhatsApp کی 16 MB حد سے زیادہ۔",
+  "roman": "Khata file {mb} MB hai, WhatsApp ki 16 MB limit se zyada."},
+ "export_fail": {"en": "Couldn't send the ledger export ({err}). Try again in a bit.",
+  "ur": "کھاتہ بھیجا نہیں جا سکا ({err})۔ تھوڑی دیر میں دوبارہ کوشش کریں۔",
+  "roman": "Khata bheja nahi ja saka ({err}). Thodi dair mein dobara koshish karein."},
 }
 
 Q = {

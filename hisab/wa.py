@@ -6,6 +6,7 @@ from pathlib import Path
 import requests
 
 BASE = "https://api.whatsapp.com/agent/v1"
+MAX_DOCUMENT_BYTES = 16 * 1024 * 1024  # WhatsApp's platform cap for outbound documents
 
 
 class WhatsApp:
@@ -71,6 +72,26 @@ class WhatsApp:
             if i < len(parts):
                 time.sleep(1)
         return ids
+
+    def send_document(self, to, path, filename, caption=None):
+        """Upload a local file and send it as a WhatsApp document. Returns the sent message id."""
+        path = Path(path)
+        with path.open("rb") as f:
+            r = requests.post(f"{BASE}/media", headers=self.h,
+                               files={"file": (filename, f, "application/zip")},
+                               data={"messaging_product": "whatsapp"}, timeout=60)
+        if r.status_code // 100 != 2:
+            raise RuntimeError(f"media upload failed: HTTP {r.status_code} {r.text[:300]}")
+        media_id = r.json().get("id")
+        doc = {"id": media_id, "filename": filename}
+        if caption:
+            doc["caption"] = caption
+        r = requests.post(f"{BASE}/messages", headers=self.h, json={
+            "messaging_product": "whatsapp", "to": to, "type": "document", "document": doc}, timeout=30)
+        if r.status_code // 100 != 2:
+            raise RuntimeError(f"send failed: HTTP {r.status_code} {r.text[:300]}")
+        d = r.json()
+        return (d.get("messages") or [{}])[0].get("id") or d.get("id") or f"out:{int(time.time()*1000)}"
 
 
 def _ext(mime):
