@@ -53,19 +53,21 @@ Dockerfile · docker-compose.yml · config.example.yaml · .env.example
 | Validate a pasted key: model, tools, transcription | `python3 tests/check_endpoint.py [--audio note.ogg]` |
 | Compare a model on the fixed demo script | `bash tests/bakeoff.sh <model-id>` |
 | Switch endpoint | `cp examples/config.openrouter.yaml config.yaml` or `examples/config.gemini.yaml` |
+| Validate the sponsor config before a demo | `python3 tests/check_endpoint.py --config config-dev.yaml` |
 | Terminal mode on the configured ledger | `python3 -m hisab.loop --stdin` |
 | Container | `docker compose up -d --build` · `docker compose logs -f` |
 | Strict check on any ledger | `hledger -f <dir>/hisab.md check --strict` |
 
 ## Docker, and which ledger is mounted
 
-The container runs `python -m hisab.loop` and polls the WhatsApp agent whose token is in `.env`. It reads `config.yaml` and mounts **one ledger folder** at `/app/vault`; the compose variable `HISAB_VAULT` chooses which (default `./vault`). State (`offset`, `messages.jsonl`, media) lives in the named volume `hisab-data`, not in the ledger folder.
+The container runs `python -m hisab.loop` and polls the WhatsApp agent whose token is in `.env`. It reads the config file selected by `HISAB_CONFIG` (default `./config.yaml`, Gemini) and mounts **one ledger folder** at `/app/vault`, selected the same way by `HISAB_VAULT` (default `./vault`). State (`offset`, `messages.jsonl`, media) lives in the named volume `hisab-data`, not in the ledger folder.
 
 | Task | Command |
 |---|---|
 | Run against the personal test ledger `./vault` | `docker compose up -d --build` |
 | Run against the sample kiryana ledger (the dashboard demo) | `HISAB_VAULT=./sample-vault docker compose up -d --build` |
 | Run against any other folder | `HISAB_VAULT=/path/to/folder docker compose up -d --build` — an empty folder means the first message triggers setup |
+| Run the sponsor demo (OpenRouter, sample ledger) | `HISAB_CONFIG=./config-dev.yaml HISAB_VAULT=./sample-vault docker compose up -d --build` |
 | Watch messages and turn times | `docker compose logs -f` |
 | Restart after a code or config change | the same `up -d --build` line you started with |
 | Stop, keep state | `docker compose down` |
@@ -76,7 +78,7 @@ Rules for agents:
 - `--build` after any change under `hisab/`, `templates/` or `requirements.txt`; the image copies the code, it is not a bind mount.
 - **One container per WhatsApp token.** Two pollers on the same agent fight over the cursor (HTTP 409). A second agent needs its own compose project name and its own `.env`.
 - Entries from the phone write into whatever `HISAB_VAULT` points at. After testing on `./sample-vault`, either keep the entries or run `python3 tests/make_sample.py` to regenerate the committed sample; never hand-edit it.
-- `config.yaml` is the local, gitignored config the container reads. Switch endpoints by copying from `examples/` (`config.openrouter.yaml`, `config.gemini.yaml`) and restarting; validate with `python3 tests/check_endpoint.py` first.
+- `config.yaml` is the local, gitignored config the container reads by default. `HISAB_CONFIG` selects a different gitignored config file for the compose mount (default `./config.yaml`); switching the selection never overwrites `config.yaml`, which stays the Gemini rollback. Switch endpoints in `config.yaml` itself by copying from `examples/` (`config.openrouter.yaml`, `config.gemini.yaml`) and restarting; validate any config file, including `config-dev.yaml`, with `python3 tests/check_endpoint.py --config <file>` first.
 - `down -v` also deletes the entry-number ↔ message-id map, so reply-to-undo on messages from before the wipe will say the message is not on record. Expected.
 - Never run `docker compose` against a real person's ledger during development; use `./vault`, `./sample-vault` or a scratch copy.
 

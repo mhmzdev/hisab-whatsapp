@@ -22,6 +22,7 @@ Up: [docs/INDEX.md](../INDEX.md). Written by `/create-plan` into `backlog/`; `/i
 | Plan | Shipped | Summary |
 |---|---|---|
 | [GH-3-hosted-landing-portal-shell](completed/GH-3-hosted-landing-portal-shell.md) | 2026-09-12 | Static Next.js landing page + four-state portal shell (mocks only); `tests/check_landing.py` wired into smoke |
+| [GH-2-dev-config-selection](completed/GH-2-dev-config-selection.md) | 2026-09-12 | `docker-compose.yml` config mount now follows `HISAB_CONFIG`; `make dev` selects the gitignored OpenRouter `config-dev.yaml`; `make up`/`stdin`/`demo` stay on Gemini |
 
 ## Superseded
 | Plan | Superseded by |
