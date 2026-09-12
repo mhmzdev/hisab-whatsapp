@@ -10,6 +10,7 @@ DEFAULTS = {
     "data_root": "./runner-data/data",
     "tenants_dir": "./runner-data/tenants",
     "ledger": {"template": "shop", "currency": "PKR"},
+    "quota": {"monthly_limit": 1000},
     "model": {"id": "openai/gpt-4o-mini", "base_url": None, "api_key_env": None, "provider_pin": None, "agents_sdk": False},
     "transcription": {"provider": "openrouter", "model": "openai/whisper-1", "base_url": None, "api_key_env": None, "language": None, "gemini_model": "gemini-2.5-flash"},
 }

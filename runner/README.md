@@ -7,13 +7,14 @@ model/transcription config, never a tenant-supplied one. See
 [docs/exec-plans/completed/GH-4-hosted-tenant-runner.md](../docs/exec-plans/completed/GH-4-hosted-tenant-runner.md)
 for the design, and [issue #4](https://github.com/mhmzdev/hisab-whatsapp/issues/4).
 
-This is infrastructure only: nonce verification, the welcome message, quota, revoke, and
-`export-ledger` are separate work ([#7](https://github.com/mhmzdev/hisab-whatsapp/issues/7),
-[#6](https://github.com/mhmzdev/hisab-whatsapp/issues/6),
-[#5](https://github.com/mhmzdev/hisab-whatsapp/issues/5),
-[#8](https://github.com/mhmzdev/hisab-whatsapp/issues/8)). A tenant with `status: pending` runs a
+This is infrastructure only: nonce verification and revoke are separate work
+([#7](https://github.com/mhmzdev/hisab-whatsapp/issues/7),
+[#5](https://github.com/mhmzdev/hisab-whatsapp/issues/5)). A tenant with `status: pending` runs a
 worker that receives inbound WhatsApp messages but sends nothing at all — no ledger, no reply —
-until later work flips it to `connected`.
+until later work flips it to `connected`. The monthly model-call allowance
+([#6](https://github.com/mhmzdev/hisab-whatsapp/issues/6)) and `export-ledger`
+([#8](https://github.com/mhmzdev/hisab-whatsapp/issues/8)) are already in: see `quota` below and
+`hisab/loop.py`'s `_agent`/`_export_ledger`.
 
 ## One-time setup
 
@@ -41,7 +42,10 @@ payments — that stays out of scope for the whole hosted MVP (spec 001).
 
 - `crypto.py` — sealed-box decrypt/encrypt/keygen.
 - `config.py` — `runner/config.yaml` + `RUNNER_PRIVATE_KEY`; resolves `vault_root`/`data_root`/`tenants_dir` to absolute paths.
-- `tenant_config.py` — UID-scoped per-tenant config, always the runner's global model/transcription.
+- `tenant_config.py` — UID-scoped per-tenant config, always the runner's global model/transcription
+  and `quota.monthly_limit` (`config.yaml`'s `quota` block — every tenant shares the same allowance
+  for now). The worker itself (`hisab/loop.py`'s `_agent`, `hisab/store.py`'s `usage()`) counts
+  model calls and enforces the limit; the runner only sets the number.
 - `workers.py` — `WorkerManager`: start/stop/restart a tenant's `hisab.loop` subprocess.
 - `reconcile.py` — the whole tenant collection → desired worker state, idempotent by content hash.
 - `firestore_listener.py` / `main.py` — the one Firestore snapshot listener and the process entrypoint.

@@ -47,6 +47,22 @@ class Store:
         else:
             self._put("setup.json", state)
 
+    # --- monthly model-call quota (hosted mode; self-host never reads this) ---
+    def usage(self):
+        """This calendar month's model-call count. Rolls over to 0 on a new month without a write,
+        so a month boundary needs no cron — the next call just persists the reset."""
+        data = self._json("usage.json", {})
+        month = time.strftime("%Y-%m")
+        return {"month": month, "calls": data.get("calls", 0) if data.get("month") == month else 0}
+
+    def record_model_call(self):
+        """Increment and persist this month's counter. Call once per model dispatch — never on
+        retries within one dispatch, so a network blip inside one turn is not double-billed."""
+        usage = self.usage()
+        usage["calls"] += 1
+        self._put("usage.json", usage)
+        return usage["calls"]
+
     # --- messages ---
     def add(self, msg_id, direction, text, entry=None, extra=None):
         rec = {"id": msg_id, "dir": direction, "ts": int(time.time()), "text": text}

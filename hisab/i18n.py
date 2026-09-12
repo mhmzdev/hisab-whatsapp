@@ -45,6 +45,14 @@ S = {
  "export_fail": {"en": "Couldn't send the ledger export ({err}). Try again in a bit.",
   "ur": "کھاتہ بھیجا نہیں جا سکا ({err})۔ تھوڑی دیر میں دوبارہ کوشش کریں۔",
   "roman": "Khata bheja nahi ja saka ({err}). Thodi dair mein dobara koshish karein."},
+ "quota_warning": {
+  "en": "Heads up: {used}/{limit} replies used this month.",
+  "ur": "دھیان رہے: اس مہینے {used}/{limit} جوابات استعمال ہو چکے ہیں۔",
+  "roman": "Dhyan rahe: is mahine {used}/{limit} replies istemal ho chuke hain."},
+ "quota_exceeded": {
+  "en": "Monthly limit of {limit} AI replies reached — resumes next month. /help, /lang and export-ledger still work.",
+  "ur": "اس مہینے کی {limit} AI جوابات کی حد پوری ہو گئی — اگلے مہینے دوبارہ شروع ہوگی۔ /help، /lang اور export-ledger اب بھی کام کریں گے۔",
+  "roman": "Is mahine ki {limit} AI replies ki limit poori ho gayi — agle mahine dobara shuru hogi. /help, /lang aur export-ledger ab bhi kaam karenge."},
 }
 
 Q = {

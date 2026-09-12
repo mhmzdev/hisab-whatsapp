@@ -22,6 +22,7 @@ def build_tenant_config(uid, tenant_doc, runner_cfg):
         "transcription": dict(runner_cfg["transcription"]),
         "state": {"path": str(Path(runner_cfg["data_root"]) / uid)},
         "pending": tenant_doc.get("status") != "connected",
+        "quota": dict(runner_cfg["quota"]),
     }
 
 
