@@ -52,6 +52,10 @@ The ledger is a markdown file. Open it in Obsidian with [hledger-dashboard](http
 
 The WhatsApp Agent Platform has not shipped agent creation on iOS.
 
+## What's next
+
+A hosted version for people who will never run Docker: sign up with a phone number, paste your agent's key, and we run the worker. Your key and ledger would then live on our server, encrypted, and you could take the ledger and revoke the key any time. Design notes in [`docs/brainstorm/hosted-portal.md`](docs/brainstorm/hosted-portal.md). Not part of this submission.
+
 ## Related
 
 [`whatsapp-agent-relay`](https://github.com/mhmzdev/whatsapp-agent-relay) — the generic WhatsApp → coding-agent relay this project grew out of. Separate repo, after the event.
