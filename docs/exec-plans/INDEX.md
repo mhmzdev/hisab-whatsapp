@@ -13,6 +13,7 @@ Up: [docs/INDEX.md](../INDEX.md). Written by `/create-plan` into `backlog/`; `/i
 ## Backlog
 | Plan | Problem it solves | Depends on |
 |---|---|---|
+| [GH-4-hosted-tenant-runner](backlog/GH-4-hosted-tenant-runner.md) | Reconciles a Firestore tenant into an isolated `hisab.loop` worker (UID-scoped paths, sealed-box key decryption, idempotent lifecycle, pending-mute) | nothing |
 
 ## Active
 | Plan | Started | Issue |
