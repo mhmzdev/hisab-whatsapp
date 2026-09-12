@@ -30,7 +30,7 @@ Hosted means **we hold the key and the ledger**. The "no server of ours, private
 1. **Landing page** → *Get started* opens the sign-up modal.
 2. **Account** = phone number, Firebase phone auth (SMS OTP). Chosen over Google or email because the long-run user is a layman in Pakistan; a phone number is the identity they already have.
 3. **Connect the agent.** The portal asks for the agent's name and the API key from WhatsApp → Settings → Agents → Chat info. It writes a tenant document to Firestore. The key is **never shown again** after entry.
-4. **Prove ownership without Meta Business or a second OTP service.** The VPS runner picks up the new tenant and sends a six-digit challenge **through the user's own agent** to its creator (the API allows unprompted sends to the creator). The user replies with the verification text through that same WhatsApp conversation; the runner matches the challenge and reply, which proves control of the agent and hands us the creator id. No Meta Business API, no external SMS OTP service, no second phone verification.
+4. **Prove ownership without Meta Business or a second OTP service.** The VPS runner picks up the new tenant and starts a worker on the key. **A fresh key cannot send unprompted**: the API only accepts a `to` it has already received a message from. So the portal says *"now send any message to your agent"*; the first inbound reveals the creator id, and the worker replies with the six-digit challenge **through the user's own agent**. The user replies with the verification text through that same WhatsApp conversation; the runner matches the challenge and reply, which proves control of the agent and hands us the creator id. No Meta Business API, no external SMS OTP service, no second phone verification.
 
 The reply is a fixed, machine-readable command carrying the nonce (for example, `verify 482913`), matched case-insensitively with a short expiry; a bare six-digit number is not accepted as proof.
 
@@ -46,9 +46,9 @@ Language is not selected before verification. Pending-state reminders therefore 
    > شروع کرنے کے لیے کچھ بھی بھیجیں — رقم، وائس نوٹ، یا رسید کی تصویر۔ زبان چننے کے لیے *English*، *اردو* یا *Roman Urdu* لکھیں۔
 
 6. **Portal after that** shows only: agent name, *connected since*, last activity time, entries this month, language, a *Send me my ledger* hint, and **Revoke key**. No ledger contents in the browser.
-7. **The ledger stays on the VPS disk.** *"send me my ledger"* in WhatsApp sends the folder as a document (WhatsApp media, 16 MB cap). Mirroring to Firebase Storage is a later line, not this one.
+7. **The ledger stays on the VPS disk.** The exact command *`export-ledger`* in WhatsApp sends the folder as a document (WhatsApp media, 16 MB cap). Mirroring to Firebase Storage is a later line, not this one.
 
-For MVP, that document is a ZIP ledger bundle containing `hisab.md`, all included quarter files, `accounts.md`, `rules.md`, and `settings.json`. It never contains the API key/ciphertext, `.env`, worker state, message history, or downloaded media. The worker creates it locally and uploads it as a WhatsApp document; it is not rendered as ordinary chat text.
+For MVP, that document is a ZIP ledger bundle containing `hisab.md`, all included quarter files, `accounts.md`, `rules.md`, and `settings.json`. It never contains the API key/ciphertext, `.env`, worker state, message history, or downloaded media. The worker creates it locally and uploads it as a WhatsApp document; it is not rendered as ordinary chat text. `export-ledger` is intercepted before the model loop, preserving the six-tool contract.
 
 ## Tenancy on the VPS
 

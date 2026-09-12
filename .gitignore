@@ -30,3 +30,6 @@ scratch-*/
 NOTES.md
 # Obsidian config when a ledger folder is opened as a vault
 .obsidian/
+
+# third-party documents never belong here
+*.pdf
