@@ -10,8 +10,9 @@ up: ## Docker up against your local ledger (default ./vault). Override: make up 
 	HISAB_VAULT=$(HISAB_VAULT) docker compose up -d --build
 
 dev: HISAB_VAULT ?= ./sample-vault
-dev: ## Docker up against the sample ledger, to demo/verify once a feature is ready. Override: make dev HISAB_VAULT=/path/to/folder
-	HISAB_VAULT=$(HISAB_VAULT) docker compose up -d --build
+dev: HISAB_CONFIG ?= ./config-dev.yaml
+dev: ## Docker up against the sample ledger with the OpenRouter sponsor config. Override: make dev HISAB_VAULT=/path/to/folder HISAB_CONFIG=/path/to/config.yaml
+	HISAB_VAULT=$(HISAB_VAULT) HISAB_CONFIG=$(HISAB_CONFIG) docker compose up -d --build
 
 down: ## Docker down, keep state
 	docker compose down
