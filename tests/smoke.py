@@ -63,6 +63,14 @@ try:
         r, done, _ = su.answer(a)
     assert done and led.language() == "ur" and "سیٹ اپ مکمل" in r, (done, r)
     print("urdu setup ok")
+    landing_strings = Path(__file__).resolve().parent.parent / "landing" / "content" / "strings.json"
+    if landing_strings.exists():
+        from check_landing import run as check_landing_run
+        landing_failures = check_landing_run(Path(__file__).resolve().parent.parent)
+        assert not landing_failures, landing_failures
+        print("landing: ok")
+    else:
+        print("landing: skipped (no landing/)")
     print("ALL OK")
 finally:
     shutil.rmtree(tmp)

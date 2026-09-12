@@ -12,3 +12,4 @@ Acceptance checklists written by /review, one per slug; /open-pr seeds the PR Te
 
 | Checklist | Slug | Proven / manual / failing | Date |
 |---|---|---|---|
+| [GH-3-hosted-landing-portal-shell](GH-3-hosted-landing-portal-shell.md) | GH-3-hosted-landing-portal-shell | 7 / 2 / 0 | 2026-09-12 |

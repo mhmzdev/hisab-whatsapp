@@ -1,0 +1,247 @@
+{
+  "brand": {
+    "en": "Hosted Hisab",
+    "ur": "Hosted Hisab",
+    "roman": "Hosted Hisab"
+  },
+  "nav_get_started": {
+    "en": "Get started",
+    "ur": "شروع کریں",
+    "roman": "Shuru karein"
+  },
+
+  "hero_title": {
+    "en": "A ledger you text",
+    "ur": "ایک کھاتہ جسے آپ لکھتے ہیں",
+    "roman": "Ek khata jo aap likh kar chalate hain"
+  },
+  "hero_subline": {
+    "en": "Text an entry, a voice note or a receipt photo — in English or Urdu. We hold the key and the ledger for you, and you can take both with you any time.",
+    "ur": "اندراج، وائس نوٹ یا رسید کی تصویر بھیجیں — انگلش یا اردو میں۔ ہم آپ کی کلید اور کھاتہ اپنے پاس رکھتے ہیں، اور آپ جب چاہیں دونوں لے جا سکتے ہیں۔",
+    "roman": "Entry, voice note ya receipt ki photo bhejein — English ya Urdu mein. Hum aap ki key aur khata apne paas rakhte hain, aur aap jab chahein dono le ja sakte hain."
+  },
+  "hero_cta": {
+    "en": "Get started",
+    "ur": "شروع کریں",
+    "roman": "Shuru karein"
+  },
+
+  "card_text_title": {
+    "en": "Type it",
+    "ur": "لکھ کر بھیجیں",
+    "roman": "Likh kar bhejein"
+  },
+  "card_text_body": {
+    "en": "Send an entry like 2500 chai and it's posted in seconds.",
+    "ur": "2500 chai جیسا اندراج بھیجیں اور فوراً درج ہو جائے گا۔",
+    "roman": "2500 chai jaisa entry bhejein aur seconds mein post ho jayega."
+  },
+  "card_voice_title": {
+    "en": "Say it in Urdu",
+    "ur": "اردو میں بولیں",
+    "roman": "Urdu mein bolein"
+  },
+  "card_voice_body": {
+    "en": "A voice note in Urdu or Roman Urdu becomes a real entry, same as typing.",
+    "ur": "اردو یا رومن اردو میں وائس نوٹ بھی ٹائپ کیے ہوئے اندراج جیسا ہی کام کرتا ہے۔",
+    "roman": "Urdu ya Roman Urdu ka voice note bhi type kiye hue entry jaisa hi kaam karta hai."
+  },
+  "card_photo_title": {
+    "en": "Photograph a receipt",
+    "ur": "رسید کی تصویر بھیجیں",
+    "roman": "Receipt ki photo bhejein"
+  },
+  "card_photo_body": {
+    "en": "Snap the bill and send it — Hisab reads the total and posts it.",
+    "ur": "بل کی تصویر بھیجیں — حساب رقم پڑھ کر خود درج کر لے گا۔",
+    "roman": "Bill ki photo bhejein — Hisab amount parh kar khud post kar dega."
+  },
+
+  "custody_title": {
+    "en": "Who holds the key",
+    "ur": "کلید کس کے پاس ہے",
+    "roman": "Key kis ke paas hai"
+  },
+  "custody_body": {
+    "en": "Hosted Hisab keeps your WhatsApp agent's key and your ledger on our server, encrypted at rest — exportable and revocable whenever you want.",
+    "ur": "Hosted Hisab آپ کے WhatsApp ایجنٹ کی کلید اور آپ کا کھاتہ ہمارے سرور پر، محفوظ حالت میں رکھتا ہے — جب چاہیں ایکسپورٹ یا منسوخ کر سکتے ہیں۔",
+    "roman": "Hosted Hisab aap ke agent ki key aur aap ka khata hamare server par, encrypted rakhta hai — jab chahein export ya revoke kar sakte hain."
+  },
+  "custody_selfhost_label": {
+    "en": "Prefer nothing to leave your machine? Self-host Hisab instead.",
+    "ur": "کچھ بھی آپ کے کمپیوٹر سے باہر نہ جائے؟ اس کے بجائے Hisab خود ہوسٹ کریں۔",
+    "roman": "Kuch bhi aap ke computer se bahar na jaye? Uske bajaye Hisab khud host karein."
+  },
+
+  "why_title": {
+    "en": "Why not a chatbot",
+    "ur": "چیٹ بوٹ کیوں نہیں",
+    "roman": "Chatbot kyun nahi"
+  },
+  "why_undo": {
+    "en": "Undo is just a reply — no menus to dig through.",
+    "ur": "Undo صرف ایک ریپلائی ہے — کسی مینو میں جانے کی ضرورت نہیں۔",
+    "roman": "Undo sirf ek reply hai — kisi menu mein jaane ki zaroorat nahi."
+  },
+  "why_linked": {
+    "en": "Every ledger line sits right beside the message that made it.",
+    "ur": "کھاتے کی ہر لائن اسی پیغام کے ساتھ رہتی ہے جس نے اسے بنایا۔",
+    "roman": "Khate ki har line usi message ke saath rehti hai jisne use banaya."
+  },
+  "why_strict": {
+    "en": "Every write passes a strict accounting check before it's saved — nothing unbalanced ever lands.",
+    "ur": "ہر اندراج محفوظ ہونے سے پہلے سخت حساب کی جانچ سے گزرتا ہے — کوئی غلط اندراج درج نہیں ہوتا۔",
+    "roman": "Har entry save hone se pehle sakht accounting check se guzarta hai — koi ghalat entry darj nahi hoti."
+  },
+
+  "price_title": {
+    "en": "Pricing",
+    "ur": "قیمت",
+    "roman": "Qeemat"
+  },
+  "price_amount": {
+    "en": "300 PKR / month",
+    "ur": "300 روپے / ماہ",
+    "roman": "300 PKR / month"
+  },
+  "price_free": {
+    "en": "First month free",
+    "ur": "پہلا مہینہ مفت",
+    "roman": "Pehla mahina free"
+  },
+  "price_includes": {
+    "en": "One agent, one ledger, 1,000 model calls a month.",
+    "ur": "ایک ایجنٹ، ایک کھاتہ، مہینے میں 1,000 ماڈل کالز۔",
+    "roman": "Ek agent, ek khata, mahine mein 1,000 model calls."
+  },
+  "price_cta": {
+    "en": "Get started",
+    "ur": "شروع کریں",
+    "roman": "Shuru karein"
+  },
+
+  "footer_selfhost": {
+    "en": "Self-host on GitHub",
+    "ur": "GitHub پر خود ہوسٹ کریں",
+    "roman": "GitHub par khud host karein"
+  },
+  "footer_distinction": {
+    "en": "Hosted Hisab keeps your key and ledger on our server. Self-host keeps them on yours.",
+    "ur": "Hosted Hisab میں کلید اور کھاتہ ہمارے سرور پر رہتا ہے۔ Self-host میں یہ آپ کے اپنے سسٹم پر رہتا ہے۔",
+    "roman": "Hosted Hisab mein key aur khata hamare server par rehta hai. Self-host mein yeh aap ke apne system par rehta hai."
+  },
+
+  "portal_connect_title": {
+    "en": "Connect your agent",
+    "ur": "اپنا ایجنٹ کنیکٹ کریں",
+    "roman": "Apna agent connect karein"
+  },
+  "portal_connect_name_label": {
+    "en": "Agent name",
+    "ur": "ایجنٹ کا نام",
+    "roman": "Agent ka naam"
+  },
+  "portal_connect_key_label": {
+    "en": "API key",
+    "ur": "API کلید",
+    "roman": "API key"
+  },
+  "portal_connect_key_note": {
+    "en": "You paste it once — we never display it again.",
+    "ur": "آپ اسے ایک بار پیسٹ کرتے ہیں — ہم اسے دوبارہ کبھی نہیں دکھاتے۔",
+    "roman": "Aap ise ek baar paste karte hain — hum ise dobara kabhi nahi dikhate."
+  },
+  "portal_connect_steps": {
+    "en": "WhatsApp → Settings → Agents → your agent → Chat info → copy the API key",
+    "ur": "WhatsApp → Settings → Agents → اپنا ایجنٹ → Chat info → API کلید کاپی کریں",
+    "roman": "WhatsApp → Settings → Agents → apna agent → Chat info → API key copy karein"
+  },
+  "portal_connect_button": {
+    "en": "Connect (coming soon — no backend yet)",
+    "ur": "Connect (جلد آ رہا ہے — ابھی بیک اینڈ نہیں)",
+    "roman": "Connect (jald aa raha hai — abhi backend nahi)"
+  },
+
+  "portal_verify_title": {
+    "en": "Check your WhatsApp",
+    "ur": "اپنا WhatsApp دیکھیں",
+    "roman": "Apna WhatsApp dekhein"
+  },
+  "portal_verify_instruction": {
+    "en": "Send verify {nonce} to your agent on WhatsApp.",
+    "ur": "اپنے ایجنٹ کو WhatsApp پر verify {nonce} بھیجیں۔",
+    "roman": "Apne agent ko WhatsApp par verify {nonce} bhejein."
+  },
+  "portal_verify_copy": {
+    "en": "Copy",
+    "ur": "کاپی کریں",
+    "roman": "Copy karein"
+  },
+  "portal_verify_waiting": {
+    "en": "Waiting for your message…",
+    "ur": "آپ کے پیغام کا انتظار…",
+    "roman": "Aap ke message ka intezaar…"
+  },
+  "portal_verify_expiry": {
+    "en": "This code expires in 10 minutes.",
+    "ur": "یہ کوڈ 10 منٹ میں ختم ہو جائے گا۔",
+    "roman": "Yeh code 10 minute mein khatam ho jayega."
+  },
+
+  "portal_connected_title": {
+    "en": "Connected",
+    "ur": "کنیکٹ ہو گیا",
+    "roman": "Connect ho gaya"
+  },
+  "portal_connected_since_label": {
+    "en": "Connected since",
+    "ur": "کب سے کنیکٹ ہے",
+    "roman": "Kab se connect hai"
+  },
+  "portal_connected_activity_label": {
+    "en": "Last activity",
+    "ur": "آخری سرگرمی",
+    "roman": "Aakhri activity"
+  },
+  "portal_connected_entries_label": {
+    "en": "Entries this month",
+    "ur": "اس مہینے کے اندراجات",
+    "roman": "Is mahine ke entries"
+  },
+  "portal_connected_language_label": {
+    "en": "Language",
+    "ur": "زبان",
+    "roman": "Zabaan"
+  },
+  "portal_connected_export_hint": {
+    "en": "Send export-ledger to your agent any time to get your whole ledger.",
+    "ur": "پورا کھاتہ لینے کے لیے کسی بھی وقت ایجنٹ کو export-ledger بھیجیں۔",
+    "roman": "Pura khata lene ke liye kabhi bhi agent ko export-ledger bhejein."
+  },
+  "portal_connected_revoke_button": {
+    "en": "Revoke key",
+    "ur": "کلید منسوخ کریں",
+    "roman": "Key revoke karein"
+  },
+
+  "portal_revoked_title": {
+    "en": "Revoked",
+    "ur": "منسوخ ہو گیا",
+    "roman": "Revoke ho gaya"
+  },
+  "portal_revoked_body": {
+    "en": "Your agent has stopped and the key has been deleted.",
+    "ur": "آپ کا ایجنٹ بند ہو گیا ہے اور کلید حذف کر دی گئی ہے۔",
+    "roman": "Aap ka agent band ho gaya hai aur key delete kar di gayi hai."
+  },
+  "portal_revoked_retention": {
+    "en": "Your ledger is kept for 30 days, then deleted.",
+    "ur": "آپ کا کھاتہ 30 دن تک محفوظ رہتا ہے، پھر حذف ہو جاتا ہے۔",
+    "roman": "Aap ka khata 30 din tak mehfooz rehta hai, phir delete ho jata hai."
+  },
+  "portal_revoked_reconnect": {
+    "en": "Connect again any time to pick up where you left off.",
+    "ur": "جب چاہیں دوبارہ کنیکٹ کریں اور وہیں سے شروع کریں جہاں چھوڑا تھا۔",
+    "roman": "Jab chahein dobara connect karein aur wahin se shuru karein jahan chhoda tha."
+  }
+}

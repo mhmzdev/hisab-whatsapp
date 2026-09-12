@@ -1,0 +1,194 @@
+.wrap {
+  min-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-block: 32px 64px;
+}
+
+.card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 28px;
+}
+
+.card h1 {
+  font-size: 22px;
+  margin: 0 0 20px;
+  color: var(--brand-strong);
+}
+
+.field {
+  display: block;
+  margin-bottom: 16px;
+}
+
+.field span {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.field input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+}
+
+.note {
+  font-size: 13px;
+  color: var(--muted);
+  margin: -8px 0 16px;
+}
+
+.steps {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+  margin-bottom: 20px;
+  color: var(--muted);
+}
+
+.button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #06301f;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.buttonActive {
+  composes: button;
+  cursor: pointer;
+  opacity: 1;
+}
+
+.buttonDanger {
+  composes: button;
+  background: transparent;
+  border: 1px solid #c0392b;
+  color: #c0392b;
+  cursor: pointer;
+  opacity: 1;
+}
+
+.code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  font-size: 20px;
+  text-align: center;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.copyRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.copyRow button {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.waiting {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.expiry {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.rows {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+
+.rowLabel {
+  color: var(--muted);
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 20px;
+}
+
+.hint code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.demoRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.demoRow a {
+  font-size: 12px;
+  color: var(--muted);
+  border: 1px dashed var(--line);
+  border-radius: 999px;
+  padding: 4px 10px;
+  text-decoration: none;
+}
+
+.demoLabel {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 24px;
+  text-align: center;
+}
