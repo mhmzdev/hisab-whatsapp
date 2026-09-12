@@ -26,6 +26,13 @@ config.yaml
 config-*.yaml
 scratch-*/
 
+# landing build output
+landing/node_modules/
+landing/.next/
+landing/out/
+landing/.env*.local
+.firebaserc
+
 # misc
 NOTES.md
 # Obsidian config when a ledger folder is opened as a vault

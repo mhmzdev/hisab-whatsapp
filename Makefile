@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help up dev down down-v logs restart check sample demo stdin check-endpoint bakeoff shell
+.PHONY: help up dev down down-v logs restart check sample demo stdin check-endpoint bakeoff shell landing landing-check landing-serve
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -44,3 +44,12 @@ check-endpoint: ## Validate a pasted key: model, tools, transcription. Pass ARGS
 
 bakeoff: ## Compare a model on the fixed demo script: make bakeoff MODEL=anthropic/claude-haiku-4.5
 	bash tests/bakeoff.sh $(MODEL)
+
+landing: ## Build the Hosted Hisab landing page and portal shell to landing/out
+	cd landing && npm install && npm run build
+
+landing-check: ## Run the landing static checks (three languages, verification direction, no payment collection)
+	python3 tests/check_landing.py
+
+landing-serve: ## Serve the built landing page locally at http://localhost:5000
+	cd landing/out && python3 -m http.server 5000

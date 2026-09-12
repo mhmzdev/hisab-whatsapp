@@ -30,13 +30,15 @@ Hosted means **we hold the key and the ledger**. The "no server of ours, private
 1. **Landing page** → *Get started* opens the sign-up modal.
 2. **Account** = phone number, Firebase phone auth (SMS OTP). Chosen over Google or email because the long-run user is a layman in Pakistan; a phone number is the identity they already have.
 3. **Connect the agent.** The portal asks for the agent's name and the API key from WhatsApp → Settings → Agents → Chat info. It writes a tenant document to Firestore. The key is **never shown again** after entry.
-4. **Prove ownership without Meta Business or a second OTP service.** The VPS runner picks up the new tenant and starts a worker on the key. **A fresh key cannot send unprompted**: the API only accepts a `to` it has already received a message from. So the portal says *"now send any message to your agent"*; the first inbound reveals the creator id, and the worker replies with the six-digit challenge **through the user's own agent**. The user replies with the verification text through that same WhatsApp conversation; the runner matches the challenge and reply, which proves control of the agent and hands us the creator id. No Meta Business API, no external SMS OTP service, no second phone verification.
+4. **Prove ownership without Meta Business or a second OTP service.** The portal creates and displays a short-lived six-digit nonce to the signed-in portal user: *send `verify 482913` to your agent*. The VPS runner starts a pending worker on the submitted key but sends nothing; a fresh key cannot message until it has received an inbound message. The first inbound exact command is matched to the pending tenant whose portal session displayed that nonce. Only then does the worker record the creator id, set the tenant to connected, and send the welcome. This proves the link between the portal account and the phone that controls the agent. No Meta Business API, no external SMS OTP service, no second phone verification.
 
-The reply is a fixed, machine-readable command carrying the nonce (for example, `verify 482913`), matched case-insensitively with a short expiry; a bare six-digit number is not accepted as proof.
+The portal-generated command is fixed and machine-readable (for example, `verify 482913`), matched case-insensitively with a short expiry; a bare six-digit number is not accepted as proof.
 
 Language is not selected before verification. Pending-state reminders therefore stay language-neutral (with the three supported language labels), and the first post-verification interaction remains the existing setup's language question; all later replies follow that choice.
 
-**Authentication contract (locked during grill):** Firebase Phone Auth proves control of the portal phone number and establishes the tenant's Firebase `uid`. Separately, the runner generates the short-lived nonce and accepts only the fixed `verify <nonce>` reply from the agent creator, binding that verified agent to the `uid`. The WhatsApp API key is never a browser login credential; it is submitted only for this connection flow and kept server-side thereafter.
+While verification is pending, non-matching inbound messages are not processed or queued as ledger traffic. The agent sends a short language-neutral reminder to send the verification code shown in the portal; normal ledger handling begins only after verification succeeds.
+
+**Authentication contract (locked during grill):** Firebase Phone Auth proves control of the portal phone number and establishes the tenant's Firebase `uid`. Separately, the portal displays a short-lived nonce to that authenticated session; the runner accepts only the matching `verify <nonce>` inbound, then records the agent creator and binds the verified agent to that `uid`. The WhatsApp API key is never a browser login credential; it is submitted only for this connection flow and kept server-side thereafter.
 
 **Submission/storage contract (locked during grill):** the portal encrypts the WhatsApp API key client-side with a runner-held public key (sealed-box/envelope encryption). Firestore stores only the ciphertext; the runner alone holds the private key needed to decrypt it. No public VPS ingestion endpoint or Firebase Function is required for the MVP.
 5. **Welcome, in both languages, from the agent itself.** On verification the worker sends one message and then the existing in-chat setup takes over (language first, then the questions):
@@ -50,20 +52,24 @@ Language is not selected before verification. Pending-state reminders therefore 
 
 For MVP, that document is a ZIP ledger bundle containing `hisab.md`, all included quarter files, `accounts.md`, `rules.md`, and `settings.json`. It never contains the API key/ciphertext, `.env`, worker state, message history, or downloaded media. The worker creates it locally and uploads it as a WhatsApp document; it is not rendered as ordinary chat text. `export-ledger` is intercepted before the model loop, preserving the six-tool contract.
 
+CSV is not the canonical export or import format for MVP. A later CSV export may be derived for analysis, and any future import must regroup postings and pass them through strict ledger validation; it must never replace the markdown ledger directly.
+
 ## Tenancy on the VPS
 
 - One worker process per tenant, each long-polling its own agent (the platform allows one poller per agent; workers never share a key).
 - Launch tenancy is one agent and one ledger per Firebase account/plan. A person who wants both a personal and shop ledger creates two agents.
+- Tenant files use an opaque Firebase UID path under the configured vault/data roots (`vault/<uid>/`, `data/<uid>/`); local single-tenant mode keeps `vault/` and `sample-vault/` as fixtures. Do not derive paths from phone numbers, creator IDs or agent names. A second UUID mapping is deferred unless a later migration requires decoupling storage from Firebase.
 - A **runner** holds one Firestore snapshot listener on `tenants` — one open connection, zero polling reads, so Firestore quotas are not a factor — and starts, stops or restarts a worker when a document changes. No public endpoint on the VPS.
 - Keys are encrypted at rest with a secret that exists only on the VPS. Firestore holds the ciphertext. Revoke = delete the ciphertext, stop the worker, leave the ledger for 30 days, then delete.
 - **Firestore is control-plane metadata, not the ledger:** it maps the Firebase `uid` to tenant status, encrypted key, creator and activity metadata so the runner can reconcile workers. The canonical accounting data remains the hledger markdown folder on the worker's disk.
 - **Revoke (locked during grill):** stop the worker immediately and delete the encrypted key. Keep the ledger folder for the proposed 30-day retention window, but do not treat it as an active tenant; users should export before revoking.
 - Model cost is ours: one OpenRouter key, a per-tenant monthly quota, replies degrade to *"limit reached this month"* rather than failing silently.
+- **Initial quota (locked during grill):** one agent/ledger gets 1,000 model calls per month, not 1,000 inbound messages. Warn at 80%; hard-stop model-dependent work at 1,000 with a localized limit response. Verification, `/help`, `/lang`, and exact runner commands such as `export-ledger` are free. Future plans may vary `maxAgents` and model-call allowance; MVP keeps `maxAgents = 1`.
 - Sizing: a worker idles on a 20-second long-poll and wakes per message. A 1 GB box carries dozens; the ceiling is memory, not CPU.
 
 ## Money
 
-Paid SaaS, roughly **300 PKR per month per agent**, to cover the VPS, SMS auth and model cost. Free first month. Payment rail is the open question (below); the first tenants pay by JazzCash or Easypaisa transfer confirmed by hand, which is itself a Hisab entry.
+Paid SaaS, roughly **300 PKR per month per agent**, to cover the VPS, SMS auth and model cost. Free first month. The demo shows plan and subscription UX only; it does not take real payments or enable a payment provider. A later pilot may manually confirm JazzCash or Easypaisa transfers before automated rails are added.
 
 ## Stack
 
@@ -78,7 +84,9 @@ Paid SaaS, roughly **300 PKR per month per agent**, to cover the VPS, SMS auth a
 
 Development uses the Firebase Local Emulator Suite for Auth, Firestore, Hosting and their rules, run locally in Docker alongside the portal and runner. The Auth emulator supports phone/SMS flows but prints test codes locally instead of sending carrier SMS; production SMS behavior remains a deployment check. The emulators are for development and integration testing, never production custody.
 
-Local mapping: Firebase Auth and Firestore use their emulators; the static portal uses the Hosting emulator; the runner and one-worker-per-tenant processes run locally in Docker; WhatsApp uses the fake adapter by default (with an opt-in real-agent profile); the ledger is a mounted local `vault/` or `sample-vault/`; and worker state/media use the local data directory. Firebase Storage is not in the current worker path, but its emulator can be added when hosted media/export storage is introduced.
+Local mapping: the `local` profile uses Firebase Auth, Firestore and Hosting emulators; the `dev` profile uses an existing dedicated Firebase project (not production) for realistic integration; the runner and one-worker-per-tenant processes run locally in Docker; the demo WhatsApp agent and model provider are real integrations using local secrets; the ledger is a resettable local `vault/` or pre-seeded `sample-vault/`; and worker state/media use the local data directory. Firebase Storage is not in the current worker path, but its emulator can be added when hosted media/export storage is introduced. An empty `vault/` follows the real first-time onboarding flow; `sample-vault/` represents an existing ledger for regression/demo cases. Neither profile enables real subscription payments.
+
+**Model configuration split (locked):** `config.yaml` remains the existing Gemini configuration for `make up`, `make stdin`, and `make demo`. The gitignored `config-dev.yaml` is the OpenRouter sponsor configuration (`openai/gpt-4.1-mini` plus `openai/gpt-4o-transcribe`) used only by `make dev` for the sample-ledger demo/recording. Docker selects the file through `HISAB_CONFIG`; changing this selection must not overwrite `config.yaml`. Gemini remains the rollback.
 
 ## Branding
 
@@ -90,18 +98,18 @@ WhatsApp **green palette**, light and dark, no logo, no "WhatsApp" in the produc
 
 **Sign-up / login modal** — phone number → OTP → done. One modal, two states.
 
-**Portal** — three states: *Connect your agent* (name + key fields, the four-step how-to with a screenshot of the WhatsApp settings path) → *Check your WhatsApp* (waiting for the six-digit code) → *Connected* (the status card above, Revoke).
+**Portal** — three states: *Connect your agent* (name + key fields, the four-step how-to with a screenshot of the WhatsApp settings path) → *Check your WhatsApp* (show `verify <nonce>` and wait for the signed-in user to send it to the agent) → *Connected* (the status card above, Revoke).
 
 ## Surfaces touched
 
-landing/ (new) · a `runner/` on the VPS (new, small) · `hisab/` unchanged except a `send me my ledger` command · Firestore rules · README roadmap line.
+landing/ (new) · a `runner/` on the VPS (new, small) · `hisab/` unchanged except the `export-ledger` command · Firestore rules · Docker/Make configuration selection · README and Docker guidance.
 
 ## Open questions
 
-- [ ] Payment rail after the manual phase: JazzCash/Easypaisa merchant, or Stripe via a foreign entity.
-- [ ] Quota per tenant per month, and what "limit reached" says.
-- [ ] Ledger retention after revoke (30 days proposed).
-- [ ] Whether a tenant can have two agents (owner + cashier on one ledger) — the platform allows it, the runner design allows it, pricing does not yet.
+- [ ] Payment rail after the manual/demo phase: JazzCash/Easypaisa merchant, or Stripe via a foreign entity.
+- [x] Initial quota: 1,000 model calls per agent/month; plan-based tiers later.
+- [x] Revoke retention: stop worker and delete ciphertext immediately; retain inactive ledger for 30 days, with export expected before revoke.
+- [x] MVP tenancy: one agent and one ledger per account; multi-agent plans are future work and do not share a ledger.
 
 ## Out of scope (YAGNI)
 
@@ -110,4 +118,4 @@ Shared wallets · a ledger viewer in the browser · charts · a mobile app · iO
 ## Links
 
 - Scope and decisions that this sits after: the self-host product in [`README.md`](../../README.md) and [`ARCHITECTURE.md`](../../ARCHITECTURE.md).
-- Next step when this is picked up: `/grill-me docs/brainstorm/hosted-portal.md`, then `/to-spec`.
+- Next step when this is picked up: `/file-an-issue docs/specs/001-hosted-portal.md`.

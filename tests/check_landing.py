@@ -1,0 +1,130 @@
+"""Static checks on landing/: three-language completeness, verification direction, no payment collection, no WhatsApp branding, firebase.json shape. Stdlib only, no node."""
+import json
+import re
+from pathlib import Path
+
+LANGS = ("en", "ur", "roman")
+
+ROOT = Path(__file__).resolve().parent.parent
+
+REVERSE_VERIFICATION_DENYLIST = [
+    re.compile(r"we (have )?(sent|will send)", re.IGNORECASE),
+    re.compile(r"code (was )?sent to (your|the) (phone|whatsapp|number)", re.IGNORECASE),
+    re.compile(r"check your (phone|messages) for the code", re.IGNORECASE),
+    re.compile(r"enter the code (we|hisab) sent", re.IGNORECASE),
+]
+
+PAYMENT_INPUT_RE = re.compile(r"card|cvc|cvv|iban|expiry", re.IGNORECASE)
+PAYMENT_PROVIDER_RE = re.compile(r"stripe|paypal|razorpay|jazzcash|easypaisa|checkout\.", re.IGNORECASE)
+WHATSAPP_ASSET_RE = re.compile(r"^whatsapp.*\.(svg|png|jpg|webp)$", re.IGNORECASE)
+WHATSAPP_NAME_RE = re.compile(r"Hisab for WhatsApp|WhatsApp Hisab|Hisab WhatsApp", re.IGNORECASE)
+
+
+def run(root):
+    failures = []
+    landing = root / "landing"
+    strings_path = landing / "content" / "strings.json"
+
+    strings = None
+    if strings_path.exists():
+        try:
+            strings = json.loads(strings_path.read_text())
+        except json.JSONDecodeError as e:
+            failures.append(f"strings.json: invalid JSON ({e})")
+
+    if strings is not None:
+        for key, value in strings.items():
+            if not isinstance(value, dict):
+                failures.append(f"strings.json[{key}]: not an object")
+                continue
+            for lang in LANGS:
+                v = value.get(lang)
+                if not isinstance(v, str) or not v.strip():
+                    failures.append(f"strings.json[{key}][{lang}]: missing or empty")
+
+        verify_keys = [k for k in strings if "verify_instruction" in k]
+        if not verify_keys:
+            failures.append("strings.json: no *verify_instruction* key — the portal must tell the user to SEND verify <nonce> to the agent")
+
+        for key, value in strings.items():
+            if "verify_instruction" not in key or not isinstance(value, dict):
+                continue
+            for lang in LANGS:
+                v = value.get(lang, "")
+                if not isinstance(v, str):
+                    continue
+                if "verify" not in v or "{nonce}" not in v:
+                    failures.append(f"strings.json[{key}][{lang}]: missing 'verify' or '{{nonce}}'")
+
+        blob = json.dumps(strings, ensure_ascii=False)
+        for pattern in REVERSE_VERIFICATION_DENYLIST:
+            if pattern.search(blob):
+                failures.append(f"strings.json: reverse-verification phrasing matched /{pattern.pattern}/")
+
+        for lang in LANGS:
+            brand = strings.get("brand", {}).get(lang)
+            if brand is not None and WHATSAPP_NAME_RE.search(brand):
+                failures.append(f"strings.json[brand][{lang}]: contains a disallowed product name")
+
+        for key, value in strings.items():
+            if not isinstance(value, dict):
+                continue
+            for lang in LANGS:
+                v = value.get(lang, "")
+                if isinstance(v, str) and WHATSAPP_NAME_RE.search(v):
+                    failures.append(f"strings.json[{key}][{lang}]: contains a disallowed product name")
+
+        brand_en = strings.get("brand", {}).get("en")
+        if brand_en != "Hosted Hisab":
+            failures.append(f"strings.json[brand][en]: expected 'Hosted Hisab', got {brand_en!r}")
+    elif strings_path.exists():
+        pass
+    else:
+        failures.append("landing/content/strings.json: not found")
+
+    if landing.exists():
+        for path in landing.rglob("*"):
+            if "node_modules" in path.parts or ".next" in path.parts or "out" in path.parts:
+                continue
+            if path.is_file() and WHATSAPP_ASSET_RE.match(path.name):
+                failures.append(f"{path.relative_to(root)}: WhatsApp-branded asset is not allowed")
+
+        app_dir = landing / "app"
+        if app_dir.exists():
+            for path in app_dir.rglob("*"):
+                if not path.is_file() or path.suffix not in (".jsx", ".js", ".tsx", ".ts", ".html"):
+                    continue
+                text = path.read_text()
+                for m in re.finditer(r"<input\b[^>]*>", text, re.IGNORECASE):
+                    tag = m.group(0)
+                    if PAYMENT_INPUT_RE.search(tag):
+                        failures.append(f"{path.relative_to(root)}: payment-looking <input> found")
+                for m in re.finditer(r'(?:src|href|action)\s*=\s*[\'"]([^\'"]*)[\'"]', text, re.IGNORECASE):
+                    if PAYMENT_PROVIDER_RE.search(m.group(1)):
+                        failures.append(f"{path.relative_to(root)}: payment-provider reference found ({m.group(1)})")
+
+    firebase_json_path = root / "firebase.json"
+    if not firebase_json_path.exists():
+        failures.append("firebase.json: not found")
+    else:
+        try:
+            fb = json.loads(firebase_json_path.read_text())
+        except json.JSONDecodeError as e:
+            failures.append(f"firebase.json: invalid JSON ({e})")
+            fb = None
+        if fb is not None:
+            public = fb.get("hosting", {}).get("public")
+            if public != "landing/out":
+                failures.append(f"firebase.json: hosting.public expected 'landing/out', got {public!r}")
+            port = fb.get("emulators", {}).get("hosting", {}).get("port")
+            if port is None:
+                failures.append("firebase.json: emulators.hosting.port not set")
+
+    return failures
+
+
+if __name__ == "__main__":
+    failures = run(ROOT)
+    for f in failures:
+        print(f)
+    raise SystemExit(1 if failures else 0)

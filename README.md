@@ -61,6 +61,12 @@ Your ledger lives in `./vault/` on your machine. Nothing goes to anyone but your
 
 **Setting it up for someone else** (a shop): they create the agent on *their* phone and send you the key; you run the container. They text, they get replies. You only ever see the ledger file, and only if they show you.
 
+## Hosted Hisab (in progress)
+
+For people who will never run Docker: paste your agent's key into a hosted portal and we run the worker. Your key and your ledger would then live on our server, encrypted — exportable and revocable any time — while self-host (above) keeps both on your own machine. 300 PKR/month is the presentation price; it is not yet collectable anywhere in this repo.
+
+`make landing` builds the landing page and portal shell; `make landing-serve` serves it locally at `http://localhost:5000`. See [`landing/README.md`](landing/README.md). Design notes: [`docs/brainstorm/hosted-portal.md`](docs/brainstorm/hosted-portal.md).
+
 ## Viewing
 
 The ledger is a markdown file. Open the folder in Obsidian with [hledger-dashboard](https://github.com/cousine/hledger-dashboard) for a balance sheet, monthly trends, a register, transfers and budget-versus-actual, all read from the same file. [Hledger Notes](https://github.com/bzimor/obsidian_hledger) is a desk-side entry modal for batch backfill. Neither is part of this project. `hledger` on the command line reads the folder as-is.

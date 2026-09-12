@@ -21,6 +21,7 @@ Up: [docs/INDEX.md](../INDEX.md). Written by `/create-plan` into `backlog/`; `/i
 ## Completed
 | Plan | Shipped | Summary |
 |---|---|---|
+| [GH-3-hosted-landing-portal-shell](completed/GH-3-hosted-landing-portal-shell.md) | 2026-09-12 | Static Next.js landing page + four-state portal shell (mocks only); `tests/check_landing.py` wired into smoke |
 
 ## Superseded
 | Plan | Superseded by |
