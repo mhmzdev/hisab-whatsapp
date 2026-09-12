@@ -25,3 +25,9 @@ memory:
 whatsapp:
   poll_timeout: 20         # seconds, max 25
   chunk_chars: 3500        # replies longer than this are split (WhatsApp caps at 4096)
+  rate_limits:             # WhatsApp Agent Platform manual v1 §6 — each its own rolling 60s window, scoped per agent
+    window_seconds: 60
+    messages_per_min: 12   # POST /agent/v1/messages
+    statuses_per_min: 12   # POST /agent/v1/statuses (read receipts, typing)
+    updates_per_min: 15    # GET /agent/v1/updates (the poll loop)
+    media_per_min: 12      # /agent/v1/media — POST, GET and DELETE each get their own 12/min counter

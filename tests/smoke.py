@@ -1,5 +1,6 @@
 """No-network smoke test: setup conversation → files, append/undo/report, store window, chunking. Needs hledger."""
-import os, sys, tempfile, shutil, time, zipfile
+import io, json, os, sys, tempfile, shutil, time, zipfile
+import contextlib
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from hisab.archive import build_export_zip
@@ -7,6 +8,8 @@ from hisab.ledger import Ledger, LedgerError
 from hisab.store import Store
 from hisab.setup import Setup
 from hisab.wa import to_whatsapp, _chunks
+import hisab.wa as wa_mod
+from hisab.wa import WhatsApp
 
 tmp = Path(tempfile.mkdtemp())
 try:
@@ -64,6 +67,79 @@ try:
     st.mark_clear(); st.add("c", "in", "after"); assert len(st.window(20)) == 1
     assert to_whatsapp("**bold** and [[page|label]]\n# Head\n- item") == "*bold* and label\n*Head*\n• item"
     assert len(_chunks("a" * 8000, 3500)) == 3 and _chunks("p1\n\np2", 3500) == ["p1\n\np2"]
+
+    # rate limits: a fake clock proves pacing and backoff without any real waiting
+    class FakeClock:
+        def __init__(self, t=1_000_000.0):
+            self.t = t
+        def now(self):
+            return self.t
+        def sleep(self, secs):
+            assert secs > 0, secs
+            self.t += secs
+
+    class FakeResponse:
+        def __init__(self, status_code, payload=None):
+            self.status_code = status_code
+            self._payload = payload or {}
+            self.text = json.dumps(self._payload)
+        def json(self):
+            return self._payload
+        def raise_for_status(self):
+            if self.status_code // 100 != 2:
+                raise RuntimeError(f"HTTP {self.status_code}")
+
+    real_request = wa_mod.requests.request
+    clock = FakeClock()
+    rl_wa = WhatsApp("tok", rate_limits={"updates_per_min": 15, "window_seconds": 60},
+                      now=clock.now, sleep=clock.sleep)
+    wa_mod.requests.request = lambda verb, url, **kw: FakeResponse(200, {"entry": [], "next_offset": "off"})
+    try:
+        offset = ""
+        for _ in range(30):  # a backlog drain: every long-poll returns instantly
+            _, offset = rl_wa.poll(offset)
+    finally:
+        wa_mod.requests.request = real_request
+    elapsed = clock.t - 1_000_000.0
+    assert 60 <= elapsed < 120, elapsed  # 30 instant polls at 15/min must span at least one full window
+    print(f"rate limit: 30 instant polls paced to {elapsed:.0f}s (limit 15/min) — poll loop can't exceed the window")
+
+    calls = {"n": 0}
+    def fake_429_then_ok(verb, url, **kw):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return FakeResponse(429, {"error": {"code": 130429, "message": "Too many requests"}})
+        return FakeResponse(200, {"entry": [], "next_offset": "off2"})
+    clock2 = FakeClock()
+    rl_wa2 = WhatsApp("tok", rate_limits={"updates_per_min": 15, "window_seconds": 60},
+                       now=clock2.now, sleep=clock2.sleep)
+    wa_mod.requests.request = fake_429_then_ok
+    try:
+        # a single poll() absorbs the 429 internally: acquire() on the retry backs off until the
+        # window can plausibly have reset, so the caller sees one slow success, not a fast failure
+        msgs2, off2 = rl_wa2.poll("start")
+        assert off2 == "off2", off2
+    finally:
+        wa_mod.requests.request = real_request
+    elapsed2 = clock2.t - 1_000_000.0
+    assert elapsed2 >= 55, elapsed2  # backs off toward a full window reset, not a flat 10s
+    print(f"rate limit: 429 backs off ~{elapsed2:.0f}s toward a window reset, retry succeeds without re-entering the limit")
+
+    def fake_409(verb, url, **kw):
+        return FakeResponse(409, {"error": {"code": 1752041, "message": "conflict"}})
+    clock3 = FakeClock()
+    rl_wa3 = WhatsApp("tok", now=clock3.now, sleep=clock3.sleep)
+    wa_mod.requests.request = fake_409
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(buf):
+            msgs3, off3 = rl_wa3.poll("keep")
+    finally:
+        wa_mod.requests.request = real_request
+    assert msgs3 == [] and off3 == "keep", (msgs3, off3)
+    logged = buf.getvalue()
+    assert "409" in logged and "1752041" in logged and "another poller" in logged, logged
+    print("rate limit: 409/1752041 logged as another-poller conflict, not a generic failure")
     sample = Ledger(Path(__file__).resolve().parent.parent / "sample-vault")
     af = sample.afford("2026-09"); assert len(sample.periodic_rules()) == 2, sample.periodic_rules()
     assert [d for d, _ in af["not_yet_paid_this_month"]] == [], af  # rent and salaries both have September postings
