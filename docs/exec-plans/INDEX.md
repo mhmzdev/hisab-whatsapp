@@ -13,7 +13,6 @@ Up: [docs/INDEX.md](../INDEX.md). Written by `/create-plan` into `backlog/`; `/i
 ## Backlog
 | Plan | Problem it solves | Depends on |
 |---|---|---|
-| [GH-4-hosted-tenant-runner](backlog/GH-4-hosted-tenant-runner.md) | Reconciles a Firestore tenant into an isolated `hisab.loop` worker (UID-scoped paths, sealed-box key decryption, idempotent lifecycle, pending-mute) | nothing |
 
 ## Active
 | Plan | Started | Issue |
@@ -22,6 +21,7 @@ Up: [docs/INDEX.md](../INDEX.md). Written by `/create-plan` into `backlog/`; `/i
 ## Completed
 | Plan | Shipped | Summary |
 |---|---|---|
+| [GH-4-hosted-tenant-runner](completed/GH-4-hosted-tenant-runner.md) | 2026-09-12 | New `runner/` package: sealed-box key decryption, UID-scoped per-tenant config (absolute paths, always-global model/transcription), idempotent Firestore reconciliation via `hisab.loop` subprocesses, `pending`-mute in `hisab/loop.py`, `docker-compose.runner.yml`, local/dev Firebase profiles |
 | [GH-3-hosted-landing-portal-shell](completed/GH-3-hosted-landing-portal-shell.md) | 2026-09-12 | Static Next.js landing page + four-state portal shell (mocks only); `tests/check_landing.py` wired into smoke |
 | [GH-2-dev-config-selection](completed/GH-2-dev-config-selection.md) | 2026-09-12 | `docker-compose.yml` config mount now follows `HISAB_CONFIG`; `make dev` selects the gitignored OpenRouter `config-dev.yaml`; `make up`/`stdin`/`demo` stay on Gemini |
 

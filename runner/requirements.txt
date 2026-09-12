@@ -1,0 +1,2 @@
+# Runner only — kept out of the base requirements.txt so a self-host Docker build stays lean.
+firebase-admin>=6

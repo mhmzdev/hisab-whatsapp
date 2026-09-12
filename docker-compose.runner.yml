@@ -1,0 +1,22 @@
+# Hosted mode only — separate from docker-compose.yml, which self-host users run unchanged.
+# local profile (Firebase Emulator Suite): run `firebase emulators:start --only firestore,auth`
+# on the host, then `docker compose -f docker-compose.runner.yml up -d --build` with
+# FIRESTORE_EMULATOR_HOST=host.docker.internal:8080 in .env.
+#
+# dev profile (an existing dedicated, non-production Firebase project): uncomment the
+# GOOGLE_APPLICATION_CREDENTIALS volume/env below, pointing at a gitignored service-account
+# JSON, and leave FIRESTORE_EMULATOR_HOST unset. Never point either profile at a production
+# project or a payment provider.
+services:
+  runner:
+    build:
+      context: .
+      dockerfile: runner/Dockerfile
+    env_file: .env
+    volumes:
+      - ./runner/config.yaml:/app/runner/config.yaml:ro
+      - ./runner-data:/app/runner-data   # vault/<uid>, data/<uid>, tenants/<uid> for every tenant
+      # - ./service-account.json:/app/service-account.json:ro   # dev profile only, gitignored
+    # environment:
+    #   GOOGLE_APPLICATION_CREDENTIALS: /app/service-account.json   # dev profile only
+    restart: unless-stopped

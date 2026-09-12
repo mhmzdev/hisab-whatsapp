@@ -102,4 +102,6 @@ The ledger folder is the product. Open it in Obsidian with hledger-dashboard and
 
 ## Not here, on purpose
 
-Hosted multi-tenant mode · shared wallets (the platform has no groups) · chart images · a phone UI (Obsidian is the viewer) · the Claude Code relay this grew out of (`whatsapp-agent-relay`, separate repo).
+Shared wallets (the platform has no groups) · chart images · a phone UI (Obsidian is the viewer) · the Claude Code relay this grew out of (`whatsapp-agent-relay`, separate repo).
+
+Hosted multi-tenant mode is a separate surface, not this pipeline: [`runner/README.md`](runner/README.md) reconciles a Firestore tenant into one isolated worker of the same self-host code, with its own custody, verification and quota rules on top.
