@@ -29,5 +29,16 @@ class WorkerManager:
         if current:
             current["proc"].terminate()
 
+    def reap(self):
+        """Workers that exited on their own -> [(uid, returncode)], dropped from the running set so a later
+        reconcile pass may start them again. Never reports a worker this manager stopped itself."""
+        exited = []
+        for uid, current in list(self._running.items()):
+            code = current["proc"].poll()
+            if code is not None:
+                exited.append((uid, code))
+                del self._running[uid]
+        return exited
+
     def running_uids(self):
         return set(self._running)

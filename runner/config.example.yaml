@@ -1,9 +1,10 @@
 # Copy to runner/config.yaml. Safe to commit; the one secret (RUNNER_PRIVATE_KEY) lives in .env.
-# vault_root/data_root/tenants_dir are resolved to absolute paths at load time — see config.py.
+# vault_root/data_root/tenants_dir are resolved to absolute paths at load time RELATIVE TO THIS FILE
+# (runner/), so ../runner-data is the repo-root runner-data/ that docker-compose.runner.yml mounts.
 
-vault_root: ./runner-data/vault
-data_root: ./runner-data/data
-tenants_dir: ./runner-data/tenants
+vault_root: ../runner-data/vault
+data_root: ../runner-data/data
+tenants_dir: ../runner-data/tenants
 
 ledger:
   template: shop          # personal | shop — used only when a tenant's ledger folder is empty

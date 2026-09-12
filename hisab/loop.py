@@ -14,9 +14,11 @@ from .ledger import Ledger, LedgerError
 from .setup import Setup
 from .store import Store
 from .transcribe import transcribe
-from .wa import MAX_DOCUMENT_BYTES
+from .wa import MAX_DOCUMENT_BYTES, AUTH_EXIT_CODE, AuthError
 from .i18n import s, parse_lang
 
+REMINDER_INTERVAL = 10 * 60  # pending tenants hear the language-neutral reminder at most this often (seconds)
+VERIFY_RE = re.compile(r"verify\s+\d{4,8}$", re.IGNORECASE)  # a verify-shaped message; the runner does the real match
 
 
 class Hisab:
@@ -144,9 +146,14 @@ class Hisab:
                       self.cfg["whatsapp"].get("rate_limits"))
         offset = self.store.offset()
         print(f"Polling WhatsApp. Ledger: {self.ledger.dir}")
+        self._welcome_if_due(wa)
         while True:
             try:
                 msgs, nxt = wa.poll(offset)
+            except AuthError as e:
+                # permanent: a rejected token never becomes valid, so exit and let the runner surface it
+                print(f"poll: {e}; exiting", file=sys.stderr)
+                sys.exit(AUTH_EXIT_CODE)
             except Exception as e:
                 print(f"poll failed: {e}; retrying in 5s", file=sys.stderr)
                 time.sleep(5)
@@ -169,10 +176,11 @@ class Hisab:
         quoted = (m.get("context") or {}).get("id")
         self.store.set_creator(frm)
         if self.cfg.get("pending"):
-            # hosted mode, unverified tenant: record the inbound (a later feature reads it for the
-            # verify command) but never call wa.typing/send/download — no ledger, no reply, no cost.
+            # hosted mode, unverified tenant: record the inbound (the runner's verify poll reads it, see
+            # runner/verify.py) and at most nudge — never typing/download, no ledger, no model call.
             text = m.get("text", {}).get("body") if typ == "text" else f"[{typ}]"
             self.store.add(mid, "in", text)
+            self._pending_reminder(wa, frm, text)
             return
         wa.typing(mid)
         text, image = None, None
@@ -214,6 +222,48 @@ class Hisab:
             self.store.add(i, "out", reply, entry=entry)
         if entry:
             self._mark_entry(mid, entry)
+
+    def _pending_reminder(self, wa, frm, text):
+        """Language-neutral (no language is chosen before setup), at most once per REMINDER_INTERVAL however
+        many messages arrive, and never for a verify-shaped message: the runner is about to check that one,
+        and a nag on top of a correct code would be the first thing a new user reads."""
+        if VERIFY_RE.match((text or "").strip()):
+            return
+        now = int(time.time())
+        if now - self.store.last_reminder() < REMINDER_INTERVAL:
+            return
+        reminder = s("pending_reminder", "en")
+        try:
+            ids = wa.send(frm, reminder)
+        except Exception as e:
+            print(f"pending reminder failed: {e}", file=sys.stderr)
+            return
+        self.store.set_last_reminder(now)
+        for i in ids:
+            self.store.add(i, "out", reminder)
+
+    def _welcome_if_due(self, wa):
+        """Hosted mode, exactly once per tenant. The runner restarts a verified tenant's worker unmuted, and
+        the platform lets an agent message its creator only after the creator wrote first — the verify
+        message was that. The welcome opens the setup conversation (language first) so the next reply is
+        already an answer. welcomed.json in the state dir makes this survive every later restart."""
+        if not self.cfg.get("hosted") or self.cfg.get("pending"):
+            return
+        creator = self.store.creator()
+        if not creator or self.store.welcomed():
+            return
+        text = s("welcome", "en")
+        if not self.ledger.exists() and not self.setup.active():
+            text += "\n\n" + self.setup.start()
+        try:
+            ids = wa.send(creator, text)
+        except Exception as e:
+            print(f"welcome failed: {e}; will retry on the next start", file=sys.stderr)
+            return
+        self.store.mark_clear()  # the pending-phase exchange (verify, reminder) is not conversation context
+        self.store.set_welcomed()
+        for i in ids:
+            self.store.add(i, "out", text)
 
     def _lang(self):
         return self.setup.lang() if self.setup.active() else (self.ledger.language() if self.ledger.exists() else "en")

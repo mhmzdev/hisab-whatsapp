@@ -1,22 +1,27 @@
 # Hosted mode only — separate from docker-compose.yml, which self-host users run unchanged.
-# local profile (Firebase Emulator Suite): run `firebase emulators:start --only firestore,auth`
-# on the host, then `docker compose -f docker-compose.runner.yml up -d --build` with
-# FIRESTORE_EMULATOR_HOST=host.docker.internal:8080 in .env.
 #
-# dev profile (an existing dedicated, non-production Firebase project): uncomment the
-# GOOGLE_APPLICATION_CREDENTIALS volume/env below, pointing at a gitignored service-account
-# JSON, and leave FIRESTORE_EMULATOR_HOST unset. Never point either profile at a production
-# project or a payment provider.
+# local profile (Firebase Emulator Suite): `make emulators` on the host (auth + firestore + hosting,
+# ports in firebase.json), then `make runner-up`, which starts this file with
+# FIRESTORE_EMULATOR_HOST=host.docker.internal:8080 and GCLOUD_PROJECT=demo-hisab in the runner's
+# environment. Neither variable is a secret; they are passed through from the shell, not stored in .env.
+#
+# dev profile (an existing dedicated, non-production Firebase project): leave FIRESTORE_EMULATOR_HOST
+# unset, uncomment the GOOGLE_APPLICATION_CREDENTIALS volume/env below pointing at a gitignored
+# service-account JSON. Never point either profile at a production project or a payment provider.
 services:
   runner:
     build:
       context: .
       dockerfile: runner/Dockerfile
-    env_file: .env
+    env_file: .env                     # RUNNER_PRIVATE_KEY + the model key(s); WHATSAPP_TOKEN there is ignored — each tenant's comes from Firestore
+    environment:
+      - FIRESTORE_EMULATOR_HOST        # pass-through: set in the shell for the local profile, absent for dev
+      - GCLOUD_PROJECT
+      # GOOGLE_APPLICATION_CREDENTIALS: /app/service-account.json   # dev profile only
     volumes:
       - ./runner/config.yaml:/app/runner/config.yaml:ro
       - ./runner-data:/app/runner-data   # vault/<uid>, data/<uid>, tenants/<uid> for every tenant
       # - ./service-account.json:/app/service-account.json:ro   # dev profile only, gitignored
-    # environment:
-    #   GOOGLE_APPLICATION_CREDENTIALS: /app/service-account.json   # dev profile only
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # Linux hosts; Docker Desktop already resolves it
     restart: unless-stopped

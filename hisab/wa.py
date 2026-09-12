@@ -22,6 +22,14 @@ DEFAULT_RATE_LIMITS = {
 # HTTP 409 on /updates: another poller replaced this one's cursor — the two-pollers-on-one-agent
 # footgun AGENTS.md warns about, named by the platform as error.code 1752041.
 
+AUTH_EXIT_CODE = 3  # hisab.loop's exit status on AuthError; runner/reconcile.py maps it to lastError "auth"
+
+
+class AuthError(Exception):
+    """The platform rejected the token itself — HTTP 401 (error.code 190) or an invalid-token 400
+    (error.code 100). Unlike a 429, 503 or a dropped connection this never becomes valid on retry, so
+    the poll loop lets it escape and exits with AUTH_EXIT_CODE instead of burning 12 polls a minute."""
+
 
 class RateLimiter:
     """One rolling window per method, scoped exactly like the platform's own counters. `acquire`
@@ -104,6 +112,8 @@ class WhatsApp:
             print(f"[{time.strftime('%H:%M:%S')}] poll: another poller is using this agent "
                   f"(HTTP 409{f', error.code {code}' if code else ''})", file=sys.stderr)
             return [], offset
+        if r.status_code == 401 or (r.status_code == 400 and _error_code(r) == 100):
+            raise AuthError(f"WhatsApp rejected the token (HTTP {r.status_code}, error.code {_error_code(r)})")
         r.raise_for_status()
         data = r.json()
         msgs = []

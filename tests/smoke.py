@@ -306,18 +306,90 @@ try:
         pending_app = Hisab(pending_cfg)
         fake_wa = FakeWA()
         pending_app._handle_wa(fake_wa, {"from": "923001234567", "type": "text", "id": "m1", "text": {"body": "verify 482913"}})
+        assert fake_wa.sent == [], fake_wa.sent  # a verify-shaped message gets no nag: the runner is about to check it
         pending_app._handle_wa(fake_wa, {"from": "923001234567", "type": "audio", "id": "m2", "audio": {"id": "media1"}})
-        assert fake_wa.sent == [] and fake_wa.downloaded == [], (fake_wa.sent, fake_wa.downloaded)
-        assert pending_app.store.lookup("m1") and pending_app.store.lookup("m2")
-        assert not pending_app.ledger.exists()
-        print("runner: pending mute ok")
+        for i in range(3, 7):
+            pending_app._handle_wa(fake_wa, {"from": "923001234567", "type": "text", "id": f"m{i}", "text": {"body": f"{i}00 chai"}})
+        sends = [x for x in fake_wa.sent if x[0] == "send"]
+        assert len(sends) == 1 and "verify" in sends[0][2] and "اردو" in sends[0][2] and "Roman" in sends[0][2], fake_wa.sent
+        assert not any(x[0] == "typing" for x in fake_wa.sent) and fake_wa.downloaded == [], (fake_wa.sent, fake_wa.downloaded)
+        assert pending_app.store.lookup("m1") and pending_app.store.lookup("m2") and pending_app.store.lookup("m6")
+        assert not pending_app.ledger.exists() and pending_app.store.usage()["calls"] == 0
+        assert pending_app.store.creator() == "923001234567"
+        from hisab.i18n import S as I18N
+        for key in ("pending_reminder", "welcome"):
+            assert all(I18N[key].get(lg) for lg in ("en", "ur", "roman")), key
+        print("runner: pending mute + one reminder per window ok")
+
+        # the welcome: exactly once across two worker instances on one state dir (a runner restart)
+        hosted_cfg = dict(pending_cfg, pending=False, hosted=True, state={"path": str(tmp / "welcome-state")}, ledger={"path": str(tmp / "welcome-vault"), "template": "personal", "currency": "PKR"})
+        Store(hosted_cfg["state"]["path"]).set_creator("923001234567")
+        wa_w1, wa_w2 = FakeWA(), FakeWA()
+        app_w1 = Hisab(hosted_cfg); app_w1._welcome_if_due(wa_w1)
+        app_w2 = Hisab(hosted_cfg); app_w2._welcome_if_due(wa_w2)
+        assert len(wa_w1.sent) == 1 and wa_w1.sent[0][1] == "923001234567" and "Connected" in wa_w1.sent[0][2] and "اردو" in wa_w1.sent[0][2], wa_w1.sent
+        assert wa_w2.sent == [], wa_w2.sent
+        assert app_w2.setup.active(), "the welcome opens setup so the next reply is the language answer"
+        reply, done, _ = app_w2.setup.answer("اردو"); assert not done and "کھاتہ" in reply, reply  # first question, in Urdu
+        selfhost_cfg = dict(hosted_cfg, hosted=False, state={"path": str(tmp / "selfhost-state")})
+        Store(selfhost_cfg["state"]["path"]).set_creator("923001234567")
+        wa_sh = FakeWA(); Hisab(selfhost_cfg)._welcome_if_due(wa_sh)
+        assert wa_sh.sent == [], "self-host never greets on startup"
+        print("runner: welcome exactly once ok")
+
+        # auth failures stop the worker; everything else keeps the existing retry
+        from hisab.wa import AuthError, AUTH_EXIT_CODE
+        auth_wa = WhatsApp("tok", now=clock.now, sleep=clock.sleep)
+        for status, payload in ((401, {"error": {"code": 190}}), (400, {"error": {"code": 100}})):
+            wa_mod.requests.request = lambda verb, url, **kw: FakeResponse(status, payload)
+            try:
+                auth_wa.poll(""); raise SystemExit(f"HTTP {status} did not raise AuthError")
+            except AuthError:
+                pass
+        for status in (503, 500):
+            wa_mod.requests.request = lambda verb, url, **kw: FakeResponse(status, {})
+            try:
+                auth_wa.poll(""); raise SystemExit(f"HTTP {status} did not raise")
+            except AuthError:
+                raise SystemExit(f"HTTP {status} must not be an AuthError")
+            except RuntimeError:
+                pass
+        wa_mod.requests.request = real_request
+
+        class ExitingWA:
+            def __init__(self, exc): self.exc = exc
+            def poll(self, offset): raise self.exc
+            def send(self, *a): return []
+        class Retried(Exception): pass
+        def no_sleep(_): raise Retried()
+        real_sleep, loop_mod.time.sleep = loop_mod.time.sleep, no_sleep
+        real_wa_cls = wa_mod.WhatsApp
+        exit_app = Hisab(dict(hosted_cfg, state={"path": str(tmp / "exit-state")}, secrets={"whatsapp_token": "tok", "openrouter_key": "fake-not-used"}, whatsapp={"poll_timeout": 20, "chunk_chars": 3500}))
+        try:
+            wa_mod.WhatsApp = lambda *a, **kw: ExitingWA(AuthError("401"))
+            try:
+                exit_app.run_whatsapp(); raise SystemExit("auth failure did not exit")
+            except SystemExit as e:
+                assert e.code == AUTH_EXIT_CODE, e.code
+            wa_mod.WhatsApp = lambda *a, **kw: ExitingWA(ConnectionError("reset"))
+            try:
+                exit_app.run_whatsapp(); raise SystemExit("connection error did not retry")
+            except Retried:
+                pass
+        finally:
+            wa_mod.WhatsApp, loop_mod.time.sleep = real_wa_cls, real_sleep
+        print("runner: auth failure exits, transient errors retry ok")
 
         from runner.workers import WorkerManager
         from runner.reconcile import reconcile
 
         class FakeProc:
+            def __init__(self, code=None):
+                self.code = code
             def terminate(self):
                 pass
+            def poll(self):
+                return self.code
 
         class FakeLauncher:
             def __init__(self):
@@ -357,6 +429,89 @@ try:
         finally:
             del os.environ["RUNNER_PRIVATE_KEY"]
         print("runner: reconcile ok")
+
+        # verification: pure, file-based, per tenant — see runner/verify.py
+        from runner.verify import check_pending, poll_pending
+        def tenant_state(uid, texts, creator="923001234567", ts=1_700_000_000):
+            st = Store(Path(runner_cfg["data_root"]) / uid)
+            st.set_creator(creator)
+            for i, text in enumerate(texts):
+                st.add(f"{uid}-{i}", "in", text)
+            recs = [json.loads(l) for l in st.messages.read_text(encoding="utf-8").splitlines()]
+            for r in recs: r["ts"] = ts
+            st.messages.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in recs), encoding="utf-8")
+        live = {"status": "pending", "nonce": "482913", "nonceExpiresAt": 1_700_000_000_000 + 600_000}
+        tenant_state("t-ok", ["hello", "482913", "VERIFY 482913"])
+        got = check_pending("t-ok", live, runner_cfg, now_ms=1)
+        assert got == {"status": "connected", "creatorId": "923001234567", "connectedAt": 1}, got
+        tenant_state("t-bare", ["482913", "verify", "verify 482913 please"])
+        assert check_pending("t-bare", live, runner_cfg) is None
+        tenant_state("t-wrong", ["verify 111111"])
+        assert check_pending("t-wrong", live, runner_cfg) is None
+        tenant_state("t-late", ["verify 482913"], ts=1_700_000_000 + 601)
+        assert check_pending("t-late", live, runner_cfg) is None, "a verify after nonceExpiresAt must not connect"
+        assert check_pending("t-late", dict(live, nonceExpiresAt=None), runner_cfg) is not None  # no expiry recorded = no expiry check
+        tenant_state("t-other", ["verify 482913"])  # tenant A's nonce sent to tenant B's agent
+        assert check_pending("t-other", dict(live, nonce="999999"), runner_cfg) is None
+        assert check_pending("t-nostate-at-all", live, runner_cfg) is None
+        assert check_pending("t-ok", dict(live, nonce=""), runner_cfg) is None
+        transitions = poll_pending({"t-ok": live, "t-other": dict(live, nonce="999999"), "t-done": dict(live, status="connected"), "t-wrong": live}, runner_cfg)
+        assert list(transitions) == ["t-ok"] and transitions["t-ok"]["creatorId"] == "923001234567", transitions
+        print("runner: verify ok")
+
+        # admission and error surfacing: status is runner-owned, so both transitions live in reconcile.py
+        from runner.reconcile import admission, on_worker_exit, key_fingerprint
+        writes = []
+        def fake_update(uid, fields): writes.append((uid, dict(fields)))
+        os.environ["RUNNER_PRIVATE_KEY"] = priv
+        try:
+            launcher2 = FakeLauncher(); manager2 = WorkerManager(launcher=launcher2)
+            reconcile({"t-new": {"keyCiphertext": ciphertext, "nonce": "482913"},
+                       "t-junk": {"keyCiphertext": "not-a-ciphertext", "nonce": "482913"}}, runner_cfg, manager2, update=fake_update)
+            assert writes == [("t-new", {"status": "pending", "lastError": None, "lastErrorKey": None})], writes
+            assert manager2.running_uids() == {"t-new"} and launcher2.calls == 1, (manager2.running_uids(), launcher2.calls)
+            reconcile({"t-new": {"keyCiphertext": ciphertext, "nonce": "482913", "status": "pending"}}, runner_cfg, manager2, update=fake_update)
+            assert len(writes) == 1 and launcher2.calls == 1, "the echoed snapshot is a no-op"
+            # the worker exits on a rejected token -> error + lastError code, and it is NOT restarted
+            manager2._running["t-new"]["proc"].code = 3
+            exited = manager2.reap(); assert exited == [("t-new", 3)] and manager2.running_uids() == set()
+            doc_err = {"keyCiphertext": ciphertext, "nonce": "482913", "status": "pending"}
+            fields = on_worker_exit("t-new", 3, {"t-new": doc_err}, update=fake_update)
+            assert fields == {"status": "error", "lastError": "auth", "lastErrorKey": key_fingerprint(ciphertext)}, fields
+            assert on_worker_exit("t-new", 1, {"t-new": doc_err}, update=fake_update) is None  # an ordinary crash is not a lastError
+            doc_err = {**doc_err, **fields}
+            reconcile({"t-new": doc_err}, runner_cfg, manager2, update=fake_update)
+            assert manager2.running_uids() == set() and launcher2.calls == 1, "parked in error: no restart loop"
+            # the user pastes a new key from the Connect screen: a different ciphertext re-admits the tenant
+            ciphertext2 = seal("fake-wa-token-2", pub)
+            assert admission({**doc_err, "keyCiphertext": ciphertext2}, runner_cfg) == {"status": "pending", "lastError": None, "lastErrorKey": None}
+            assert admission(doc_err, runner_cfg) is None
+            assert admission({**doc_err, "keyCiphertext": "garbage"}, runner_cfg) is None
+            reconcile({"t-new": {**doc_err, "keyCiphertext": ciphertext2}}, runner_cfg, manager2, update=fake_update)
+            assert manager2.running_uids() == {"t-new"} and writes[-1][1]["status"] == "pending", writes[-1]
+            from runner.errors import LAST_ERROR_CODES
+            assert set(LAST_ERROR_CODES) == {"auth"}, LAST_ERROR_CODES
+        finally:
+            del os.environ["RUNNER_PRIVATE_KEY"]
+        print("runner: admission + lastError ok")
+
+        # the browser's own sealing code (landing/app/portal/crypto.js) must open in the runner's PyNaCl
+        import subprocess
+        crypto_js = Path(__file__).resolve().parent.parent / "landing" / "app" / "portal" / "crypto.js"
+        sodium_dir = crypto_js.parent.parent.parent / "node_modules" / "libsodium-wrappers"
+        if shutil.which("node") and crypto_js.exists() and sodium_dir.exists():
+            secret = "WAA-fake-token-اردو-✓"
+            js = f"import({json.dumps(str(crypto_js))}).then(async m => process.stdout.write(await m.sealKey(process.argv[1], process.argv[2])))"
+            out = subprocess.run(["node", "-e", js, secret, pub], capture_output=True, text=True, timeout=60)
+            assert out.returncode == 0, out.stderr[-500:]
+            assert decrypt(out.stdout.strip(), priv) == secret
+            try:
+                decrypt(out.stdout.strip(), wrong_priv); raise SystemExit("JS ciphertext opened with the wrong key")
+            except CryptoError:
+                pass
+            print("runner: JS (libsodium) -> Python (PyNaCl) sealed-box round trip ok")
+        else:
+            print("runner: JS -> Python round trip skipped (needs node and landing/node_modules/libsodium-wrappers)")
     else:
         print("runner: skipped (no runner/)")
     landing_strings = Path(__file__).resolve().parent.parent / "landing" / "content" / "strings.json"

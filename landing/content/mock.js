@@ -19,9 +19,8 @@ export const SHOP_EXCHANGES = {
   ],
 }
 
-// Display-only until #7 — no real nonce generation, matching or expiry exists yet.
-export const NONCE = '482913'
-
+// The Connected screen's activity/entries/language/plan/quota rows until #5 syncs them into the tenant
+// document; agentName and connectedAt already come from Firestore.
 export const CONNECTED = {
   agentName: 'Ali Traders',
   connectedSince: '3 September 2026',

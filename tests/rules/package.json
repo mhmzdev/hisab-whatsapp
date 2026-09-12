@@ -1,0 +1,12 @@
+{
+  "name": "hisab-firestore-rules-test",
+  "private": true,
+  "description": "firestore.rules against the Firestore emulator — run via `make rules-test` from the repo root",
+  "scripts": {
+    "test": "node --test tenants.test.js"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4",
+    "firebase": "^11"
+  }
+}
