@@ -1,23 +1,53 @@
 :root {
-  --brand: #128C7E;
+  --brand: #0F7A6C;
   --brand-strong: #075E54;
   --accent: #25D366;
-  --bubble: #DCF8C6;
-  --bg: #FFFFFF;
-  --surface: #F7F8FA;
-  --text: #111B21;
-  --muted: #667781;
-  --line: #E3E7EA;
+  --bubble: #D9FDD3;
+  --bubble-in: #FFFFFF;
+  --bubble-in2: #F0F2EF;
+  --bubble-line: rgba(11, 20, 26, 0.07);
+  --bg: #F7F8F7;
+  --surface: #FFFFFF;
+  --surface2: #F0F2EF;
+  --chat-bg: #EDEFEA;
+  --bezel: #D7DCD5;
+  --text: #0B141A;
+  --text2: #3A4A52;
+  --muted: #63727A;
+  --line: #E2E6E1;
+  --tint: rgba(37, 211, 102, 0.14);
+  --code-bg: #111B21;
+  --code-text: #E9EDEF;
+  --price-line: #25D366;
+  --wave: rgba(11, 20, 26, 0.4);
+  --slot-a: rgba(11, 20, 26, 0.1);
+  --slot-b: rgba(11, 20, 26, 0.035);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
+    --brand: #25D366;
+    --brand-strong: #075E54;
     --bubble: #005C4B;
+    --bubble-in: #202C33;
+    --bubble-in2: #202C33;
+    --bubble-line: rgba(233, 237, 239, 0.08);
     --bg: #0B141A;
     --surface: #111B21;
+    --surface2: #202C33;
+    --chat-bg: #0B141A;
+    --bezel: #2A3942;
     --text: #E9EDEF;
+    --text2: #C3CBD0;
     --muted: #8696A0;
-    --line: #22303C;
+    --line: #22313A;
+    --tint: rgba(37, 211, 102, 0.16);
+    --code-bg: #05080A;
+    --code-text: #E9EDEF;
+    --price-line: #128C7E;
+    --wave: rgba(233, 237, 239, 0.55);
+    --slot-a: rgba(233, 237, 239, 0.13);
+    --slot-b: rgba(233, 237, 239, 0.04);
   }
 }
 
@@ -40,8 +70,39 @@ img {
   max-width: 100%;
 }
 
+code, pre, .mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
 .page {
-  max-width: 1040px;
+  max-width: 1160px;
   margin: 0 auto;
-  padding-inline: 16px;
+  padding-inline: 24px;
+}
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: 20px;
+  flex-wrap: wrap;
+}
+
+.brand-mark {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.brand-word {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.brand-urdu {
+  font-size: 15px;
+  color: var(--brand);
 }
