@@ -63,6 +63,119 @@ try:
         r, done, _ = su.answer(a)
     assert done and led.language() == "ur" and "سیٹ اپ مکمل" in r, (done, r)
     print("urdu setup ok")
+    runner_dir = Path(__file__).resolve().parent.parent / "runner"
+    if runner_dir.exists():
+        from runner.crypto import CryptoError, decrypt, generate_keypair, seal
+        pub, priv = generate_keypair()
+        ciphertext = seal("fake-whatsapp-token", pub)
+        assert decrypt(ciphertext, priv) == "fake-whatsapp-token"
+        _, wrong_priv = generate_keypair()
+        try:
+            decrypt(ciphertext, wrong_priv); raise SystemExit("decrypt with wrong key accepted")
+        except CryptoError:
+            pass
+        print("runner: crypto ok")
+        from hisab.config import load as hisab_load
+        from runner.tenant_config import build_tenant_config, write_tenant_config
+        uid = "abc123uid"
+        runner_cfg = {
+            "vault_root": str(tmp / "vault"), "data_root": str(tmp / "data"),
+            "tenants_dir": str(tmp / "tenants-elsewhere"),  # deliberately not under vault_root/data_root
+            "ledger": {"template": "shop", "currency": "PKR"},
+            "model": {"id": "fake-model-id"}, "transcription": {"provider": "fake-provider"},
+        }
+        tenant_doc = {"agentName": "kiryana-demo-agent", "creatorId": "923001234567", "status": "pending"}
+        tcfg = build_tenant_config(uid, tenant_doc, runner_cfg)
+        assert tcfg["ledger"]["path"].endswith(f"vault/{uid}"), tcfg
+        assert tcfg["state"]["path"].endswith(f"data/{uid}"), tcfg
+        assert "kiryana-demo-agent" not in tcfg["ledger"]["path"] and "923001234567" not in tcfg["state"]["path"]
+        tenant_doc_bogus = dict(tenant_doc, model={"id": "should-be-ignored"})
+        assert build_tenant_config(uid, tenant_doc_bogus, runner_cfg)["model"] == runner_cfg["model"]
+        written = write_tenant_config(uid, tcfg, runner_cfg)
+        loaded = hisab_load(written)
+        vault_root_resolved, data_root_resolved = str(Path(runner_cfg["vault_root"]).resolve()), str(Path(runner_cfg["data_root"]).resolve())
+        assert loaded["ledger"]["path"].startswith(vault_root_resolved) and uid in loaded["ledger"]["path"], loaded["ledger"]["path"]
+        assert loaded["state"]["path"].startswith(data_root_resolved) and uid in loaded["state"]["path"], loaded["state"]["path"]
+        print("runner: tenant_config ok")
+
+        from hisab.loop import Hisab
+
+        class FakeWA:
+            def __init__(self):
+                self.sent, self.downloaded = [], []
+            def typing(self, mid):
+                self.sent.append(("typing", mid))
+            def send(self, frm, text):
+                self.sent.append(("send", frm, text)); return []
+            def download(self, media_id, media_dir):
+                self.downloaded.append(media_id); return None, None
+
+        pending_cfg = {
+            "pending": True,
+            "ledger": {"path": str(tmp / "pending-vault"), "template": "personal", "currency": "PKR"},
+            "model": {"id": "openai/gpt-4o-mini", "base_url": None, "api_key_env": None, "provider_pin": None, "agents_sdk": False},
+            "transcription": {"provider": "openrouter", "model": "openai/whisper-1", "base_url": None, "api_key_env": None, "language": None, "gemini_model": "gemini-2.5-flash"},
+            "memory": {"window_turns": 20, "keep_days": 30},
+            "whatsapp": {"poll_timeout": 20, "chunk_chars": 3500},
+            "state": {"path": str(tmp / "pending-state")},
+            "secrets": {"whatsapp_token": "", "openrouter_key": "fake-not-used"},
+        }
+        pending_app = Hisab(pending_cfg)
+        fake_wa = FakeWA()
+        pending_app._handle_wa(fake_wa, {"from": "923001234567", "type": "text", "id": "m1", "text": {"body": "verify 482913"}})
+        pending_app._handle_wa(fake_wa, {"from": "923001234567", "type": "audio", "id": "m2", "audio": {"id": "media1"}})
+        assert fake_wa.sent == [] and fake_wa.downloaded == [], (fake_wa.sent, fake_wa.downloaded)
+        assert pending_app.store.lookup("m1") and pending_app.store.lookup("m2")
+        assert not pending_app.ledger.exists()
+        print("runner: pending mute ok")
+
+        from runner.workers import WorkerManager
+        from runner.reconcile import reconcile
+
+        class FakeProc:
+            def terminate(self):
+                pass
+
+        class FakeLauncher:
+            def __init__(self):
+                self.calls = 0
+                self.last_env = None
+            def __call__(self, args, env):
+                self.calls += 1
+                self.last_env = env
+                return FakeProc()
+
+        runner_cfg["secrets"] = {"runner_private_key": priv}
+        ciphertext = seal("fake-wa-token", pub)
+        rtenant, launcher = "tenant-xyz", FakeLauncher()
+        manager = WorkerManager(launcher=launcher)
+        os.environ["RUNNER_PRIVATE_KEY"] = priv  # simulate the runner's own env; must never reach a tenant subprocess
+        try:
+            reconcile({rtenant: {"status": "pending", "keyCiphertext": ciphertext, "lastSeenAt": "2026-09-01"}}, runner_cfg, manager)
+            reconcile({rtenant: {"status": "pending", "keyCiphertext": ciphertext, "lastSeenAt": "2026-09-02", "entriesThisMonth": 5}}, runner_cfg, manager)
+            assert launcher.calls == 1, launcher.calls  # idempotent: volatile-only changes don't restart
+            assert "RUNNER_PRIVATE_KEY" not in launcher.last_env, "tenant subprocess must not inherit the runner's decryption key"
+            reconcile({rtenant: {"status": "connected", "keyCiphertext": ciphertext, "lastSeenAt": "2026-09-03"}}, runner_cfg, manager)
+            assert launcher.calls == 2, launcher.calls  # status flip -> exactly one restart
+            assert manager.running_uids() == {rtenant}
+            reconcile({rtenant: {"status": "revoked", "keyCiphertext": ciphertext}}, runner_cfg, manager)  # explicit revoke, doc still present
+            assert manager.running_uids() == set()
+            reconcile({rtenant: {"status": "connected", "keyCiphertext": ciphertext, "lastSeenAt": "2026-09-04"}}, runner_cfg, manager)
+            assert launcher.calls == 3 and manager.running_uids() == {rtenant}
+            reconcile({}, runner_cfg, manager)  # tenant document removed entirely
+            assert manager.running_uids() == set()
+            # a corrupt tenant must not stall reconciliation for a healthy one in the same batch
+            good, bad = "tenant-good", "tenant-bad"
+            reconcile({
+                good: {"status": "pending", "keyCiphertext": ciphertext, "lastSeenAt": "2026-09-01"},
+                bad: {"status": "pending", "keyCiphertext": "not-valid-base64-ciphertext", "lastSeenAt": "2026-09-01"},
+            }, runner_cfg, manager)
+            assert manager.running_uids() == {good}, manager.running_uids()
+        finally:
+            del os.environ["RUNNER_PRIVATE_KEY"]
+        print("runner: reconcile ok")
+    else:
+        print("runner: skipped (no runner/)")
     landing_strings = Path(__file__).resolve().parent.parent / "landing" / "content" / "strings.json"
     if landing_strings.exists():
         from check_landing import run as check_landing_run

@@ -26,6 +26,10 @@ config.yaml
 config-*.yaml
 scratch-*/
 
+# runner (hosted mode): per-tenant vault/data/config, dev-profile service account
+runner-data/
+service-account*.json
+
 # landing build output
 landing/node_modules/
 landing/.next/

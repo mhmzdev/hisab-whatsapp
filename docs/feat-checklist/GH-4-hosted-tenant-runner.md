@@ -1,0 +1,36 @@
+---
+type: Checklist
+title: GH-4-hosted-tenant-runner — acceptance checklist
+description: Review of the Firestore-to-worker reconciler runner against issue #4 and the exec plan.
+tags: [checklist, hosted-hisab, runner]
+timestamp: 2026-09-12T00:00:00Z
+---
+
+# GH-4-hosted-tenant-runner — acceptance checklist   (6 proven · 0 manual · 0 failing · 3 findings fixed)
+
+Scope: new `runner/` (13 files: `crypto.py`, `keygen.py`, `config.py`, `config.example.yaml`, `tenant_config.py`, `workers.py`, `reconcile.py`, `firestore_listener.py`, `main.py`, `requirements.txt`, `Dockerfile`, `README.md`, `__init__.py`), `docker-compose.runner.yml`, `firestore.rules` (new); `hisab/config.py`, `hisab/loop.py`, `requirements.txt`, `.env.example`, `.gitignore`, `AGENTS.md`, `firebase.json`, `tests/smoke.py`, `docs/exec-plans/{INDEX.md,completed/GH-4-hosted-tenant-runner.md}` (modified) — 13 tracked diffs + 3 new paths on branch `GH-4-hosted-tenant-runner` (based on `chore-make-up-landing-3030`), none committed yet beyond the plan doc itself. `Makefile`, `README.md`, `landing/README.md` carry the peer's pre-existing `make up`/port commit (03b4eec) this branch was rebased onto; out of this review's scope.
+
+- [x] A pending tenant fixture causes one worker to run with `ledger.path: vault/<uid>` and `state.path: data/<uid>`, without phone numbers, creator IDs, or agent names in paths — `python3 tests/smoke.py` → `runner: tenant_config ok` (asserts the built dict *and* round-trips the written file through the real `hisab.config.load()` from a `tenants_dir` outside the vault/data roots, which is what actually catches a relative-path regression).
+- [x] The runner uses global model/transcription configuration rather than tenant-supplied model credentials — same test, asserts `build_tenant_config`'s `model`/`transcription` equal the runner's config even when the fixture tenant doc carries a bogus `model` key.
+- [x] Firestore stores/reads ciphertext for the WhatsApp key; the runner alone can decrypt it, and a pending worker sends nothing before it receives an inbound message — `python3 tests/smoke.py` → `runner: crypto ok` (sealed-box round-trip; wrong private key raises `CryptoError`) and `runner: pending mute ok` (`Hisab._handle_wa` with `cfg["pending"]=True` against a fake `wa`: zero `send`/`typing`/`download` calls for both a text and an audio inbound, no ledger created). Design note, not a gap: this plan implements pending as "sends nothing, full stop" rather than "sends nothing until the first inbound" — a strict superset of the criterion, since nonce-matching (the part that would need to react to that first inbound) is #7's scope.
+- [x] Reconciliation is idempotent: a document change starts, stops, or restarts only the affected tenant worker without creating a second poller for that agent — `python3 tests/smoke.py` → `runner: reconcile ok` (two reconciles differing only in `lastSeenAt`/`entriesThisMonth` → one launcher call; `pending`→`connected` → exactly one restart; explicit `status: revoked` with the document still present → stop; document removed entirely → stop).
+- [x] The local emulator and dedicated-dev Firebase profiles are documented and do not use a production project or payment provider — read `runner/README.md`: both profiles named with exact env vars (`FIRESTORE_EMULATOR_HOST` / `GOOGLE_APPLICATION_CREDENTIALS`) and commands, and the file states neither uses a production project or enables payments.
+- [x] Repo check passes — `python3 tests/smoke.py` → `ALL OK`. Also ran (not in the checklist but touched by this change): `docker compose -f docker-compose.runner.yml config -q` and `docker compose -f docker-compose.yml config -q` both exit 0 (self-host compose file untouched in substance); `python3 tests/check_landing.py` still passes after the `firebase.json` emulator-block addition.
+
+## Conventions
+
+- **Surface.** Six tools unchanged (`hisab/tools.py` `SCHEMAS` still lists exactly `append_entry, undo_last, report, learn_rule, read_accounts, add_account`). The one `hisab/` touch is the additive `pending` mute in `_handle_wa` — no shell, no free file access. The new Firestore/Admin-SDK network call lives entirely in `runner/`, which is control-plane infrastructure outside the six-tool worker, matching spec 001's "Tenancy on the VPS" design, not a new tool or a new network surface for the model.
+- **Writes / transport.** `ledger.py`/`tools.py` untouched — every write still goes through `Ledger.append` under strict check; entry numbers, undo, dedup-by-message-id, and offset-after-batch are all untouched. Pending mode intentionally skips `wa.typing` too, not just `wa.send`/`wa.download` — consistent with "sends nothing."
+- **Language.** No new user-facing string; pending mode is silent by design, so `i18n.py` needs no new key here.
+- **Ledger dashboard conventions.** Not touched by this plan.
+- **Privacy.** Grepped `runner/`, `docker-compose.runner.yml`, `firestore.rules`, and the changed files for names/tokens/real paths/project ids — only fake fixture data (`kiryana-demo-agent`, `923001234567`, matching the register already used in `sample-vault/` and the completed GH-3 plan). No `.firebaserc`, no service-account JSON, no real Firestore project id anywhere. `runner-data/` and `service-account*.json` added to `.gitignore`; `runner/config.yaml` already covered by the existing `config.yaml`/`config-*.yaml` patterns.
+- **Tests.** Every new pure unit is exercised in `tests/smoke.py` (crypto, tenant_config + the real-loader round-trip, pending mute, reconcile idempotency/restart/stop). `runner/firestore_listener.py` and `runner/main.py` are deliberately *not* exercised by smoke — Firestore snapshot-listener plumbing isn't no-network-testable, and the plan calls this out as a stated risk with the local-emulator run as the intended manual seam, not a gap discovered now.
+- **Docs.** `runner/README.md` (new), `AGENTS.md` repo map (new `runner/` line), `runner/config.example.yaml`. Not updated, and worth a look before shipping: `ARCHITECTURE.md:105` (see Finding 3).
+
+## Findings
+
+FINDING-01 · Important · Fixed · `runner/reconcile.py` — was `env = {**os.environ, "WHATSAPP_TOKEN": token}`, handing every tenant's `hisab.loop` subprocess the runner's entire environment including `RUNNER_PRIVATE_KEY`. Now `_tenant_env()` copies `os.environ` minus a `RUNNER_ONLY_ENV_KEYS` denylist (`RUNNER_PRIVATE_KEY`) before adding `WHATSAPP_TOKEN`. `tests/smoke.py`'s `runner: reconcile ok` sets `os.environ["RUNNER_PRIVATE_KEY"]` for the duration of the test and asserts the launcher's captured env does not contain it.
+
+FINDING-02 · Important · Fixed · `runner/reconcile.py` — the per-tenant `build_tenant_config`/`decrypt`/`write_tenant_config` calls are now wrapped in `try/except (CryptoError, KeyError)`, logging and skipping that uid rather than aborting the batch. `tests/smoke.py` reconciles one tenant with a corrupt `keyCiphertext` alongside one healthy tenant in the same call and asserts the healthy one still ends up running and no exception propagates.
+
+FINDING-03 · Minor · Fixed · `ARCHITECTURE.md:103-106` — "Not here, on purpose" no longer lists hosted multi-tenant mode as absent; it now has a line pointing at `runner/README.md` describing the runner as a separate surface that reconciles a Firestore tenant into one worker of the same self-host code.

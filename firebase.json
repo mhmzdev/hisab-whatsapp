@@ -8,9 +8,18 @@
     ],
     "cleanUrls": true
   },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
   "emulators": {
     "hosting": {
       "port": 3031
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "auth": {
+      "port": 9099
     },
     "ui": {
       "enabled": false

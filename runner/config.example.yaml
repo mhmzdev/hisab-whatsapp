@@ -1,0 +1,25 @@
+# Copy to runner/config.yaml. Safe to commit; the one secret (RUNNER_PRIVATE_KEY) lives in .env.
+# vault_root/data_root/tenants_dir are resolved to absolute paths at load time — see config.py.
+
+vault_root: ./runner-data/vault
+data_root: ./runner-data/data
+tenants_dir: ./runner-data/tenants
+
+ledger:
+  template: shop          # personal | shop — used only when a tenant's ledger folder is empty
+  currency: PKR
+
+# Always the runner's own — never tenant-supplied (spec 001, "Tenancy and ledger ownership").
+# Same shape as the root config.example.yaml; copy a block from examples/ if you want OpenRouter or Gemini.
+model:
+  id: openai/gpt-4o-mini
+  base_url: null           # null = OpenRouter
+  api_key_env: null        # null = OPENROUTER_API_KEY
+  provider_pin: null
+  agents_sdk: false
+
+transcription:
+  provider: openrouter
+  model: openai/whisper-1
+  gemini_model: gemini-2.5-flash
+  language: null

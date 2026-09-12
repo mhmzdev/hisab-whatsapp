@@ -138,6 +138,12 @@ class Hisab:
         frm, typ, mid = m.get("from"), m.get("type"), m.get("id")
         quoted = (m.get("context") or {}).get("id")
         self.store.set_creator(frm)
+        if self.cfg.get("pending"):
+            # hosted mode, unverified tenant: record the inbound (a later feature reads it for the
+            # verify command) but never call wa.typing/send/download — no ledger, no reply, no cost.
+            text = m.get("text", {}).get("body") if typ == "text" else f"[{typ}]"
+            self.store.add(mid, "in", text)
+            return
         wa.typing(mid)
         text, image = None, None
         if typ == "text":
