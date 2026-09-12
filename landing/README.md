@@ -10,7 +10,8 @@ From the repo root:
 |---|---|
 | `make landing` | `npm install && npm run build` — writes the static export to `landing/out/` |
 | `make landing-check` | Runs `tests/check_landing.py` — three-language completeness, verification direction, no payment collection, `firebase.json` shape |
-| `make landing-serve` | Serves `landing/out` at `http://localhost:5000` with Python's http server, the same layout Firebase Hosting serves |
+| `make up` | Runs the worker and serves `landing/out` at `http://localhost:3030` in the background (`make down` stops both) |
+| `make landing-serve` | Serves `landing/out` in the foreground on `LANDING_PORT` (default 3030), the same layout Firebase Hosting serves |
 
 `python3 tests/smoke.py` runs the landing check automatically once `landing/content/strings.json` exists.
 

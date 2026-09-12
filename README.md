@@ -65,7 +65,7 @@ Your ledger lives in `./vault/` on your machine. Nothing goes to anyone but your
 
 For people who will never run Docker: paste your agent's key into a hosted portal and we run the worker. Your key and your ledger would then live on our server, encrypted — exportable and revocable any time — while self-host (above) keeps both on your own machine. 300 PKR/month is the presentation price; it is not yet collectable anywhere in this repo.
 
-`make landing` builds the landing page and portal shell; `make landing-serve` serves it locally at `http://localhost:5000`. See [`landing/README.md`](landing/README.md). Design notes: [`docs/brainstorm/hosted-portal.md`](docs/brainstorm/hosted-portal.md).
+`make up` runs the worker and serves the landing page at `http://localhost:3030`; `make landing` builds it alone. See [`landing/README.md`](landing/README.md). Design notes: [`docs/brainstorm/hosted-portal.md`](docs/brainstorm/hosted-portal.md).
 
 ## Viewing
 
