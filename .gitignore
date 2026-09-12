@@ -40,3 +40,7 @@ NOTES.md
 
 # third-party documents never belong here
 *.pdf
+
+# landing dev server
+.landing-server.pid
+.landing-server.log
