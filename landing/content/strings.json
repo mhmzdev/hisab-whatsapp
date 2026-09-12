@@ -9,7 +9,6 @@
     "ur": "شروع کریں",
     "roman": "Shuru karein"
   },
-
   "hero_title": {
     "en": "A ledger you text",
     "ur": "ایک کھاتہ جسے آپ لکھتے ہیں",
@@ -30,13 +29,11 @@
     "ur": "خود چلائیں",
     "roman": "Khud chalayein"
   },
-
   "section_ways_title": {
     "en": "Three ways in",
     "ur": "اندر آنے کے تین طریقے",
     "roman": "Andar aane ke teen tareeqe"
   },
-
   "card_text_title": {
     "en": "Type it",
     "ur": "لکھ کر بھیجیں",
@@ -67,7 +64,6 @@
     "ur": "بل کی تصویر بھیجیں — حساب رقم پڑھ کر خود درج کر لے گا۔",
     "roman": "Bill ki photo bhejein — Hisab amount parh kar khud post kar dega."
   },
-
   "custody_title": {
     "en": "Who holds the key",
     "ur": "کلید کس کے پاس ہے",
@@ -83,7 +79,6 @@
     "ur": "کچھ بھی آپ کے کمپیوٹر سے باہر نہ جائے؟ اس کے بجائے Hisab خود ہوسٹ کریں۔",
     "roman": "Kuch bhi aap ke computer se bahar na jaye? Uske bajaye Hisab khud host karein."
   },
-
   "why_title": {
     "en": "Why not a chatbot",
     "ur": "چیٹ بوٹ کیوں نہیں",
@@ -104,7 +99,6 @@
     "ur": "ہر اندراج محفوظ ہونے سے پہلے سخت حساب کی جانچ سے گزرتا ہے — کوئی غلط اندراج درج نہیں ہوتا۔",
     "roman": "Har entry save hone se pehle sakht accounting check se guzarta hai — koi ghalat entry darj nahi hoti."
   },
-
   "ledger_title": {
     "en": "Real books, not a categoriser",
     "ur": "اصلی حساب کتاب، محض درجہ بندی نہیں",
@@ -115,7 +109,6 @@
     "ur": "نیچے hledger ہے، ایک اصلی ڈبل انٹری اکاؤنٹنگ انجن۔ ہر اندراج درج ہونے سے پہلے جانچا جاتا ہے؛ غلط اندراج واپس ہو جاتا ہے۔ ٹرانسفر صرف ٹرانسفر ہوتا ہے، خرچ نہیں، اس لیے مہینے کا ٹوٹل درست رہتا ہے۔ کھاتہ ایک plain text فائل ہے جسے آپ کہیں بھی کھول سکتے ہیں۔",
     "roman": "Neeche hledger hai, ek asli double-entry accounting engine. Har entry darj hone se pehle check hoti hai; ghalat entry wapas roll back ho jati hai. Transfer sirf transfer hota hai, kharch nahi, is liye mahine ka total sahih rehta hai. Khata ek plain text file hai jo aap kahin bhi khol sakte hain."
   },
-
   "shop_title": {
     "en": "For the shop",
     "ur": "دکان کے لیے",
@@ -126,7 +119,6 @@
     "ur": "ایک کریانہ سٹور، ایک کمیٹی، ایک رائیڈر جس کے پاس فیول کی رسیدیں ہیں۔ انجن وہی ہے، صرف اکاؤنٹس کا چارٹ مختلف ہے — سیٹ اپ کے وقت چنا جاتا ہے۔",
     "roman": "Ek kiryana store, ek committee, ek rider jiske paas fuel ki receipts hain. Engine wohi, sirf accounts ka chart alag — setup ke waqt chuna jata hai."
   },
-
   "how_title": {
     "en": "How it works",
     "ur": "یہ کیسے کام کرتا ہے",
@@ -147,7 +139,6 @@
     "ur": "وہ کوڈ اپنے ایجنٹ کو بھیجیں — یہ آپ کی زبان میں خوش آمدید کہے گا اور چند سوال پوچھے گا۔",
     "roman": "Woh code apne agent ko bhejein — yeh aap ki zabaan mein khush-amdeed kahega aur chand sawal poochega."
   },
-
   "price_title": {
     "en": "Pricing",
     "ur": "قیمت",
@@ -188,7 +179,6 @@
     "ur": "شروع کریں",
     "roman": "Shuru karein"
   },
-
   "footer_selfhost": {
     "en": "Self-host on GitHub",
     "ur": "GitHub پر خود ہوسٹ کریں",
@@ -209,11 +199,10 @@
     "ur": "اسلام آباد میں بنایا گیا۔",
     "roman": "Islamabad mein bana."
   },
-
   "portal_connect_title": {
-    "en": "Connect your agent",
-    "ur": "اپنا ایجنٹ کنیکٹ کریں",
-    "roman": "Apna agent connect karein"
+    "en": "Connect your agent.",
+    "ur": "اپنا ایجنٹ جوڑیں۔",
+    "roman": "Apna agent connect karein."
   },
   "portal_connect_name_label": {
     "en": "Agent name",
@@ -222,29 +211,23 @@
   },
   "portal_connect_key_label": {
     "en": "API key",
-    "ur": "API کلید",
+    "ur": "API کی",
     "roman": "API key"
   },
   "portal_connect_key_note": {
-    "en": "You paste it once — we never display it again.",
-    "ur": "آپ اسے ایک بار پیسٹ کرتے ہیں — ہم اسے دوبارہ کبھی نہیں دکھاتے۔",
-    "roman": "Aap ise ek baar paste karte hain — hum ise dobara kabhi nahi dikhate."
-  },
-  "portal_connect_steps": {
-    "en": "WhatsApp → Settings → Agents → your agent → Chat info → copy the API key",
-    "ur": "WhatsApp → Settings → Agents → اپنا ایجنٹ → Chat info → API کلید کاپی کریں",
-    "roman": "WhatsApp → Settings → Agents → apna agent → Chat info → API key copy karein"
+    "en": "Encrypted in your browser before it leaves. We can't show it to you again.",
+    "ur": "یہ آپ کے براؤزر میں انکرپٹ ہو جاتی ہے۔ ہم اسے دوبارہ دکھا نہیں سکتے۔",
+    "roman": "Aap ke browser mein encrypt ho kar jati hai. Hum ise dobara dikha nahi sakte."
   },
   "portal_connect_button": {
-    "en": "Connect (coming soon — no backend yet)",
-    "ur": "Connect (جلد آ رہا ہے — ابھی بیک اینڈ نہیں)",
-    "roman": "Connect (jald aa raha hai — abhi backend nahi)"
+    "en": "Connect",
+    "ur": "جوڑیں",
+    "roman": "Connect karein"
   },
-
   "portal_verify_title": {
-    "en": "Check your WhatsApp",
-    "ur": "اپنا WhatsApp دیکھیں",
-    "roman": "Apna WhatsApp dekhein"
+    "en": "Send this to your agent.",
+    "ur": "یہ اپنے ایجنٹ کو بھیجیں۔",
+    "roman": "Yeh apne agent ko bhejein."
   },
   "portal_verify_instruction": {
     "en": "Send verify {nonce} to your agent on WhatsApp.",
@@ -253,29 +236,28 @@
   },
   "portal_verify_copy": {
     "en": "Copy",
-    "ur": "کاپی کریں",
-    "roman": "Copy karein"
+    "ur": "کاپی",
+    "roman": "Copy"
   },
   "portal_verify_waiting": {
     "en": "Waiting for your message…",
     "ur": "آپ کے پیغام کا انتظار…",
-    "roman": "Aap ke message ka intezaar…"
+    "roman": "Aap ke message ka intezar…"
   },
   "portal_verify_expiry": {
     "en": "This code expires in 10 minutes.",
     "ur": "یہ کوڈ 10 منٹ میں ختم ہو جائے گا۔",
     "roman": "Yeh code 10 minute mein khatam ho jayega."
   },
-
   "portal_connected_title": {
     "en": "Connected",
-    "ur": "کنیکٹ ہو گیا",
-    "roman": "Connect ho gaya"
+    "ur": "جڑا ہوا",
+    "roman": "Connected"
   },
   "portal_connected_since_label": {
     "en": "Connected since",
-    "ur": "کب سے کنیکٹ ہے",
-    "roman": "Kab se connect hai"
+    "ur": "کب سے جڑا",
+    "roman": "Kab se juda"
   },
   "portal_connected_activity_label": {
     "en": "Last activity",
@@ -284,29 +266,23 @@
   },
   "portal_connected_entries_label": {
     "en": "Entries this month",
-    "ur": "اس مہینے کے اندراجات",
-    "roman": "Is mahine ke entries"
+    "ur": "اس مہینے کے اندراج",
+    "roman": "Is maheene ke entries"
   },
   "portal_connected_language_label": {
     "en": "Language",
     "ur": "زبان",
-    "roman": "Zabaan"
-  },
-  "portal_connected_export_hint": {
-    "en": "Send export-ledger to your agent any time to get your whole ledger.",
-    "ur": "پورا کھاتہ لینے کے لیے کسی بھی وقت ایجنٹ کو export-ledger بھیجیں۔",
-    "roman": "Pura khata lene ke liye kabhi bhi agent ko export-ledger bhejein."
+    "roman": "Zaban"
   },
   "portal_connected_revoke_button": {
     "en": "Revoke key",
-    "ur": "کلید منسوخ کریں",
+    "ur": "کی منسوخ کریں",
     "roman": "Key revoke karein"
   },
-
   "portal_revoked_title": {
     "en": "Revoked",
-    "ur": "منسوخ ہو گیا",
-    "roman": "Revoke ho gaya"
+    "ur": "منسوخ",
+    "roman": "Revoked"
   },
   "portal_revoked_body": {
     "en": "Your agent has stopped and the key has been deleted.",
@@ -318,9 +294,139 @@
     "ur": "آپ کا کھاتہ 30 دن تک محفوظ رہتا ہے، پھر حذف ہو جاتا ہے۔",
     "roman": "Aap ka khata 30 din tak mehfooz rehta hai, phir delete ho jata hai."
   },
-  "portal_revoked_reconnect": {
-    "en": "Connect again any time to pick up where you left off.",
-    "ur": "جب چاہیں دوبارہ کنیکٹ کریں اور وہیں سے شروع کریں جہاں چھوڑا تھا۔",
-    "roman": "Jab chahein dobara connect karein aur wahin se shuru karein jahan chhoda tha."
+  "portal_connect_subtitle": {
+    "en": "One agent, one ledger. Takes about two minutes.",
+    "ur": "ایک ایجنٹ، ایک لیجر۔ تقریباً دو منٹ لگتے ہیں۔",
+    "roman": "Ek agent, ek ledger. Taqreeban do minute."
+  },
+  "portal_connect_step1": {
+    "en": "Open WhatsApp → Settings → Agents → Create.",
+    "ur": "واٹس ایپ کھولیں → سیٹنگز → ایجنٹس → کریئیٹ۔",
+    "roman": "WhatsApp kholein → Settings → Agents → Create."
+  },
+  "portal_connect_step2": {
+    "en": "Name it anything. “Hisab” is fine.",
+    "ur": "نام کوئی بھی رکھیں۔ ”Hisab“ ٹھیک ہے۔",
+    "roman": "Naam kuch bhi rakhein. “Hisab” theek hai."
+  },
+  "portal_connect_step3": {
+    "en": "Open the agent → Chat info → copy the API key.",
+    "ur": "ایجنٹ کھولیں → چیٹ انفو → API کی کاپی کریں۔",
+    "roman": "Agent kholein → Chat info → API key copy karein."
+  },
+  "portal_connect_step4": {
+    "en": "Paste it here.",
+    "ur": "یہاں پیسٹ کریں۔",
+    "roman": "Yahan paste karein."
+  },
+  "portal_connect_paste_button": {
+    "en": "Paste",
+    "ur": "پیسٹ",
+    "roman": "Paste"
+  },
+  "portal_connect_custody_note": {
+    "en": "Hosted means we hold this key and your ledger, encrypted. Revoke any time from this page.",
+    "ur": "ہوسٹڈ کا مطلب یہ کی اور آپ کا لیجر ہمارے پاس، انکرپٹڈ۔ اس صفحے سے کسی بھی وقت منسوخ کریں۔",
+    "roman": "Hosted ka matlab yeh key aur aap ka ledger hamare paas, encrypted. Is page se kabhi bhi revoke karein."
+  },
+  "portal_verify_new_code": {
+    "en": "New code",
+    "ur": "نیا کوڈ",
+    "roman": "Naya code"
+  },
+  "portal_verify_after_caption": {
+    "en": "After the code, the agent greets you and asks your language. Everything else happens there.",
+    "ur": "کوڈ کے بعد ایجنٹ آپ کو سلام کرتا ہے اور زبان پوچھتا ہے۔ باقی سب کچھ وہیں ہوتا ہے۔",
+    "roman": "Code ke baad agent aap ko salam karta hai aur zaban poochta hai. Baqi sab kuch wahin hota hai."
+  },
+  "portal_connected_plan_label": {
+    "en": "Plan",
+    "ur": "پلان",
+    "roman": "Plan"
+  },
+  "portal_connected_quota_label": {
+    "en": "AI calls this month",
+    "ur": "اس مہینے کی AI کالیں",
+    "roman": "Is maheene ki AI calls"
+  },
+  "portal_connected_export_hint_pre": {
+    "en": "To get your ledger as a file, send",
+    "ur": "اپنا لیجر فائل کی صورت لینے کے لیے اپنے ایجنٹ کو",
+    "roman": "Apna ledger file ki tarah lene ke liye apne agent ko"
+  },
+  "portal_connected_export_hint_post": {
+    "en": "to your agent.",
+    "ur": "بھیجیں۔",
+    "roman": "bhejein."
+  },
+  "portal_connected_export_hint_sub": {
+    "en": "A ZIP with hisab.md, accounts.md, rules.md and settings.json. No keys, no chat history.",
+    "ur": "ایک زپ جس میں hisab.md، accounts.md، rules.md اور settings.json ہیں۔ کوئی کی نہیں، کوئی چیٹ ہسٹری نہیں۔",
+    "roman": "Ek ZIP jis mein hisab.md, accounts.md, rules.md aur settings.json hain. Koi key nahi, koi chat history nahi."
+  },
+  "portal_connected_revoke_confirm_text": {
+    "en": "This stops the agent now and deletes the key. Your ledger stays with us for 30 days; export it first if you want it.",
+    "ur": "اس سے ایجنٹ ابھی رک جائے گا اور کی حذف ہو جائے گی۔ آپ کا لیجر 30 دن ہمارے پاس رہے گا؛ چاہیں تو پہلے ایکسپورٹ کر لیں۔",
+    "roman": "Is se agent abhi ruk jayega aur key delete ho jayegi. Aap ka ledger 30 din hamare paas rahega; chahein to pehle export kar lein."
+  },
+  "portal_connected_revoke_confirm_yes": {
+    "en": "Revoke",
+    "ur": "منسوخ کریں",
+    "roman": "Revoke"
+  },
+  "portal_connected_revoke_confirm_no": {
+    "en": "Keep it",
+    "ur": "رہنے دیں",
+    "roman": "Rehne dein"
+  },
+  "portal_revoked_reconnect_button": {
+    "en": "Connect an agent",
+    "ur": "ایجنٹ جوڑیں",
+    "roman": "Agent connect karein"
+  },
+  "portal_revoked_muted": {
+    "en": "Reconnecting starts a new ledger. The old one is not merged.",
+    "ur": "دوبارہ جوڑنے سے نیا لیجر شروع ہوتا ہے۔ پرانا اس میں شامل نہیں ہوتا۔",
+    "roman": "Dobara connect karne se naya ledger shuru hota hai. Purana is mein shamil nahi hota."
+  },
+  "portal_signin_title": {
+    "en": "Sign in with your phone.",
+    "ur": "اپنے فون سے سائن ان کریں۔",
+    "roman": "Apne phone se sign in karein."
+  },
+  "portal_signin_helper": {
+    "en": "We send a one-time code by SMS. This is your Hisab account, not your agent.",
+    "ur": "ہم ایس ایم ایس پر ایک بار کا کوڈ بھیجتے ہیں۔ یہ آپ کا حساب اکاؤنٹ ہے، آپ کا ایجنٹ نہیں۔",
+    "roman": "Hum SMS par ek baar ka code bhejte hain. Yeh aap ka Hisab account hai, aap ka agent nahi."
+  },
+  "portal_signin_button": {
+    "en": "Send code",
+    "ur": "کوڈ بھیجیں",
+    "roman": "Code bhejein"
+  },
+  "portal_signin_fine": {
+    "en": "No password. No email.",
+    "ur": "کوئی پاس ورڈ نہیں۔ کوئی ای میل نہیں۔",
+    "roman": "Koi password nahi. Koi email nahi."
+  },
+  "portal_signin_code_title": {
+    "en": "Enter the code.",
+    "ur": "کوڈ درج کریں۔",
+    "roman": "Code likhein."
+  },
+  "portal_signin_code_sent": {
+    "en": "Sent to +92 3•• ••• 4521 · Resend in 0:42",
+    "ur": "‎+92 3•• ••• 4521 پر بھیجا گیا · 0:42 میں دوبارہ بھیجیں",
+    "roman": "+92 3•• ••• 4521 par bheja gaya · 0:42 mein dobara bhejein"
+  },
+  "portal_signin_code_button": {
+    "en": "Continue",
+    "ur": "آگے بڑھیں",
+    "roman": "Aage barhein"
+  },
+  "portal_signin_code_wrong_number": {
+    "en": "Wrong number?",
+    "ur": "نمبر غلط ہے؟",
+    "roman": "Number ghalat hai?"
   }
 }
