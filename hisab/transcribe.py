@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 import requests
 
-OPENROUTER_URL = "https://openrouter.ai/api/v1/audio/transcriptions"
 PROMPT = ("Transcribe this voice note exactly as spoken. Keep the language as is: English stays English, Urdu may be "
           "written in Urdu script or Roman Urdu as the speaker would type it. Numbers as digits. Output only the transcript.")
 
@@ -15,15 +14,21 @@ def transcribe(path, cfg):
     provider = (tc.get("provider") or "openrouter").lower()
     if provider == "gemini":
         return _gemini(path, os.environ.get("GEMINI_API_KEY", ""), tc.get("gemini_model") or "gemini-2.5-flash")
-    return _openrouter(path, cfg["secrets"]["openrouter_key"], tc.get("model") or "openai/whisper-1", tc.get("language"))
+    # "openrouter" and "openai" share the OpenAI-compatible /audio/transcriptions shape; base_url and key env are config
+    base = (tc.get("base_url") or ("https://api.openai.com/v1" if provider == "openai" else "https://openrouter.ai/api/v1")).rstrip("/")
+    key_env = tc.get("api_key_env") or ("OPENAI_API_KEY" if provider == "openai" else "OPENROUTER_API_KEY")
+    key = os.environ.get(key_env, "").strip() or cfg["secrets"]["openrouter_key"]
+    if not key:
+        raise RuntimeError(f"{key_env} is not set")
+    return _openai_compatible(path, f"{base}/audio/transcriptions", key, tc.get("model") or "whisper-1", tc.get("language"))
 
 
-def _openrouter(path, api_key, model, language=None):
+def _openai_compatible(path, url, api_key, model, language=None):
     data = {"model": model}
     if language:
         data["language"] = language
     with open(path, "rb") as f:
-        r = requests.post(OPENROUTER_URL, headers={"Authorization": f"Bearer {api_key}"}, data=data,
+        r = requests.post(url, headers={"Authorization": f"Bearer {api_key}"}, data=data,
                           files={"file": (path.name, f)}, timeout=120)
     if r.status_code // 100 != 2:
         raise RuntimeError(f"transcription failed: HTTP {r.status_code} {r.text[:300]}")

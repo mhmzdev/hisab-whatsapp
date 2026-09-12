@@ -1,0 +1,30 @@
+# OpenAI directly (the hackathon's headline sponsor): one OPENAI_API_KEY for the model and voice transcription.
+# cp examples/config.openai.yaml config.yaml   and put OPENAI_API_KEY in .env
+
+ledger:
+  path: ./vault
+  template: personal
+  currency: PKR
+
+model:
+  id: gpt-4.1-mini               # OpenAI ids have no vendor prefix; gpt-5-mini is the other candidate
+  base_url: https://api.openai.com/v1
+  api_key_env: OPENAI_API_KEY
+  provider_pin: null
+  agents_sdk: false
+
+transcription:
+  provider: openai
+  model: gpt-4o-mini-transcribe  # or whisper-1 / gpt-4o-transcribe
+  language: null
+
+memory:
+  window_turns: 20
+  keep_days: 30
+
+whatsapp:
+  poll_timeout: 20
+  chunk_chars: 3500
+
+state:
+  path: ./data

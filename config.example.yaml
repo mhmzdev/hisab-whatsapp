@@ -13,7 +13,7 @@ model:
   agents_sdk: false        # experimental: run the loop through the OpenAI Agents SDK instead of the raw tool-calling loop
 
 transcription:
-  provider: openrouter     # openrouter | gemini (gemini = google-genai with GEMINI_API_KEY; accepts OGG as-is)
+  provider: openrouter     # openrouter | openai | gemini (openai/openrouter share the /audio/transcriptions shape; gemini = google-genai)
   model: openai/whisper-1  # openrouter provider: via /audio/transcriptions
   gemini_model: gemini-2.5-flash
   language: null           # null = auto (English, Urdu, Roman Urdu); "ur" to force Urdu
