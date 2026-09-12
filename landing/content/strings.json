@@ -25,6 +25,17 @@
     "ur": "شروع کریں",
     "roman": "Shuru karein"
   },
+  "hero_cta_secondary": {
+    "en": "Run it yourself",
+    "ur": "خود چلائیں",
+    "roman": "Khud chalayein"
+  },
+
+  "section_ways_title": {
+    "en": "Three ways in",
+    "ur": "اندر آنے کے تین طریقے",
+    "roman": "Andar aane ke teen tareeqe"
+  },
 
   "card_text_title": {
     "en": "Type it",
@@ -94,6 +105,49 @@
     "roman": "Har entry save hone se pehle sakht accounting check se guzarta hai — koi ghalat entry darj nahi hoti."
   },
 
+  "ledger_title": {
+    "en": "Real books, not a categoriser",
+    "ur": "اصلی حساب کتاب، محض درجہ بندی نہیں",
+    "roman": "Asli hisab-kitab, sirf categorize nahi"
+  },
+  "ledger_body": {
+    "en": "Underneath is hledger, a real double-entry accounting engine. Every entry is checked before it lands; a bad one rolls back. Transfers are transfers, not spend, so the month total is honest. The ledger is a plain text file you can open anywhere.",
+    "ur": "نیچے hledger ہے، ایک اصلی ڈبل انٹری اکاؤنٹنگ انجن۔ ہر اندراج درج ہونے سے پہلے جانچا جاتا ہے؛ غلط اندراج واپس ہو جاتا ہے۔ ٹرانسفر صرف ٹرانسفر ہوتا ہے، خرچ نہیں، اس لیے مہینے کا ٹوٹل درست رہتا ہے۔ کھاتہ ایک plain text فائل ہے جسے آپ کہیں بھی کھول سکتے ہیں۔",
+    "roman": "Neeche hledger hai, ek asli double-entry accounting engine. Har entry darj hone se pehle check hoti hai; ghalat entry wapas roll back ho jati hai. Transfer sirf transfer hota hai, kharch nahi, is liye mahine ka total sahih rehta hai. Khata ek plain text file hai jo aap kahin bhi khol sakte hain."
+  },
+
+  "shop_title": {
+    "en": "For the shop",
+    "ur": "دکان کے لیے",
+    "roman": "Dukan ke liye"
+  },
+  "shop_body": {
+    "en": "A kiryana, a committee, a rider with fuel receipts. Same engine, a different chart of accounts, chosen at setup.",
+    "ur": "ایک کریانہ سٹور، ایک کمیٹی، ایک رائیڈر جس کے پاس فیول کی رسیدیں ہیں۔ انجن وہی ہے، صرف اکاؤنٹس کا چارٹ مختلف ہے — سیٹ اپ کے وقت چنا جاتا ہے۔",
+    "roman": "Ek kiryana store, ek committee, ek rider jiske paas fuel ki receipts hain. Engine wohi, sirf accounts ka chart alag — setup ke waqt chuna jata hai."
+  },
+
+  "how_title": {
+    "en": "How it works",
+    "ur": "یہ کیسے کام کرتا ہے",
+    "roman": "Yeh kaam kaise karta hai"
+  },
+  "how_step1": {
+    "en": "Create your agent in WhatsApp — Settings → Agents → Create — then copy the key.",
+    "ur": "WhatsApp میں اپنا ایجنٹ بنائیں — Settings → Agents → Create — پھر کلید کاپی کریں۔",
+    "roman": "WhatsApp mein apna agent banayein — Settings → Agents → Create — phir key copy karein."
+  },
+  "how_step2": {
+    "en": "Paste the key here — we show you a six-digit code.",
+    "ur": "کلید یہاں پیسٹ کریں — ہم آپ کو چھ ہندسوں کا کوڈ دکھائیں گے۔",
+    "roman": "Key yahan paste karein — hum aap ko chhe-digit ka code dikhayenge."
+  },
+  "how_step3": {
+    "en": "Send that code to your agent — it greets you in your language and asks a few questions.",
+    "ur": "وہ کوڈ اپنے ایجنٹ کو بھیجیں — یہ آپ کی زبان میں خوش آمدید کہے گا اور چند سوال پوچھے گا۔",
+    "roman": "Woh code apne agent ko bhejein — yeh aap ki zabaan mein khush-amdeed kahega aur chand sawal poochega."
+  },
+
   "price_title": {
     "en": "Pricing",
     "ur": "قیمت",
@@ -109,10 +163,25 @@
     "ur": "پہلا مہینہ مفت",
     "roman": "Pehla mahina free"
   },
+  "price_yearly_amount": {
+    "en": "3,000 PKR / year",
+    "ur": "3,000 روپے / سال",
+    "roman": "3,000 PKR / saal"
+  },
+  "price_yearly_free": {
+    "en": "Two months free",
+    "ur": "دو مہینے مفت",
+    "roman": "Do mahine free"
+  },
   "price_includes": {
     "en": "One agent, one ledger, 1,000 model calls a month.",
     "ur": "ایک ایجنٹ، ایک کھاتہ، مہینے میں 1,000 ماڈل کالز۔",
     "roman": "Ek agent, ek khata, mahine mein 1,000 model calls."
+  },
+  "price_payment_note": {
+    "en": "Payments by JazzCash or Easypaisa transfer for now.",
+    "ur": "ابھی کے لیے ادائیگیاں JazzCash یا Easypaisa ٹرانسفر کے ذریعے ہوتی ہیں۔",
+    "roman": "Abhi ke liye payments JazzCash ya Easypaisa transfer se hoti hain."
   },
   "price_cta": {
     "en": "Get started",
@@ -129,6 +198,16 @@
     "en": "Hosted Hisab keeps your key and ledger on our server. Self-host keeps them on yours.",
     "ur": "Hosted Hisab میں کلید اور کھاتہ ہمارے سرور پر رہتا ہے۔ Self-host میں یہ آپ کے اپنے سسٹم پر رہتا ہے۔",
     "roman": "Hosted Hisab mein key aur khata hamare server par rehta hai. Self-host mein yeh aap ke apne system par rehta hai."
+  },
+  "footer_note": {
+    "en": "Android only for now.",
+    "ur": "ابھی صرف Android کے لیے۔",
+    "roman": "Abhi sirf Android ke liye."
+  },
+  "footer_origin": {
+    "en": "Built in Islamabad.",
+    "ur": "اسلام آباد میں بنایا گیا۔",
+    "roman": "Islamabad mein bana."
   },
 
   "portal_connect_title": {

@@ -11,7 +11,11 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <LanguageProvider>
-          <header className="page" style={{ display: 'flex', justifyContent: 'flex-end', paddingBlock: 16 }}>
+          <header className="page site-header">
+            <div className="brand-mark">
+              <span className="brand-word">Hisab</span>
+              <span className="brand-urdu urdu" dir="rtl">حساب</span>
+            </div>
             <LanguageSwitcher />
           </header>
           {children}
