@@ -415,9 +415,9 @@
     "roman": "Code likhein."
   },
   "portal_signin_code_sent": {
-    "en": "Sent to +92 3•• ••• 4521 · Resend in 0:42",
-    "ur": "‎+92 3•• ••• 4521 پر بھیجا گیا · 0:42 میں دوبارہ بھیجیں",
-    "roman": "+92 3•• ••• 4521 par bheja gaya · 0:42 mein dobara bhejein"
+    "en": "Sent to {phone}",
+    "ur": "{phone} پر بھیجا گیا",
+    "roman": "{phone} par bheja gaya"
   },
   "portal_signin_code_button": {
     "en": "Continue",
@@ -428,5 +428,50 @@
     "en": "Wrong number?",
     "ur": "نمبر غلط ہے؟",
     "roman": "Number ghalat hai?"
+  },
+  "portal_working": {
+    "en": "One moment…",
+    "ur": "ایک لمحہ…",
+    "roman": "Ek lamha…"
+  },
+  "portal_loading": {
+    "en": "Loading…",
+    "ur": "لوڈ ہو رہا ہے…",
+    "roman": "Load ho raha hai…"
+  },
+  "portal_signout": {
+    "en": "Sign out",
+    "ur": "سائن آؤٹ",
+    "roman": "Sign out"
+  },
+  "portal_signin_error": {
+    "en": "Couldn't send the code. Check the number and try again.",
+    "ur": "کوڈ نہیں بھیجا جا سکا۔ نمبر چیک کر کے دوبارہ کوشش کریں۔",
+    "roman": "Code nahi bheja ja saka. Number check kar ke dobara koshish karein."
+  },
+  "portal_signin_code_error": {
+    "en": "That code didn't match. Try again.",
+    "ur": "یہ کوڈ درست نہیں۔ دوبارہ کوشش کریں۔",
+    "roman": "Yeh code sahi nahi. Dobara koshish karein."
+  },
+  "portal_connect_key_missing": {
+    "en": "Paste the API key first.",
+    "ur": "پہلے API key پیسٹ کریں۔",
+    "roman": "Pehle API key paste karein."
+  },
+  "portal_verify_expired": {
+    "en": "This code has expired. Get a new one.",
+    "ur": "یہ کوڈ ختم ہو گیا ہے۔ نیا کوڈ لیں۔",
+    "roman": "Yeh code khatam ho gaya hai. Naya code lein."
+  },
+  "portal_error_auth": {
+    "en": "WhatsApp rejected this key. Copy it again from Chat info and reconnect.",
+    "ur": "WhatsApp نے یہ key قبول نہیں کی۔ Chat info سے دوبارہ کاپی کر کے جوڑیں۔",
+    "roman": "WhatsApp ne yeh key qabool nahi ki. Chat info se dobara copy kar ke connect karein."
+  },
+  "portal_error_unknown": {
+    "en": "Something went wrong. Try again.",
+    "ur": "کچھ غلط ہو گیا۔ دوبارہ کوشش کریں۔",
+    "roman": "Kuch ghalat ho gaya. Dobara koshish karein."
   }
 }

@@ -1,6 +1,7 @@
-"""Static checks on landing/: three-language completeness, verification direction, no payment collection, no WhatsApp branding, firebase.json shape. Stdlib only, no node."""
+"""Static checks on landing/: three-language completeness, verification direction, no payment collection, no WhatsApp branding, firebase.json shape, a portal string for every runner lastError code. Stdlib only, no node."""
 import json
 import re
+import sys
 from pathlib import Path
 
 LANGS = ("en", "ur", "roman")
@@ -77,6 +78,16 @@ def run(root):
         brand_en = strings.get("brand", {}).get("en")
         if brand_en != "Hosted Hisab":
             failures.append(f"strings.json[brand][en]: expected 'Hosted Hisab', got {brand_en!r}")
+
+        # every lastError code the runner can write has a portal string — the portal renders codes through t()
+        errors_py = root / "runner" / "errors.py"
+        if errors_py.exists():
+            sys.path.insert(0, str(root))
+            from runner.errors import LAST_ERROR_CODES
+            for code in LAST_ERROR_CODES:
+                key = f"portal_error_{code}"
+                if key not in strings:
+                    failures.append(f"strings.json: no {key} for runner lastError code {code!r}")
     elif strings_path.exists():
         pass
     else:

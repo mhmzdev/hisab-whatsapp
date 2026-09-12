@@ -30,6 +30,12 @@ scratch-*/
 runner-data/
 service-account*.json
 
+# firebase emulator logs and the rules test's dependencies
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+tests/rules/node_modules/
+
 # landing build output
 landing/node_modules/
 landing/.next/
@@ -39,6 +45,8 @@ landing/.env*.local
 
 # misc
 NOTES.md
+.playwright-mcp/
+
 # Obsidian config when a ledger folder is opened as a vault
 .obsidian/
 

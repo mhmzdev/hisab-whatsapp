@@ -49,6 +49,16 @@ S = {
   "en": "Heads up: {used}/{limit} replies used this month.",
   "ur": "دھیان رہے: اس مہینے {used}/{limit} جوابات استعمال ہو چکے ہیں۔",
   "roman": "Dhyan rahe: is mahine {used}/{limit} replies istemal ho chuke hain."},
+ # Hosted mode (#7). Both are sent before the user has chosen a language, so each is the same
+ # trilingual text under all three keys: English, Urdu script and Roman Urdu on their own lines.
+ "pending_reminder": {
+  "en": "Hisab · حساب\nNot connected yet. Send the code shown in the portal, e.g. *verify 482913*\nابھی جڑا نہیں۔ پورٹل میں دکھایا گیا کوڈ بھیجیں، مثلاً *verify 482913*\nAbhi connected nahi. Portal mein dikhaya gaya code bhejein, maslan *verify 482913*\n\nEnglish · اردو · Roman Urdu",
+  "ur": "Hisab · حساب\nNot connected yet. Send the code shown in the portal, e.g. *verify 482913*\nابھی جڑا نہیں۔ پورٹل میں دکھایا گیا کوڈ بھیجیں، مثلاً *verify 482913*\nAbhi connected nahi. Portal mein dikhaya gaya code bhejein, maslan *verify 482913*\n\nEnglish · اردو · Roman Urdu",
+  "roman": "Hisab · حساب\nNot connected yet. Send the code shown in the portal, e.g. *verify 482913*\nابھی جڑا نہیں۔ پورٹل میں دکھایا گیا کوڈ بھیجیں، مثلاً *verify 482913*\nAbhi connected nahi. Portal mein dikhaya gaya code bhejein, maslan *verify 482913*\n\nEnglish · اردو · Roman Urdu"},
+ "welcome": {
+  "en": "Connected ✓ · جڑ گیا ✓\nThis agent is now your Hisab.\nیہ ایجنٹ اب آپ کا حساب ہے۔\nYeh agent ab aap ka Hisab hai.",
+  "ur": "Connected ✓ · جڑ گیا ✓\nThis agent is now your Hisab.\nیہ ایجنٹ اب آپ کا حساب ہے۔\nYeh agent ab aap ka Hisab hai.",
+  "roman": "Connected ✓ · جڑ گیا ✓\nThis agent is now your Hisab.\nیہ ایجنٹ اب آپ کا حساب ہے۔\nYeh agent ab aap ka Hisab hai."},
  "quota_exceeded": {
   "en": "Monthly limit of {limit} AI replies reached — resumes next month. /help, /lang and export-ledger still work.",
   "ur": "اس مہینے کی {limit} AI جوابات کی حد پوری ہو گئی — اگلے مہینے دوبارہ شروع ہوگی۔ /help، /lang اور export-ledger اب بھی کام کریں گے۔",

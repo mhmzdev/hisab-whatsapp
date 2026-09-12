@@ -15,7 +15,7 @@
 
 .eyebrow {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
   margin-bottom: 18px;
@@ -429,28 +429,35 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-.demoRow {
-  display: flex;
-  gap: 8px;
-  margin-top: 24px;
-  flex-wrap: wrap;
-  justify-content: center;
+/* Inline errors: a strings.json key rendered through t(), never raw text from a database. */
+.errorBox {
+  border: 1px solid rgba(180, 35, 24, 0.35);
+  background: rgba(180, 35, 24, 0.06);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 0 0 18px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text);
 }
 
-.demoRow a {
-  font-size: 12px;
-  color: var(--muted);
-  border: 1px dashed var(--line);
-  border-radius: 999px;
-  padding: 4px 10px;
-  text-decoration: none;
+.errorText {
+  font-size: 13.5px;
+  color: #b42318;
+  margin: 0 0 8px;
 }
 
-.demoLabel {
-  font-size: 11px;
-  color: var(--muted);
-  text-transform: uppercase;
+.signOut {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
   letter-spacing: 0.06em;
-  margin-top: 24px;
-  text-align: center;
+  color: var(--muted);
+  padding: 0;
+}
+
+.signOut:hover {
+  color: var(--brand);
 }

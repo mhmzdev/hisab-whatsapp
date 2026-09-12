@@ -17,6 +17,7 @@ Up: [docs/INDEX.md](../INDEX.md). Written by `/create-plan` into `backlog/`; `/i
 ## Active
 | Plan | Started | Issue |
 |---|---|---|
+| [GH-7-connect-portal-user](active/GH-7-connect-portal-user.md) | 2026-09-12 | [#7](https://github.com/mhmzdev/hisab-whatsapp/issues/7) |
 
 ## Completed
 | Plan | Shipped | Summary |

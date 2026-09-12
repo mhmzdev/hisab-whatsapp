@@ -37,6 +37,22 @@ class Store:
     def set_creator(self, user_id):
         self._put("creator.json", {"id": user_id})
 
+    # --- hosted-mode markers (runner tenants only; self-host never writes these) ---
+    def welcomed(self):
+        """True once the one-time welcome went out. A marker file, not a Firestore field: exactly-once
+        across worker restarts and crashes with no network involved."""
+        return bool(self._json("welcomed.json", {}).get("ts"))
+
+    def set_welcomed(self):
+        self._put("welcomed.json", {"ts": int(time.time())})
+
+    def last_reminder(self):
+        """Epoch seconds of the last pending-tenant reminder, 0 if none."""
+        return int(self._json("reminder.json", {}).get("ts", 0))
+
+    def set_last_reminder(self, ts):
+        self._put("reminder.json", {"ts": int(ts)})
+
     def setup_state(self):
         return self._json("setup.json", None)
 
