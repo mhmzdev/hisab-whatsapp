@@ -1,7 +1,8 @@
 """No-network smoke test: setup conversation → files, append/undo/report, store window, chunking. Needs hledger."""
-import os, sys, tempfile, shutil
+import os, sys, tempfile, shutil, zipfile
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from hisab.archive import build_export_zip
 from hisab.ledger import Ledger, LedgerError
 from hisab.store import Store
 from hisab.setup import Setup
@@ -45,6 +46,19 @@ try:
     assert led.add_account("assets:receivable:sadia") and "assets:receivable:sadia" in led.account_names()
     assert led.match_rule("chai 300 easypaisa se") == "expenses:food:snacks"
     led.learn_rule(["bykea"], "expenses:transport"); assert led.match_rule("bykea 200") == "expenses:transport"
+    # export-ledger: prove inclusion AND exclusion — a leaked key is the worst bug this repo could ship
+    (led.dir / ".env").write_text("WHATSAPP_TOKEN=secret\n", encoding="utf-8")
+    (led.dir / "worker-state.json").write_text("{}", encoding="utf-8")
+    (led.dir / "messages.jsonl").write_text('{"id":"1"}\n', encoding="utf-8")
+    (led.dir / "receipt.jpg").write_bytes(b"\xff\xd8\xff\xe0")
+    zpath = build_export_zip(led, tmp / "export.zip")
+    with zipfile.ZipFile(zpath) as zf:
+        names = set(zf.namelist())
+    assert {"hisab.md", "accounts.md", "rules.md", "settings.json"} <= names, names
+    assert any(n.startswith("2026-Q") and n.endswith(".md") for n in names), names
+    leaked = names & {".env", "worker-state.json", "messages.jsonl", "receipt.jpg"}
+    assert not leaked, f"export leaked: {leaked}"
+    print("export: zip ok —", sorted(names))
     st = Store(tmp / "s"); st.add("a", "in", "hi"); st.add("b", "out", "posted #1", entry=1); st.add("a", "note", "", entry=1)
     assert st.entry_for_message("a") == 1 and st.entry_for_message("b") == 1 and len(st.window(20)) == 2
     st.mark_clear(); st.add("c", "in", "after"); assert len(st.window(20)) == 1
@@ -63,6 +77,60 @@ try:
         r, done, _ = su.answer(a)
     assert done and led.language() == "ur" and "سیٹ اپ مکمل" in r, (done, r)
     print("urdu setup ok")
+
+    # export-ledger over the WhatsApp transport: exact command, intercepted before the model loop,
+    # ships a document (not chat text), respects the 16 MB cap, and never needs a model key to run
+    import hisab.loop as loop_mod
+    from hisab.loop import Hisab
+
+    class ExportFakeWA:
+        def __init__(self):
+            self.sent, self.documents = [], []
+        def typing(self, mid):
+            self.sent.append(("typing", mid))
+        def send(self, frm, text):
+            self.sent.append(("send", frm, text)); return []
+        def send_document(self, to, path, filename, caption=None):
+            self.documents.append((to, str(path), filename, caption)); return "wamid.doc1"
+
+    def make_app(ledger_path, state_path):
+        return Hisab({
+            "pending": False,
+            "ledger": {"path": str(ledger_path), "template": "personal", "currency": "PKR"},
+            "model": {"id": "openai/gpt-4o-mini", "base_url": None, "api_key_env": None, "provider_pin": None, "agents_sdk": False},
+            "transcription": {"provider": "openrouter", "model": "openai/whisper-1", "base_url": None, "api_key_env": None, "language": None, "gemini_model": "gemini-2.5-flash"},
+            "memory": {"window_turns": 20, "keep_days": 30},
+            "whatsapp": {"poll_timeout": 20, "chunk_chars": 3500},
+            "state": {"path": str(state_path)},
+            "secrets": {"whatsapp_token": "", "openrouter_key": "fake-not-used"},
+        })
+
+    frm = "923001234567"
+    connected_app = make_app(tmp / "personal", tmp / "connected-state")  # has the planted .env etc. from the archive test above
+    wa1 = ExportFakeWA()
+    connected_app._handle_wa(wa1, {"from": frm, "type": "text", "id": "exp1", "text": {"body": "export-ledger"}})
+    assert len(wa1.documents) == 1 and wa1.sent == [("typing", "exp1")], (wa1.documents, wa1.sent)
+    to, path, filename, caption = wa1.documents[0]
+    assert to == frm and filename.startswith("hisab-export-") and filename.endswith(".zip") and caption
+    assert not Path(path).exists(), "sent export must be cleaned up locally"
+    print("export: whatsapp document send ok —", filename)
+
+    old_max = loop_mod.MAX_DOCUMENT_BYTES
+    loop_mod.MAX_DOCUMENT_BYTES = 10  # force the size-cap branch without a real 16 MB fixture
+    try:
+        wa2 = ExportFakeWA()
+        connected_app._handle_wa(wa2, {"from": frm, "type": "text", "id": "exp2", "text": {"body": "export-ledger"}})
+    finally:
+        loop_mod.MAX_DOCUMENT_BYTES = old_max
+    assert wa2.documents == [] and wa2.sent[-1][0] == "send" and "MB" in wa2.sent[-1][2], (wa2.documents, wa2.sent)
+    print("export: over-cap reply ok")
+
+    empty_app = make_app(tmp / "no-ledger-yet", tmp / "empty-state")
+    wa3 = ExportFakeWA()
+    empty_app._handle_wa(wa3, {"from": frm, "type": "text", "id": "exp3", "text": {"body": "Export-Ledger"}})
+    assert wa3.documents == [] and wa3.sent[-1][0] == "send", wa3.sent
+    print("export: no-ledger reply ok")
+
     runner_dir = Path(__file__).resolve().parent.parent / "runner"
     if runner_dir.exists():
         from runner.crypto import CryptoError, decrypt, generate_keypair, seal
