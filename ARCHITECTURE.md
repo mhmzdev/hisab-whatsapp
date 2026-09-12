@@ -52,7 +52,7 @@ The same pipeline runs without WhatsApp: `python -m hisab.loop --stdin` reads li
 | Component | Responsibility | Talks to |
 |---|---|---|
 | [`hisab/loop.py`](hisab/loop.py) | Orchestration: poll, route (command / setup / agent), reply, record | everything below |
-| [`hisab/wa.py`](hisab/wa.py) | WhatsApp Agent Platform: `GET /updates` long-poll, media download, typing indicator, `POST /messages` with chunking | the platform |
+| [`hisab/wa.py`](hisab/wa.py) | WhatsApp Agent Platform: `GET /updates` long-poll, media download, typing indicator, `POST /messages` with chunking, a per-method rate limiter | the platform |
 | [`hisab/store.py`](hisab/store.py) | Runtime state on disk: `offset`, `messages.jsonl`, `setup.json`, `creator.json`; the rolling window; entry-number ↔ message-id map | loop |
 | [`hisab/setup.py`](hisab/setup.py) | The first conversation: language, then personal/shop questions; writes the ledger folder from `templates/` | ledger, i18n, store |
 | [`hisab/i18n.py`](hisab/i18n.py) | Every fixed string in `en` / `ur` / `roman`; the model's reply-shape line per language | setup, loop, agent |
@@ -87,6 +87,9 @@ The ledger folder is the product. Open it in Obsidian with hledger-dashboard and
 | Failure | Behaviour |
 |---|---|
 | Poll request fails (hotspot, 5xx) | log, sleep 5 s, retry; offset unchanged |
+| A WhatsApp method nears its limit (`messages`/`statuses`/`updates`/`media` each 12–15/min, own rolling 60 s window, per agent) | the rate limiter blocks before the request is sent — the poll loop can never exceed 15/min even when every long-poll returns instantly |
+| WhatsApp returns 429 (`error.code 130429`) | the method's window is marked fully spent; the next call backs off until it can plausibly have reset, not a flat delay |
+| WhatsApp returns 409 on a poll (`error.code 1752041`) | logged as "another poller is using this agent" — the two-pollers-on-one-agent footgun, not a generic failure |
 | Model call fails (429, 5xx, timeout, connection) | 4 attempts, 0/2/4/8 s backoff; then a plain message in the user's language |
 | hledger rejects the block | file restored, tool returns the error, model replies "not posted: …" |
 | Transcription fails | plain message asking for text; nothing posted |

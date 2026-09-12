@@ -22,7 +22,9 @@ hisab/
   setup.py       the setup conversation: language first, then ≤8 questions, personal or shop; writes accounts/rules/hisab.md/settings.json from templates/
   i18n.py        every fixed user-facing string in en / ur / roman, plus the model's reply-shape line per language
   store.py       runtime state: offset, messages.jsonl (keyed by WhatsApp id), entry-number map, setup state, rolling window
-  wa.py          WhatsApp Agent Platform client: poll, download, typing, send with chunking, send_document, markdown → WhatsApp
+  wa.py          WhatsApp Agent Platform client: poll, download, typing, send with chunking, send_document, markdown → WhatsApp;
+                 per-method rate limiter (messages/statuses/updates/media, own rolling 60s window each, per agent — config
+                 whatsapp.rate_limits) paces requests proactively and backs off on 429; logs 409 as another-poller conflict
   transcribe.py  voice notes → text: OpenRouter endpoint or Gemini (google-genai)
   archive.py     export-ledger's ZIP builder: canonical markdown only, never state/secrets/media
   config.py      config.yaml + .env (secrets only from the environment)

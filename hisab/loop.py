@@ -140,7 +140,8 @@ class Hisab:
         tok = self.cfg["secrets"]["whatsapp_token"]
         if not tok:
             sys.exit("WHATSAPP_TOKEN is empty; put it in .env")
-        wa = WhatsApp(tok, self.cfg["whatsapp"]["poll_timeout"], self.cfg["whatsapp"]["chunk_chars"])
+        wa = WhatsApp(tok, self.cfg["whatsapp"]["poll_timeout"], self.cfg["whatsapp"]["chunk_chars"],
+                      self.cfg["whatsapp"].get("rate_limits"))
         offset = self.store.offset()
         print(f"Polling WhatsApp. Ledger: {self.ledger.dir}")
         while True:

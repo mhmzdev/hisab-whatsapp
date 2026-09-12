@@ -10,7 +10,10 @@ DEFAULTS = {
     "model": {"id": "openai/gpt-4o-mini", "base_url": None, "api_key_env": None, "provider_pin": None, "agents_sdk": False},
     "transcription": {"provider": "openrouter", "model": "openai/whisper-1", "base_url": None, "api_key_env": None, "language": None, "gemini_model": "gemini-2.5-flash"},
     "memory": {"window_turns": 20, "keep_days": 30},
-    "whatsapp": {"poll_timeout": 20, "chunk_chars": 3500},
+    "whatsapp": {"poll_timeout": 20, "chunk_chars": 3500, "rate_limits": {
+        # WhatsApp Agent Platform manual v1 §6: each its own rolling 60s counter, scoped per agent.
+        "window_seconds": 60, "messages_per_min": 12, "statuses_per_min": 12, "updates_per_min": 15, "media_per_min": 12,
+    }},
     "state": {"path": "./data"},
 }
 
