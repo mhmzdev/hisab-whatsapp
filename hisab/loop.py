@@ -68,6 +68,10 @@ class Hisab:
         return self._agent(t, quoted_id, image)
 
     def _agent(self, text, quoted_id, image=None):
+        lang = self.ledger.language()
+        limit = (self.cfg.get("quota") or {}).get("monthly_limit")
+        if limit and self.store.usage()["calls"] >= limit:
+            return s("quota_exceeded", lang, limit=limit), None
         hint = self.ledger.match_rule(text) if text else None
         prefix = ""
         if quoted_id:
@@ -85,14 +89,17 @@ class Hisab:
                        {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}}]
         else:
             content = prefix + text
+        used = self.store.record_model_call() if limit else None
         try:
             reply, tools = self.agent.run(history, content, hint)
             self._last_block = tools.last_block
+            if limit and used >= limit * 0.8:
+                reply = f"{reply}\n{s('quota_warning', lang, used=used, limit=limit)}"
             return reply, tools.last_entry
         except LedgerError as e:
-            return s("not_posted", self.ledger.language(), err=str(e)), None
+            return s("not_posted", lang, err=str(e)), None
         except Exception as e:  # network / model
-            return s("failed", self.ledger.language(), err=str(e)[:200]), None
+            return s("failed", lang, err=str(e)[:200]), None
 
     def _export_ledger(self, lang):
         if not self.ledger.exists():

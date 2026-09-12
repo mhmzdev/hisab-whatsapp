@@ -5,6 +5,7 @@ import yaml
 
 DEFAULTS = {
     "pending": False,  # hosted mode, runner-set: mute all outbound until a tenant is verified (#7)
+    "quota": {"monthly_limit": None},  # hosted mode, runner-set: cap on model calls/month; None = unlimited (self-host)
     "ledger": {"path": "./vault", "template": "personal", "currency": "PKR"},
     "model": {"id": "openai/gpt-4o-mini", "base_url": None, "api_key_env": None, "provider_pin": None, "agents_sdk": False},
     "transcription": {"provider": "openrouter", "model": "openai/whisper-1", "base_url": None, "api_key_env": None, "language": None, "gemini_model": "gemini-2.5-flash"},

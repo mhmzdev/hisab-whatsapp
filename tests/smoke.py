@@ -1,5 +1,5 @@
 """No-network smoke test: setup conversation → files, append/undo/report, store window, chunking. Needs hledger."""
-import os, sys, tempfile, shutil, zipfile
+import os, sys, tempfile, shutil, time, zipfile
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from hisab.archive import build_export_zip
@@ -131,6 +131,43 @@ try:
     assert wa3.documents == [] and wa3.sent[-1][0] == "send", wa3.sent
     print("export: no-ledger reply ok")
 
+    # quota: model calls only (never raw messages), warn at 80%, hard-stop at the limit, free commands exempt,
+    # and the count survives a fresh Hisab instance pointed at the same state dir (a runner restart/replay)
+    class FakeAgent:
+        def __init__(self):
+            self.calls = 0
+        def run(self, history, content, hint=None, max_rounds=6):
+            self.calls += 1
+            tools = type("FakeTools", (), {"last_block": None, "last_entry": self.calls})()
+            return f"posted #{self.calls} — test", tools
+
+    sample_vault = Path(__file__).resolve().parent.parent / "sample-vault"
+    quota_state = tmp / "quota-state"
+    quota_app = make_app(sample_vault, quota_state)
+    quota_app.cfg["quota"] = {"monthly_limit": 5}
+    fake_agent = FakeAgent()
+    quota_app.agent = fake_agent
+    wa_q = ExportFakeWA()
+    for i in range(5):
+        quota_app._handle_wa(wa_q, {"from": frm, "type": "text", "id": f"q{i}", "text": {"body": f"{100 + i} chai"}})
+    replies = [m[2] for m in wa_q.sent if m[0] == "send"]
+    assert fake_agent.calls == 5, fake_agent.calls
+    assert not any("used this month" in r for r in replies[:3]), replies[:3]  # below 80% (calls 1-3): no warning
+    assert all("used this month" in r for r in replies[3:5]), replies[3:5]  # at/above 80% (calls 4-5): warned
+    quota_app._handle_wa(wa_q, {"from": frm, "type": "text", "id": "q-over", "text": {"body": "200 chai"}})
+    assert fake_agent.calls == 5, "a blocked turn must never reach the model"
+    assert "resumes next month" in wa_q.sent[-1][2], wa_q.sent[-1]
+    wa_q2 = ExportFakeWA()
+    quota_app._handle_wa(wa_q2, {"from": frm, "type": "text", "id": "q-help", "text": {"body": "/help"}})
+    quota_app._handle_wa(wa_q2, {"from": frm, "type": "text", "id": "q-export", "text": {"body": "export-ledger"}})
+    assert fake_agent.calls == 5 and len(wa_q2.documents) == 1, (fake_agent.calls, wa_q2.documents)
+    print("quota: warn at 80%, hard-stop at limit, free commands exempt — ok")
+
+    quota_app_restarted = make_app(sample_vault, quota_state)  # a fresh process, same state dir
+    quota_app_restarted.cfg["quota"] = {"monthly_limit": 5}
+    assert quota_app_restarted.store.usage() == {"month": time.strftime("%Y-%m"), "calls": 5}
+    print("quota: usage persists across a restart — ok")
+
     runner_dir = Path(__file__).resolve().parent.parent / "runner"
     if runner_dir.exists():
         from runner.crypto import CryptoError, decrypt, generate_keypair, seal
@@ -151,12 +188,14 @@ try:
             "tenants_dir": str(tmp / "tenants-elsewhere"),  # deliberately not under vault_root/data_root
             "ledger": {"template": "shop", "currency": "PKR"},
             "model": {"id": "fake-model-id"}, "transcription": {"provider": "fake-provider"},
+            "quota": {"monthly_limit": 1000},
         }
         tenant_doc = {"agentName": "kiryana-demo-agent", "creatorId": "923001234567", "status": "pending"}
         tcfg = build_tenant_config(uid, tenant_doc, runner_cfg)
         assert tcfg["ledger"]["path"].endswith(f"vault/{uid}"), tcfg
         assert tcfg["state"]["path"].endswith(f"data/{uid}"), tcfg
         assert "kiryana-demo-agent" not in tcfg["ledger"]["path"] and "923001234567" not in tcfg["state"]["path"]
+        assert tcfg["quota"] == {"monthly_limit": 1000}, tcfg["quota"]
         tenant_doc_bogus = dict(tenant_doc, model={"id": "should-be-ignored"})
         assert build_tenant_config(uid, tenant_doc_bogus, runner_cfg)["model"] == runner_cfg["model"]
         written = write_tenant_config(uid, tcfg, runner_cfg)

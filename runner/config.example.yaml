@@ -9,6 +9,11 @@ ledger:
   template: shop          # personal | shop — used only when a tenant's ledger folder is empty
   currency: PKR
 
+# Model calls per tenant per month (spec 001, "Revoke, quota, and money"). Every tenant gets this
+# same allowance for now — plan-based tiers are future work. null = unlimited (self-host default).
+quota:
+  monthly_limit: 1000
+
 # Always the runner's own — never tenant-supplied (spec 001, "Tenancy and ledger ownership").
 # Same shape as the root config.example.yaml; copy a block from examples/ if you want OpenRouter or Gemini.
 model:
