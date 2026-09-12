@@ -57,6 +57,29 @@ Dockerfile · docker-compose.yml · config.example.yaml · .env.example
 | Container | `docker compose up -d --build` · `docker compose logs -f` |
 | Strict check on any ledger | `hledger -f <dir>/hisab.md check --strict` |
 
+## Docker, and which ledger is mounted
+
+The container runs `python -m hisab.loop` and polls the WhatsApp agent whose token is in `.env`. It reads `config.yaml` and mounts **one ledger folder** at `/app/vault`; the compose variable `HISAB_VAULT` chooses which (default `./vault`). State (`offset`, `messages.jsonl`, media) lives in the named volume `hisab-data`, not in the ledger folder.
+
+| Task | Command |
+|---|---|
+| Run against the personal test ledger `./vault` | `docker compose up -d --build` |
+| Run against the sample kiryana ledger (the dashboard demo) | `HISAB_VAULT=./sample-vault docker compose up -d --build` |
+| Run against any other folder | `HISAB_VAULT=/path/to/folder docker compose up -d --build` — an empty folder means the first message triggers setup |
+| Watch messages and turn times | `docker compose logs -f` |
+| Restart after a code or config change | the same `up -d --build` line you started with |
+| Stop, keep state | `docker compose down` |
+| Stop and wipe the store (next message starts setup from zero, offset reset) | `docker compose down -v` |
+| Read files inside the container | `docker compose exec -T hisab sh -c 'ls /app/vault; cat /app/data/messages.jsonl'` |
+
+Rules for agents:
+- `--build` after any change under `hisab/`, `templates/` or `requirements.txt`; the image copies the code, it is not a bind mount.
+- **One container per WhatsApp token.** Two pollers on the same agent fight over the cursor (HTTP 409). A second agent needs its own compose project name and its own `.env`.
+- Entries from the phone write into whatever `HISAB_VAULT` points at. After testing on `./sample-vault`, either keep the entries or run `python3 tests/make_sample.py` to regenerate the committed sample; never hand-edit it.
+- `config.yaml` is the local, gitignored config the container reads. Switch endpoints by copying from `examples/` (`config.openrouter.yaml`, `config.gemini.yaml`) and restarting; validate with `python3 tests/check_endpoint.py` first.
+- `down -v` also deletes the entry-number ↔ message-id map, so reply-to-undo on messages from before the wipe will say the message is not on record. Expected.
+- Never run `docker compose` against a real person's ledger during development; use `./vault`, `./sample-vault` or a scratch copy.
+
 ## How we work — the lifecycle
 
 Skills live in `.agents/skills/` (`.claude/skills` is a symlink to it). Each arrow is a human gate: finish, summarise, offer the next skill by name, wait.
