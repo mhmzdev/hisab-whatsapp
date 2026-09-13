@@ -1,11 +1,11 @@
 ---
 slug: GH-7-connect-portal-user
 issue: 7
-status: active
+status: completed
 open_questions: none
 ---
 
-# feat: Connect a phone-authenticated portal user to an agent          🚧 ACTIVE — started 2026-09-12
+# feat: Connect a phone-authenticated portal user to an agent          ✅ COMPLETED — started 2026-09-12, shipped 2026-09-13
 
 ## Problem
 
@@ -49,7 +49,7 @@ Contract: [spec 001](../../specs/001-hosted-portal.md) ("Trust and authenticatio
 - [x] Every `lastError` code the runner can emit has a matching portal string in `en`, `ur` and `roman` — `verify: python3 tests/check_landing.py`
 - [x] Portal strings stay complete in three languages and the verification direction is unchanged (the portal displays the nonce; the user sends it) — `verify: python3 tests/check_landing.py`
 - [x] `landing/` still builds to a static export with both routes — `verify: cd landing && npm run build && test -f out/index.html && test -f out/portal/index.html`
-- [ ] End to end against a real agent: sign in by SMS, paste a real key, send `verify <nonce>`, receive the welcome, and complete setup in Urdu — `verify: manual 1) make landing && firebase emulators:start --only auth,firestore,hosting 2) HISAB_CONFIG=./config-dev.yaml docker compose -f docker-compose.runner.yml up -d --build 3) open http://localhost:3031/portal/ 4) sign in with a real number, read the OTP from the Auth emulator console 5) paste the demo agent's API key from WhatsApp → Settings → Agents → Chat info 6) send the displayed "verify <nonce>" to the demo agent from the phone that created it 7) confirm within ~5s the portal shows Connected and the agent sends the bilingual welcome 8) reply "اردو" and confirm setup asks its first question in Urdu 9) send "2500 chai" and confirm a normal one-line posted reply`
+- [x] End to end against a real agent (run 2026-09-12 against the demo agent: emulator OTP sign-in, browser-sealed key decrypted by the runner, mixed-case `Verify <nonce>` connected within 2 s, welcome once, setup ran on the phone — see Phase 5 status): sign in by SMS, paste a real key, send `verify <nonce>`, receive the welcome, and complete setup in Urdu — `verify: manual 1) make landing && firebase emulators:start --only auth,firestore,hosting 2) HISAB_CONFIG=./config-dev.yaml docker compose -f docker-compose.runner.yml up -d --build 3) open http://localhost:3031/portal/ 4) sign in with a real number, read the OTP from the Auth emulator console 5) paste the demo agent's API key from WhatsApp → Settings → Agents → Chat info 6) send the displayed "verify <nonce>" to the demo agent from the phone that created it 7) confirm within ~5s the portal shows Connected and the agent sends the bilingual welcome 8) reply "اردو" and confirm setup asks its first question in Urdu 9) send "2500 chai" and confirm a normal one-line posted reply`
 - [x] Repo check passes — `verify: python3 tests/smoke.py`
 
 ## Phases
