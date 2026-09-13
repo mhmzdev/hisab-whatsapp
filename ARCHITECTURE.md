@@ -55,7 +55,7 @@ The same pipeline runs without WhatsApp: `python -m hisab.loop --stdin` reads li
 | [`hisab/wa.py`](hisab/wa.py) | WhatsApp Agent Platform: `GET /updates` long-poll, media download, typing indicator, `POST /messages` with chunking, a per-method rate limiter | the platform |
 | [`hisab/store.py`](hisab/store.py) | Runtime state on disk: `offset`, `messages.jsonl`, `setup.json`, `creator.json`; the rolling window; entry-number ↔ message-id map | loop |
 | [`hisab/setup.py`](hisab/setup.py) | The first conversation: language, then personal/shop questions; writes the ledger folder from `templates/` | ledger, i18n, store |
-| [`hisab/i18n.py`](hisab/i18n.py) | Every fixed string in `en` / `ur` / `roman`; the model's reply-shape line per language | setup, loop, agent |
+| [`hisab/i18n.py`](hisab/i18n.py) | Every fixed string in `en` / `ur`; the model's reply-shape line per language (the `en` line answers Roman Urdu in Roman Urdu) | setup, loop, agent |
 | [`hisab/agent.py`](hisab/agent.py) | The system prompt and the tool-calling loop; endpoint and key are config | the model API, tools |
 | [`hisab/tools.py`](hisab/tools.py) | The six tools: JSON schemas for the model and the Python that runs each | ledger |
 | [`hisab/ledger.py`](hisab/ledger.py) | hledger on markdown: files, append with strict check and rollback, undo by number, accounts, rules, periodic rules, reports, settings | `hledger` binary |
@@ -78,7 +78,7 @@ The ledger folder is the product. Open it in Obsidian with hledger-dashboard and
 2. **Strict check or nothing.** `Ledger.append` writes, checks, and restores the previous file on rejection. Undeclared accounts, unbalanced postings and future dates never land.
 3. **Entry numbers are monotonic** across quarter files (`next_entry_number` scans them all) and are the only handle for undo.
 4. **Idempotent transport.** A message id already in the store is skipped; the offset advances after the batch, so a crash replays rather than drops or doubles.
-5. **Three languages or none.** A fixed agent string (`hisab/i18n.py`) exists in `en`, `ur`, `roman` or it does not ship. The hosted landing page and portal (`landing/content/strings.json`) ship exactly `en` and `ur`.
+5. **Two written languages or none.** A fixed string — the agent's (`hisab/i18n.py`) or the portal's (`landing/content/strings.json`) — exists in `en` and `ur` or it does not ship. Roman Urdu is never written by us; users may chat in it and the model replies in kind. Setup takes the language from the first answer; `/lang` changes it.
 6. **Conventions the dashboard reads:** alphabetic commodities, three-posting transfers via `equity:transfer`, `~ monthly` rules, `P` price lines.
 7. **Private by platform.** The agent replies only to its creator. Nothing goes anywhere but the model provider, the transcription provider and WhatsApp.
 

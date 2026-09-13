@@ -323,7 +323,7 @@ function ConnectedState({ t, lang, user, tenant, setError }) {
   const used = tenant?.usedThisMonth ?? 0
   const limit = tenant?.quotaLimit ?? null
   const quotaPct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0
-  const language = tenant?.language ? t(`portal_lang_${tenant.language}`) : t('portal_connected_not_yet')
+  const language = tenant?.language ? t(tenant.language === 'ur' ? 'portal_lang_ur' : 'portal_lang_en') : t('portal_connected_not_yet')
 
   async function confirmRevoke() {
     setError(null)

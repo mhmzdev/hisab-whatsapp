@@ -22,7 +22,7 @@ Honour `.agents/skills/README.md`. You execute an **approved plan**. It was scop
 Read the files the phase touches plus their nearest sibling that does the same kind of thing; that sibling is the convention. Match what is there.
 
 ## Phase 2 — The phase loop (one plan phase per pass)
-1. Implement exactly the phase. Non-negotiables from `AGENTS.md`: six tools and nothing else; every ledger write through `Ledger.append` under the strict check with rollback; entry numbers only from `next_entry_number`; user-facing strings in `i18n.py` in all three languages; secrets only from the environment; nothing personal in the repo.
+1. Implement exactly the phase. Non-negotiables from `AGENTS.md`: six tools and nothing else; every ledger write through `Ledger.append` under the strict check with rollback; entry numbers only from `next_entry_number`; user-facing strings in `i18n.py` in `en` and `ur`; secrets only from the environment; nothing personal in the repo.
 2. **Test.** Extend `tests/smoke.py` for the unit; a criterion without a test is not done.
 3. **Validate.** Run the phase's `verify:` commands and the repo check. Everything green before recording.
 4. **Record.** Set the phase `**Status:** Done` in the plan (survives a context clear). One line on what changed.

@@ -19,7 +19,7 @@ Repo facts from `AGENTS.md`: `check`, `docs/exec-plans/{backlog,active,completed
 3. If the WHAT is still fuzzy or the approach was never grilled and touches a risk area (the strict-check path, entry numbering, the store and offset, language strings, anything privacy-adjacent), **recommend `/grill-me` first**. Do not plan a moving target.
 
 ## Step 2 — Targeted research
-Grep/read **only** the areas the plan touches. For a new tool: `tools.py` schema + `Tools` method, the `ledger.py` function, the prompt line in `agent.py`, and the smoke test that covers the sibling. For a transport change: `wa.py` and `loop.py` around the offset and the store. For setup or language: `setup.py` and the three-language dicts in `i18n.py`. Note exact `file:line` anchors. Read `tests/smoke.py` to see how the sibling is tested.
+Grep/read **only** the areas the plan touches. For a new tool: `tools.py` schema + `Tools` method, the `ledger.py` function, the prompt line in `agent.py`, and the smoke test that covers the sibling. For a transport change: `wa.py` and `loop.py` around the offset and the store. For setup or language: `setup.py` and the `en`/`ur` dicts in `i18n.py`. Note exact `file:line` anchors. Read `tests/smoke.py` to see how the sibling is tested.
 
 ## Step 3 — Criteria (the contract)
 Each criterion carries exactly one:
@@ -44,7 +44,7 @@ open_questions: none
 Why this exists. Link the issue / spec.
 
 ## Approach
-The design in prose. Which existing pattern it reuses; which invariants it keeps (six tools, strict check, entry numbers, offset-after-batch, three languages, privacy).
+The design in prose. Which existing pattern it reuses; which invariants it keeps (six tools, strict check, entry numbers, offset-after-batch, `en`/`ur` fixed strings, privacy).
 
 ## Success criteria
 - [ ] <criterion> — `verify: …`
@@ -66,7 +66,7 @@ The design in prose. Which existing pattern it reuses; which invariants it keeps
 - ...
 ```
 
-Sizing: one phase ≈ one context window. Tool + prompt + test is one phase; the phone path is its own. Any new user-facing string appears in all three languages in `i18n.py` in the same phase.
+Sizing: one phase ≈ one context window. Tool + prompt + test is one phase; the phone path is its own. Any new user-facing string appears in `en` and `ur` in `i18n.py` in the same phase.
 
 ## Step 5 — Register and hand off
 Add a row to `docs/exec-plans/INDEX.md` (Backlog table: file, problem, depends on). Then offer via one question: **Implement now** (`/implement`) · **Refine** (`/refine-approach`) · **Grill first** (`/grill-me`) · **Leave in backlog**.

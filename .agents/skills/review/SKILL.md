@@ -23,7 +23,7 @@ Never tick on the user's behalf. Never mark `[x]` from reading code alone.
 - **Surface.** Still six tools? No shell, no free file access, no new network call outside the model, transcription and WhatsApp?
 - **Writes.** Every ledger write through `Ledger.append` under the strict check with rollback? Entry numbers from `next_entry_number` only? Undo still by number?
 - **Transport.** Dedup by message id kept; offset advanced only after the batch; replies chunked under 3,500; typing indicator sent?
-- **Language.** Every new user-facing string in `i18n.py` in `en`, `ur`, `roman`? Model reply shapes still one line? Setup questions still in the chosen language?
+- **Language.** Every new user-facing string in `i18n.py` in `en` and `ur` (never Roman Urdu)? Model reply shapes still one line? Setup questions still in the language of the first answer?
 - **Conventions the dashboard reads.** Alphabetic commodities, `equity:transfer` three-posting transfers, `~ monthly` rules, `P` lines.
 - **Privacy.** Nothing personal, no token, no path from the author's machine, in code, tests, docs or the sample. `.env`, `config.yaml`, `vault/`, `scratch-*` untouched and ignored.
 - **Tests.** Every new unit exercised in `tests/smoke.py`? Sample regenerated if `setup.py` changed?

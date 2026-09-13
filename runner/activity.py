@@ -71,11 +71,13 @@ def snapshot(uid, runner_cfg, cache, today=None):
                     lambda p: json.loads(p.read_text(encoding="utf-8")), {})
     settings = _cached(cache, uid, "settings", vault / "settings.json",
                        lambda p: json.loads(p.read_text(encoding="utf-8")), {})
+    lang = (settings or {}).get("language")
     return {
         "lastSeenAt": _cached(cache, uid, "messages", state / "messages.jsonl", _last_inbound_ms, None),
         "entriesThisMonth": _cached(cache, uid, "quarter", _quarter_file(vault, today),
                                     lambda p: _entries_in_month(p, ym), 0),
-        "language": (settings or {}).get("language") or None,
+        # the portal names en or ur; an old "roman" setting reads as English, as it does in the worker
+        "language": ("ur" if lang == "ur" else "en") if lang else None,
         "usedThisMonth": int((usage or {}).get("calls", 0)) if (usage or {}).get("month") == ym else 0,
         "quotaLimit": (runner_cfg.get("quota") or {}).get("monthly_limit"),
     }
