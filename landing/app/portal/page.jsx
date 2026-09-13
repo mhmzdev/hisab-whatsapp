@@ -4,16 +4,17 @@ import { useEffect, useRef, useState } from 'react'
 import { onAuthStateChanged, RecaptchaVerifier, signInWithPhoneNumber, signOut } from 'firebase/auth'
 import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore'
 import { useLanguage } from '../LanguageProvider'
-import { CONNECTED } from '@/content/mock.js'
+import { PLAN } from '@/content/mock.js'
 import { firebase, RUNNER_PUBLIC_KEY } from './firebase'
 import { generateNonce, NONCE_TTL_MS, sealKey } from './crypto'
 import styles from './portal.module.css'
 
 // The screen is derived from two facts, never chosen by hand: is someone signed in, and what does
-// their own tenants/{uid} document say. The runner owns `status`; the browser can only write the five
+// their own tenants/{uid} document say. The runner owns `status`; the browser can only write the
 // client fields (firestore.rules), so "connected" on this page always means the runner said so.
 function screenFor(user, tenant, phase) {
-  if (phase) return phase                       // signin-code and check are UI-only transitions
+  if (phase === 'reconnect') return tenant?.status === 'revoked' ? 'connect' : screenFor(user, tenant, null)
+  if (phase) return phase                       // signin-code is a UI-only transition
   if (!user) return 'signin'
   if (!tenant) return 'connect'
   if (tenant.status === 'connected') return 'connected'
@@ -294,13 +295,46 @@ function formatDate(ms) {
   }
 }
 
-function ConnectedState({ t, tenant, goTo }) {
+// "12 minutes ago" in the page language. Urdu has a locale of its own; Roman Urdu reads the English form.
+function relative(ms, lang, now) {
+  if (!ms) return null
+  const diff = Math.round((ms - now) / 1000)   // negative = in the past
+  const abs = Math.abs(diff)
+  const [value, unit] = abs < 60 ? [diff, 'second'] : abs < 3600 ? [Math.round(diff / 60), 'minute']
+    : abs < 86400 ? [Math.round(diff / 3600), 'hour'] : [Math.round(diff / 86400), 'day']
+  try {
+    return new Intl.RelativeTimeFormat(lang === 'ur' ? 'ur' : 'en', { numeric: 'auto' }).format(value, unit)
+  } catch {
+    return new Date(ms).toLocaleString()
+  }
+}
+
+function ConnectedState({ t, lang, user, tenant, setError }) {
   const [askingRevoke, setAskingRevoke] = useState(false)
-  const quotaPct = Math.min(100, Math.round((CONNECTED.quotaUsed / CONNECTED.quotaTotal) * 100))
-  // agent name and the connection date are live; activity, entries, language, plan and the quota bar
-  // stay mock until #5 syncs them into the tenant document
-  const agentName = tenant?.agentName || CONNECTED.agentName
-  const since = tenant?.connectedAt ? formatDate(tenant.connectedAt) : CONNECTED.connectedSince
+  const [now, setNow] = useState(Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30000)
+    return () => clearInterval(id)
+  }, [])
+
+  // every row is the runner's: it computes these from the worker's own files and writes them to the
+  // tenant document (runner/activity.py); the browser never sees an entry, an amount or a description
+  const revoking = !!tenant?.revokeRequestedAt
+  const used = tenant?.usedThisMonth ?? 0
+  const limit = tenant?.quotaLimit ?? null
+  const quotaPct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0
+  const language = tenant?.language ? t(`portal_lang_${tenant.language}`) : t('portal_connected_not_yet')
+
+  async function confirmRevoke() {
+    setError(null)
+    try {
+      const { db } = firebase()
+      await updateDoc(doc(db, 'tenants', user.uid), { revokeRequestedAt: Date.now() })
+    } catch (e) {
+      console.error('revoke', e)
+      setError('portal_error_unknown')
+    }
+  }
 
   return (
     <>
@@ -308,50 +342,57 @@ function ConnectedState({ t, tenant, goTo }) {
       <div className={styles.rows}>
         <div className={styles.row}>
           <span className={styles.rowLabel}>{t('portal_connect_name_label')}</span>
-          <span>{agentName}</span>
+          <span>{tenant?.agentName || 'Hisab'}</span>
         </div>
         <div className={styles.row}>
           <span className={styles.rowLabel}>{t('portal_connected_since_label')}</span>
-          <span>{since}</span>
+          <span>{formatDate(tenant?.connectedAt)}</span>
         </div>
         <div className={styles.row}>
           <span className={styles.rowLabel}>{t('portal_connected_activity_label')}</span>
-          <span>{CONNECTED.lastActivity}</span>
+          <span>{relative(tenant?.lastSeenAt, lang, now) || t('portal_connected_not_yet')}</span>
         </div>
         <div className={styles.row}>
           <span className={styles.rowLabel}>{t('portal_connected_entries_label')}</span>
-          <span>{CONNECTED.entriesThisMonth}</span>
+          <span>{tenant?.entriesThisMonth ?? 0}</span>
         </div>
         <div className={styles.row}>
           <span className={styles.rowLabel}>{t('portal_connected_language_label')}</span>
-          <span>{CONNECTED.language}</span>
+          <span>{language}</span>
         </div>
         <div className={styles.row}>
           <span className={styles.rowLabel}>{t('portal_connected_plan_label')}</span>
-          <span>{CONNECTED.plan}</span>
+          <span>{PLAN}</span>
         </div>
       </div>
 
-      <div className={styles.quotaBlock}>
-        <div className={styles.quotaHeader}>
-          <span>{t('portal_connected_quota_label')}</span>
-          <span dir="ltr">{CONNECTED.quotaUsed} / {CONNECTED.quotaTotal}</span>
+      {limit ? (
+        <div className={styles.quotaBlock}>
+          <div className={styles.quotaHeader}>
+            <span>{t('portal_connected_quota_label')}</span>
+            <span dir="ltr">{used} / {limit}</span>
+          </div>
+          <div className={styles.quotaTrack}>
+            <span className={styles.quotaFill} style={{ width: `${quotaPct}%` }} />
+          </div>
         </div>
-        <div className={styles.quotaTrack}>
-          <span className={styles.quotaFill} style={{ width: `${quotaPct}%` }} />
-        </div>
-      </div>
+      ) : null}
 
       <p className={styles.hint}>
         {t('portal_connected_export_hint_pre')} <code>export-ledger</code> {t('portal_connected_export_hint_post')}
       </p>
       <p className={styles.note}>{t('portal_connected_export_hint_sub')}</p>
 
-      {askingRevoke ? (
+      {revoking ? (
+        <div className={styles.waiting}>
+          <span className={styles.dot} />
+          {t('portal_connected_revoking')}
+        </div>
+      ) : askingRevoke ? (
         <div className={styles.confirmBox}>
           <p>{t('portal_connected_revoke_confirm_text')}</p>
           <div className={styles.confirmRow}>
-            <button type="button" className={styles.buttonDangerSolid} onClick={() => goTo('revoked')}>{t('portal_connected_revoke_confirm_yes')}</button>
+            <button type="button" className={styles.buttonDangerSolid} onClick={confirmRevoke}>{t('portal_connected_revoke_confirm_yes')}</button>
             <button type="button" className={styles.buttonOutline} onClick={() => setAskingRevoke(false)}>{t('portal_connected_revoke_confirm_no')}</button>
           </div>
         </div>
@@ -362,20 +403,20 @@ function ConnectedState({ t, tenant, goTo }) {
   )
 }
 
-function RevokedState({ t, goTo }) {
+function RevokedState({ t, tenant, onReconnect }) {
   return (
     <>
-      <h1>{t('portal_revoked_title')}</h1>
+      <h1>{t('portal_revoked_title')}{tenant?.agentName ? ` · ${tenant.agentName}` : ''}</h1>
       <p>{t('portal_revoked_body')}</p>
       <p className={styles.note}>{t('portal_revoked_retention')}</p>
-      <button type="button" className={styles.button} onClick={() => goTo('connect')}>{t('portal_revoked_reconnect_button')}</button>
+      <button type="button" className={styles.button} onClick={onReconnect}>{t('portal_revoked_reconnect_button')}</button>
       <p className={styles.note}>{t('portal_revoked_muted')}</p>
     </>
   )
 }
 
 export default function Portal() {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const [user, setUser] = useState(undefined)       // undefined = auth not resolved yet
   const [tenant, setTenant] = useState(undefined)   // undefined = no subscription yet, null = no document
   const [phase, setPhase] = useState(null)          // 'signin-code' while an OTP is pending, else null
@@ -396,15 +437,16 @@ export default function Portal() {
     if (!user) return undefined
     const { db } = firebase()
     return onSnapshot(doc(db, 'tenants', user.uid), (snap) => {
-      setTenant(snap.exists() ? snap.data() : null)
+      const data = snap.exists() ? snap.data() : null
+      setTenant(data)
+      // the reconnect form is a UI-only phase over a revoked document; the runner's admission
+      // (status → pending) is what moves on from it
+      if (data?.status !== 'revoked') setPhase((p) => (p === 'reconnect' ? null : p))
     }, (e) => {
       console.error('tenant snapshot', e)
       setError('portal_error_unknown')
     })
   }, [user])
-
-  // Revoke's real behaviour (stop the worker, delete the ciphertext) is #5; until then the button is inert.
-  function goTo() {}
 
   function onSent(phone, confirmation) {
     setPending({ phone, confirmation })
@@ -435,8 +477,8 @@ export default function Portal() {
           )}
           {screen === 'connect' && <ConnectState t={t} user={user} tenant={tenant} setError={setError} />}
           {screen === 'check' && <CheckState t={t} user={user} tenant={tenant} setError={setError} />}
-          {screen === 'connected' && <ConnectedState t={t} tenant={tenant} goTo={goTo} />}
-          {screen === 'revoked' && <RevokedState t={t} goTo={goTo} />}
+          {screen === 'connected' && <ConnectedState t={t} lang={lang} user={user} tenant={tenant} setError={setError} />}
+          {screen === 'revoked' && <RevokedState t={t} tenant={tenant} onReconnect={() => { setError(null); setPhase('reconnect') }} />}
         </div>
       </div>
     </main>

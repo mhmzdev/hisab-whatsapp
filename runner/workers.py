@@ -24,10 +24,20 @@ class WorkerManager:
         proc = self.launcher(["python", "-m", "hisab.loop", "--config", str(config_path)], env)
         self._running[uid] = {"proc": proc, "hash": state_hash}
 
-    def stop(self, uid):
+    def stop(self, uid, timeout=10):
+        """Terminate and WAIT for the exit (bounded, then kill): a revoke moves the vault right after this,
+        and it must never move under a live process."""
         current = self._running.pop(uid, None)
-        if current:
-            current["proc"].terminate()
+        if not current:
+            return
+        proc = current["proc"]
+        proc.terminate()
+        if hasattr(proc, "wait"):
+            try:
+                proc.wait(timeout)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait(timeout)
 
     def reap(self):
         """Workers that exited on their own -> [(uid, returncode)], dropped from the running set so a later

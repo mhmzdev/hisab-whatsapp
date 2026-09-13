@@ -96,3 +96,20 @@ test('an owner can update agentName and keyCiphertext, and refresh the nonce, wi
   // nothing outside tenants/ is reachable
   await assertFails(setDoc(doc(db, 'anything', OWNER), { a: 1 }))
 })
+
+test('an owner can request a revoke, but never revoke, reconnect or delete by hand (#5)', async () => {
+  await env.clearFirestore()
+  await seedAsRunner(OWNER, { ...clientDoc(), status: 'connected', creatorId: '923001234567', connectedAt: Date.now() })
+  const db = env.authenticatedContext(OWNER).firestore()
+  await assertSucceeds(updateDoc(doc(db, 'tenants', OWNER), { revokeRequestedAt: Date.now() }))
+  await assertFails(updateDoc(doc(db, 'tenants', OWNER), { status: 'revoked' }))
+  await assertFails(updateDoc(doc(db, 'tenants', OWNER), { revokedAt: Date.now() }))
+  await assertFails(updateDoc(doc(db, 'tenants', OWNER), { revokeRequestedAt: Date.now(), status: 'revoked' }))
+  await assertFails(deleteDoc(doc(db, 'tenants', OWNER)))
+  // after the runner revoked: the client may resubmit the client fields (a new connection), nothing else
+  await seedAsRunner(OWNER, { agentName: 'Hisab', createdAt: 1, status: 'revoked', revokedAt: 2 })
+  await assertSucceeds(setDoc(doc(db, 'tenants', OWNER), clientDoc(), { merge: true }))
+  await assertFails(updateDoc(doc(db, 'tenants', OWNER), { creatorId: '923001234567' }))
+  // another uid cannot request a revoke on this document
+  await assertFails(updateDoc(doc(env.authenticatedContext(OTHER).firestore(), 'tenants', OWNER), { revokeRequestedAt: Date.now() }))
+})

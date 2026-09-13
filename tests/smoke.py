@@ -262,6 +262,7 @@ try:
         runner_cfg = {
             "vault_root": str(tmp / "vault"), "data_root": str(tmp / "data"),
             "tenants_dir": str(tmp / "tenants-elsewhere"),  # deliberately not under vault_root/data_root
+            "inactive_root": str(tmp / "inactive"), "retention_days": 30,
             "ledger": {"template": "shop", "currency": "PKR"},
             "model": {"id": "fake-model-id"}, "transcription": {"provider": "fake-provider"},
             "quota": {"monthly_limit": 1000},
@@ -384,10 +385,17 @@ try:
         from runner.reconcile import reconcile
 
         class FakeProc:
-            def __init__(self, code=None):
-                self.code = code
+            def __init__(self, code=None, hangs=False):
+                self.code, self.hangs, self.killed, self.waits = code, hangs, False, 0
             def terminate(self):
                 pass
+            def kill(self):
+                self.killed = True
+            def wait(self, timeout=None):
+                self.waits += 1
+                if self.hangs and not self.killed:
+                    import subprocess as _sp
+                    raise _sp.TimeoutExpired("hisab.loop", timeout)
             def poll(self):
                 return self.code
 
@@ -413,7 +421,7 @@ try:
             reconcile({rtenant: {"status": "connected", "keyCiphertext": ciphertext, "lastSeenAt": "2026-09-03"}}, runner_cfg, manager)
             assert launcher.calls == 2, launcher.calls  # status flip -> exactly one restart
             assert manager.running_uids() == {rtenant}
-            reconcile({rtenant: {"status": "revoked", "keyCiphertext": ciphertext}}, runner_cfg, manager)  # explicit revoke, doc still present
+            reconcile({rtenant: {"status": "revoked", "revokedAt": 1}}, runner_cfg, manager)  # revoked, doc still present (lifecycle.revoke deleted its ciphertext)
             assert manager.running_uids() == set()
             reconcile({rtenant: {"status": "connected", "keyCiphertext": ciphertext, "lastSeenAt": "2026-09-04"}}, runner_cfg, manager)
             assert launcher.calls == 3 and manager.running_uids() == {rtenant}
@@ -459,6 +467,37 @@ try:
         assert list(transitions) == ["t-ok"] and transitions["t-ok"]["creatorId"] == "923001234567", transitions
         print("runner: verify ok")
 
+        # activity: the runner computes the Connected screen's rows from the worker's own files — see runner/activity.py
+        from runner.activity import snapshot, poll_activity, ACTIVITY_FIELDS
+        from datetime import date as _date
+        act_uid, act_today = "t-active", _date(2026, 9, 13)
+        tenant_state(act_uid, ["2500 chai", "300 coffee"], ts=1_757_700_000)
+        act_vault = Path(runner_cfg["vault_root"]) / act_uid
+        act_vault.mkdir(parents=True, exist_ok=True)
+        (act_vault / "settings.json").write_text(json.dumps({"language": "ur"}), encoding="utf-8")
+        (act_vault / "2026-Q3.md").write_text(
+            "# 2026 Q3 — ledger\n\n## 2026-08\n\n2026-08-30 old ; n:1\n    expenses:food  PKR 100\n    assets:cash\n\n"
+            "## 2026-09\n\n2026-09-03 chai ; n:2\n    expenses:food  PKR 2,500\n    assets:cash\n\n"
+            "2026-09-13 coffee ; n:3, rule:coffee\n    expenses:food  PKR 300\n    assets:cash\n", encoding="utf-8")
+        Path(runner_cfg["data_root"], act_uid, "usage.json").write_text(json.dumps({"month": "2026-09", "calls": 7}), encoding="utf-8")
+        act_cache = {}
+        got = snapshot(act_uid, runner_cfg, act_cache, today=act_today)
+        assert got == {"lastSeenAt": 1_757_700_000_000, "entriesThisMonth": 2, "language": "ur", "usedThisMonth": 7, "quotaLimit": 1000}, got
+        assert tuple(got) == ACTIVITY_FIELDS
+        assert snapshot("t-nostate-at-all", runner_cfg, act_cache, today=act_today) == {"lastSeenAt": None, "entriesThisMonth": 0, "language": None, "usedThisMonth": 0, "quotaLimit": 1000}
+        assert snapshot(act_uid, runner_cfg, act_cache, today=_date(2026, 10, 1))["entriesThisMonth"] == 0  # a new month, no Q4 file yet
+        assert snapshot(act_uid, runner_cfg, act_cache, today=_date(2026, 10, 1))["usedThisMonth"] == 0  # usage.json is last month's
+        act_docs = {act_uid: {"status": "connected"}, "t-ok": {"status": "pending"}, "t-nostate-at-all": {"status": "connected"}}
+        first = poll_activity(act_docs, runner_cfg, act_cache, today=act_today)
+        assert set(first) == {act_uid, "t-nostate-at-all"} and first[act_uid] == got, first  # pending tenants are never touched
+        act_docs = {uid: {**d, **first.get(uid, {})} for uid, d in act_docs.items()}  # the echoed snapshot
+        assert poll_activity(act_docs, runner_cfg, act_cache, today=act_today) == {}, "unchanged files must not produce a write"
+        time.sleep(0.01)
+        Store(Path(runner_cfg["data_root"]) / act_uid).add("later", "in", "500 tea")
+        third = poll_activity(act_docs, runner_cfg, act_cache, today=act_today)
+        assert list(third) == [act_uid] and third[act_uid]["lastSeenAt"] > got["lastSeenAt"], third
+        print("runner: activity ok")
+
         # admission and error surfacing: status is runner-owned, so both transitions live in reconcile.py
         from runner.reconcile import admission, on_worker_exit, key_fingerprint
         writes = []
@@ -468,7 +507,7 @@ try:
             launcher2 = FakeLauncher(); manager2 = WorkerManager(launcher=launcher2)
             reconcile({"t-new": {"keyCiphertext": ciphertext, "nonce": "482913"},
                        "t-junk": {"keyCiphertext": "not-a-ciphertext", "nonce": "482913"}}, runner_cfg, manager2, update=fake_update)
-            assert writes == [("t-new", {"status": "pending", "lastError": None, "lastErrorKey": None})], writes
+            assert writes == [("t-new", {"status": "pending", "lastError": None, "lastErrorKey": None, "revokedAt": None, "revokeRequestedAt": None})], writes
             assert manager2.running_uids() == {"t-new"} and launcher2.calls == 1, (manager2.running_uids(), launcher2.calls)
             reconcile({"t-new": {"keyCiphertext": ciphertext, "nonce": "482913", "status": "pending"}}, runner_cfg, manager2, update=fake_update)
             assert len(writes) == 1 and launcher2.calls == 1, "the echoed snapshot is a no-op"
@@ -484,7 +523,7 @@ try:
             assert manager2.running_uids() == set() and launcher2.calls == 1, "parked in error: no restart loop"
             # the user pastes a new key from the Connect screen: a different ciphertext re-admits the tenant
             ciphertext2 = seal("fake-wa-token-2", pub)
-            assert admission({**doc_err, "keyCiphertext": ciphertext2}, runner_cfg) == {"status": "pending", "lastError": None, "lastErrorKey": None}
+            assert admission({**doc_err, "keyCiphertext": ciphertext2}, runner_cfg) == {"status": "pending", "lastError": None, "lastErrorKey": None, "revokedAt": None, "revokeRequestedAt": None}
             assert admission(doc_err, runner_cfg) is None
             assert admission({**doc_err, "keyCiphertext": "garbage"}, runner_cfg) is None
             reconcile({"t-new": {**doc_err, "keyCiphertext": ciphertext2}}, runner_cfg, manager2, update=fake_update)
@@ -494,6 +533,82 @@ try:
         finally:
             del os.environ["RUNNER_PRIVATE_KEY"]
         print("runner: admission + lastError ok")
+
+        # revoke, re-admission and retention — see runner/lifecycle.py
+        from runner.lifecycle import poll_revokes, revoke_fields, sweep_inactive, MARKER
+        writes = []
+        os.environ["RUNNER_PRIVATE_KEY"] = priv
+        try:
+            rv_uid, launcher3 = "t-revoke", FakeLauncher()
+            manager3 = WorkerManager(launcher=launcher3)
+            rv_doc = {"status": "connected", "keyCiphertext": ciphertext, "creatorId": "923001234567", "connectedAt": 5,
+                      "nonce": "482913", "revokeRequestedAt": None, "agentName": "Ali Traders", "createdAt": 1}
+            reconcile({rv_uid: rv_doc}, runner_cfg, manager3, update=fake_update)
+            rv_vault, rv_state = Path(runner_cfg["vault_root"]) / rv_uid, Path(runner_cfg["data_root"]) / rv_uid
+            rv_vault.mkdir(parents=True); (rv_vault / "hisab.md").write_text("# ledger\n", encoding="utf-8")
+            rv_state.mkdir(parents=True); (rv_state / "creator.json").write_text('{"id": "923001234567"}', encoding="utf-8")
+            assert manager3.running_uids() == {rv_uid} and (Path(runner_cfg["tenants_dir"]) / rv_uid / "config.yaml").exists()
+            assert poll_revokes({rv_uid: rv_doc, "t-ok": {"status": "revoked", "revokeRequestedAt": 9}}, runner_cfg, manager3, update=fake_update) == {}
+            assert writes == [] and manager3.running_uids() == {rv_uid}, "no request (or a stale one on a revoked doc) is a no-op"
+            done = poll_revokes({rv_uid: {**rv_doc, "revokeRequestedAt": 7}}, runner_cfg, manager3, update=fake_update, now_ms=1_000)
+            expected = revoke_fields(1_000)
+            assert done == {rv_uid: expected} and writes == [(rv_uid, expected)], (done, writes)
+            assert expected["status"] == "revoked" and expected["revokedAt"] == 1_000
+            for k in ("keyCiphertext", "creatorId", "nonce", "nonceExpiresAt", "connectedAt", "revokeRequestedAt", "lastSeenAt", "entriesThisMonth", "language", "usedThisMonth", "quotaLimit"):
+                assert k in expected and expected[k] is None, k
+            assert manager3.running_uids() == set() and launcher3.calls == 1
+            inactive = Path(runner_cfg["inactive_root"]) / rv_uid / "1000"
+            assert not rv_vault.exists() and not rv_state.exists(), "vault and state must move, not stay"
+            assert (inactive / "vault" / "hisab.md").exists() and (inactive / "data" / "creator.json").exists() and (inactive / MARKER).exists(), list(inactive.rglob("*"))
+            assert not (Path(runner_cfg["tenants_dir"]) / rv_uid).exists(), "the per-tenant config is deleted"
+            # the runner crashed before its write landed: the request is still on the document, the second pass is harmless
+            again = poll_revokes({rv_uid: {**rv_doc, "revokeRequestedAt": 7}}, runner_cfg, manager3, update=fake_update, now_ms=2_000)
+            assert again[rv_uid]["status"] == "revoked" and len(writes) == 2 and (inactive / "vault" / "hisab.md").exists()
+            assert not (Path(runner_cfg["inactive_root"]) / rv_uid / "2000").exists(), "nothing to move the second time"
+            # a revoked document that receives a new ciphertext is a new connection: pending, fresh vault
+            rv_revoked = {**rv_doc, **expected}
+            assert admission(rv_revoked, runner_cfg) is None, "no ciphertext, nothing to admit"
+            assert admission({**rv_revoked, "keyCiphertext": ciphertext2, "nonce": "111111"}, runner_cfg) == {"status": "pending", "lastError": None, "lastErrorKey": None, "revokedAt": None, "revokeRequestedAt": None}
+            reconcile({rv_uid: {**rv_revoked, "keyCiphertext": ciphertext2, "nonce": "111111", "revokeRequestedAt": 8}}, runner_cfg, manager3, update=fake_update)
+            assert manager3.running_uids() == {rv_uid} and launcher3.calls == 2 and writes[-1][1]["status"] == "pending"
+            # a stale request the client left on the revoked document is cleared by admission, so the next tick keeps the worker
+            readmitted = {**rv_revoked, "keyCiphertext": ciphertext2, "nonce": "111111", **writes[-1][1]}
+            readmitted = {k: v for k, v in readmitted.items() if v is not None}
+            assert poll_revokes({rv_uid: readmitted}, runner_cfg, manager3, update=fake_update) == {} and manager3.running_uids() == {rv_uid}
+            assert not rv_vault.exists(), "the reconnected tenant starts with no ledger — setup from zero"
+            # stop() waits for the exit and kills a worker that ignores SIGTERM
+            hung = FakeProc(hangs=True)
+            manager3._running["t-hung"] = {"proc": hung, "hash": "x"}
+            manager3.stop("t-hung", timeout=0.01)
+            assert hung.killed and hung.waits == 2, (hung.killed, hung.waits)
+            # retention: only marked dirs older than retention_days, directly under inactive_root
+            iroot = Path(runner_cfg["inactive_root"])
+            day = 86_400_000
+            sweep_now = 1_000 + 10 * day  # the t-revoke snapshot above (revokedAt 1000) is then 10 days old: kept
+            for uid_, ts, age_days in (("u1", 100, 31), ("u1", 200, 1), ("u2", 300, 45)):
+                d = iroot / uid_ / str(ts); d.mkdir(parents=True)
+                (d / "vault").mkdir(); (d / MARKER).write_text(json.dumps({"revokedAt": sweep_now - age_days * day}), encoding="utf-8")
+            (iroot / "stray").mkdir(); (iroot / "stray" / "keep.txt").write_text("x", encoding="utf-8")
+            (iroot / "u3" / "unmarked").mkdir(parents=True)
+            gone = sweep_inactive(runner_cfg, now_ms=sweep_now)
+            assert gone == [iroot / "u1" / "100", iroot / "u2" / "300"], gone
+            assert (iroot / "u1" / "200" / MARKER).exists() and (iroot / "stray" / "keep.txt").exists() and (iroot / "u3" / "unmarked").exists()
+            assert not (iroot / "u2").exists(), "an emptied uid dir is removed"
+            assert (inactive / MARKER).exists(), "a fresh revoke is untouched by the sweep"
+            assert sweep_inactive({**runner_cfg, "inactive_root": str(tmp / "no-such-dir")}) == []
+            # a runner/config.yaml written before inactive_root existed: the default sits beside vault_root,
+            # never under runner/ (outside the compose mount — found on the emulator run of 2026-09-13)
+            from runner import config as runner_config
+            old_cfg = tmp / "runner-old" / "config.yaml"; old_cfg.parent.mkdir(parents=True)
+            old_cfg.write_text("vault_root: ../mounted/vault\ndata_root: ../mounted/data\ntenants_dir: ../mounted/tenants\n", encoding="utf-8")
+            loaded = runner_config.load(old_cfg)
+            assert loaded["inactive_root"] == str((tmp / "mounted" / "inactive").resolve()) and loaded["retention_days"] == 30, loaded["inactive_root"]
+            old_cfg.write_text("vault_root: ../mounted/vault\ninactive_root: ../elsewhere/inactive\nretention_days: 7\n", encoding="utf-8")
+            loaded = runner_config.load(old_cfg)
+            assert loaded["inactive_root"] == str((tmp / "elsewhere" / "inactive").resolve()) and loaded["retention_days"] == 7, loaded["inactive_root"]
+        finally:
+            del os.environ["RUNNER_PRIVATE_KEY"]
+        print("runner: revoke + retention ok")
 
         # the browser's own sealing code (landing/app/portal/crypto.js) must open in the runner's PyNaCl
         import subprocess
