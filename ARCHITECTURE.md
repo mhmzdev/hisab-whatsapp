@@ -78,7 +78,7 @@ The ledger folder is the product. Open it in Obsidian with hledger-dashboard and
 2. **Strict check or nothing.** `Ledger.append` writes, checks, and restores the previous file on rejection. Undeclared accounts, unbalanced postings and future dates never land.
 3. **Entry numbers are monotonic** across quarter files (`next_entry_number` scans them all) and are the only handle for undo.
 4. **Idempotent transport.** A message id already in the store is skipped; the offset advances after the batch, so a crash replays rather than drops or doubles.
-5. **Three languages or none.** A fixed string exists in `en`, `ur`, `roman` or it does not ship.
+5. **Three languages or none.** A fixed agent string (`hisab/i18n.py`) exists in `en`, `ur`, `roman` or it does not ship. The hosted landing page and portal (`landing/content/strings.json`) ship exactly `en` and `ur`.
 6. **Conventions the dashboard reads:** alphabetic commodities, three-posting transfers via `equity:transfer`, `~ monthly` rules, `P` price lines.
 7. **Private by platform.** The agent replies only to its creator. Nothing goes anywhere but the model provider, the transcription provider and WhatsApp.
 

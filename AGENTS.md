@@ -51,7 +51,7 @@ Dockerfile · docker-compose.yml · config.example.yaml · .env.example
 - **Ledger conventions the Obsidian dashboard reads:** alphabetic commodities (`PKR`, `USD`, never `$`), transfers as three postings with a bare `equity:transfer`, recurring items and budgets as `~ monthly` rules, rates as `P` lines.
 - **Privacy.** Nothing from the author's personal ledger, vault, VPS, tokens or WhatsApp id enters this repo, an issue, a PR or a doc. `.env`, `config.yaml`, `vault/`, `data/`, `scratch-*` are gitignored and never read into a document.
 - **Never touch** `.env`, `config.yaml` or anything under `vault/` from a skill.
-- **Hosted mode:** the runner alone talks to Firestore and alone writes `status`/`creatorId`/`lastError`; the worker alone talks to WhatsApp. `lastError` holds a code from `runner/errors.py`, never a sentence — the portal renders it in three languages. `runner-data/`, `runner/config.yaml` and `landing/.env.local` are gitignored like `vault/`.
+- **Hosted mode:** the runner alone talks to Firestore and alone writes `status`/`creatorId`/`lastError`; the worker alone talks to WhatsApp. `lastError` holds a code from `runner/errors.py`, never a sentence — the portal renders it in English and Urdu. `runner-data/`, `runner/config.yaml` and `landing/.env.local` are gitignored like `vault/`.
 
 ## Commands
 

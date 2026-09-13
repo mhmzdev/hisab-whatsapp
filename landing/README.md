@@ -11,7 +11,7 @@ From the repo root:
 | Command | What |
 |---|---|
 | `make landing` | `npm install && npm run build` — writes the static export to `landing/out/`. `NEXT_PUBLIC_USE_EMULATORS=0` for the dev/remote profile |
-| `make landing-check` | Runs `tests/check_landing.py` — three-language completeness, verification direction, no payment collection, `firebase.json` shape, a portal string per runner `lastError` code |
+| `make landing-check` | Runs `tests/check_landing.py` — two-language completeness (exactly `en` and `ur`), verification direction, no payment collection, `firebase.json` shape, a portal string per runner `lastError` code |
 | `make emulators` | Serves `landing/out` at http://localhost:3031 through the Hosting emulator, with Auth and Firestore beside it (foreground; `make up` is the background hosted stack) |
 | `make up` | The whole hosted local stack: emulators in the background, the runner on Gemini, the portal at http://localhost:3031/portal/ |
 | `make dev` | The runner on OpenRouter against the dedicated dev Firebase project, portal built with emulators off |
@@ -28,7 +28,7 @@ local Emulator Suite. Rebuild after changing any of them.
 
 ## The `strings.json` contract
 
-Every fixed user-facing string lives in `landing/content/strings.json`, one dict, key → `{en, ur, roman}`. A string ships in all three languages or it does not ship — `tests/check_landing.py` enforces this. Urdu is Urdu script; Roman Urdu is Latin, in the same register as the agent's own replies (see `hisab/i18n.py`), not translated marketing English.
+Every fixed user-facing string lives in `landing/content/strings.json`, one dict, key → `{en, ur}`. A string ships in exactly those two languages or it does not ship — `tests/check_landing.py` fails on a missing one and on any other language key. Urdu is Urdu script. The page has no Roman Urdu: that is how people text the ledger, not how they read a landing page, so it stays in the agent (`hisab/i18n.py` keeps `en`, `ur` and `roman`). `portal_lang_roman` is still a key because the Connected screen names the agent's language, which can be Roman Urdu.
 
 Any key whose name contains `verify_instruction` must contain the literal word `verify` and the `{nonce}` placeholder in every language — the portal always tells the user to *send* a code to their agent, never that a code was *sent to* them. Every code in `runner/errors.py` needs a `portal_error_<code>` key: the runner stores codes, the portal renders words.
 

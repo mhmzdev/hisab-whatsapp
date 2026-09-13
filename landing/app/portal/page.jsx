@@ -295,7 +295,7 @@ function formatDate(ms) {
   }
 }
 
-// "12 minutes ago" in the page language. Urdu has a locale of its own; Roman Urdu reads the English form.
+// "12 minutes ago" in the page language, English or Urdu.
 function relative(ms, lang, now) {
   if (!ms) return null
   const diff = Math.round((ms - now) / 1000)   // negative = in the past

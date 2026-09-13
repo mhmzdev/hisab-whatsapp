@@ -655,6 +655,19 @@ try:
     landing_strings = Path(__file__).resolve().parent.parent / "landing" / "content" / "strings.json"
     if landing_strings.exists():
         from check_landing import run as check_landing_run
+        # the page ships exactly en and ur: an extra roman fails, a missing ur fails
+        fake_root = Path(tmp) / "landing-fake"
+        (fake_root / "landing" / "content").mkdir(parents=True)
+        (fake_root / "firebase.json").write_text(json.dumps({"hosting": {"public": "landing/out"}, "emulators": {"hosting": {"port": 3031}}}))
+        fake_strings = {"brand": {"en": "Hosted Hisab", "ur": "Hosted Hisab"},
+                        "portal_verify_instruction": {"en": "Send verify {nonce}", "ur": "verify {nonce} بھیجیں"}}
+        def fake_check(extra):
+            s = json.loads(json.dumps(fake_strings)); s.update(extra)
+            (fake_root / "landing" / "content" / "strings.json").write_text(json.dumps(s, ensure_ascii=False))
+            return check_landing_run(fake_root)
+        assert fake_check({}) == [], fake_check({})
+        assert any("unexpected language 'roman'" in f for f in fake_check({"hero_title": {"en": "A ledger", "ur": "کھاتہ", "roman": "Khata"}}))
+        assert any("[hero_title][ur]: missing or empty" in f for f in fake_check({"hero_title": {"en": "A ledger"}}))
         landing_failures = check_landing_run(Path(__file__).resolve().parent.parent)
         assert not landing_failures, landing_failures
         print("landing: ok")
