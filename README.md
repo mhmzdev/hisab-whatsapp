@@ -68,7 +68,7 @@ Your ledger lives in `./vault/` on your machine. Nothing goes to anyone but your
 
 For people who will never run Docker: sign in with a phone number, paste your agent's key, send the code the portal shows you to your agent, and we run the worker. Your key and ledger then live on our server, encrypted. Send `export-ledger` to your agent and the ledger comes back as a ZIP; revoke stops the worker and deletes the key. Self-host (above) keeps both on your own machine. 300 PKR/month is the presentation price; nothing in this repo collects it.
 
-What exists today: the landing page and portal shell in `landing/` (`make up` serves it at `http://localhost:3030`, `make landing` builds it alone), the runner in `runner/` that turns a Firestore tenant into one isolated worker, and the `export-ledger` command. Nonce verification, quota and revoke are open issues #5–#7. Design: [`docs/brainstorm/hosted-portal.md`](docs/brainstorm/hosted-portal.md); spec: [`docs/specs/001-hosted-portal.md`](docs/specs/001-hosted-portal.md).
+What exists today: the landing page and portal in `landing/` (phone sign-in, the key sealed in the browser, the `verify <code>` step, a Connected screen with live activity and a working Revoke), the runner in `runner/` that turns a Firestore tenant into one isolated worker, matches the code, enforces the monthly model-call allowance and retains a revoked ledger for 30 days, and the `export-ledger` command. `make landing` · `make emulators` · `make runner-up` is the whole local loop (see `runner/README.md`). Design: [`docs/brainstorm/hosted-portal.md`](docs/brainstorm/hosted-portal.md); spec: [`docs/specs/001-hosted-portal.md`](docs/specs/001-hosted-portal.md).
 
 ## Viewing
 
