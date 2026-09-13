@@ -444,6 +444,26 @@
     "ur": "سائن آؤٹ",
     "roman": "Sign out"
   },
+  "portal_signout_confirm_title": {
+    "en": "Sign out?",
+    "ur": "سائن آؤٹ کریں؟",
+    "roman": "Sign out karein?"
+  },
+  "portal_signout_confirm_text": {
+    "en": "Your agent keeps running. Signing back in needs a new SMS code.",
+    "ur": "آپ کا ایجنٹ چلتا رہے گا۔ دوبارہ سائن ان کے لیے نیا SMS کوڈ درکار ہوگا۔",
+    "roman": "Aap ka agent chalta rahega. Dobara sign in ke liye naya SMS code chahiye hoga."
+  },
+  "portal_signout_confirm_yes": {
+    "en": "Sign out",
+    "ur": "سائن آؤٹ",
+    "roman": "Sign out"
+  },
+  "portal_signout_confirm_no": {
+    "en": "Stay signed in",
+    "ur": "سائن ان رہیں",
+    "roman": "Sign in rahein"
+  },
   "portal_signin_error": {
     "en": "Couldn't send the code. Check the number and try again.",
     "ur": "کوڈ نہیں بھیجا جا سکا۔ نمبر چیک کر کے دوبارہ کوشش کریں۔",

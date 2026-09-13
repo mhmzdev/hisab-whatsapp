@@ -415,6 +415,36 @@ function RevokedState({ t, tenant, onReconnect }) {
   )
 }
 
+// a modal, not inline: it covers the page, Escape or a tap on the backdrop cancels, and focus starts on
+// the safe choice so Enter on a stray open keeps the session
+function SignOutDialog({ t, onConfirm, onCancel }) {
+  const cancelRef = useRef(null)
+
+  useEffect(() => {
+    if (cancelRef.current) cancelRef.current.focus()
+  }, [])
+
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape') onCancel() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onCancel])
+
+  return (
+    <div className={styles.modalBackdrop} onClick={onCancel}>
+      <div className={styles.modal} role="alertdialog" aria-modal="true" aria-labelledby="signout-title"
+        aria-describedby="signout-text" onClick={(e) => e.stopPropagation()}>
+        <h2 id="signout-title">{t('portal_signout_confirm_title')}</h2>
+        <p id="signout-text">{t('portal_signout_confirm_text')}</p>
+        <div className={styles.confirmRow}>
+          <button type="button" ref={cancelRef} className={styles.buttonOutline} onClick={onCancel}>{t('portal_signout_confirm_no')}</button>
+          <button type="button" className={styles.buttonDangerSolid} onClick={onConfirm}>{t('portal_signout_confirm_yes')}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Portal() {
   const { t, lang } = useLanguage()
   const [user, setUser] = useState(undefined)       // undefined = auth not resolved yet
@@ -422,6 +452,7 @@ export default function Portal() {
   const [phase, setPhase] = useState(null)          // 'signin-code' while an OTP is pending, else null
   const [pending, setPending] = useState(null)      // { phone, confirmation }
   const [error, setError] = useState(null)          // a strings.json key, rendered through t()
+  const [askingSignOut, setAskingSignOut] = useState(false)
 
   useEffect(() => {
     const { auth } = firebase()
@@ -429,6 +460,7 @@ export default function Portal() {
       setUser(u || null)
       setPhase(null)
       setPending(null)
+      setAskingSignOut(false)
       if (!u) setTenant(undefined)
     })
   }, [])
@@ -453,6 +485,18 @@ export default function Portal() {
     setPhase('signin-code')
   }
 
+  // signing back in costs an SMS code, so a stray tap on the eyebrow button only asks
+  async function confirmSignOut() {
+    setAskingSignOut(false)
+    setError(null)
+    try {
+      await signOut(firebase().auth)
+    } catch (e) {
+      console.error('signOut', e)
+      setError('portal_error_unknown')
+    }
+  }
+
   const resolved = user !== undefined && (user === null || tenant !== undefined)
   const screen = resolved ? screenFor(user, tenant, phase) : 'loading'
   const bannerKey = error || (screen === 'connect' && tenant?.status === 'error' ? errorKey(tenant.lastError) : null)
@@ -464,7 +508,7 @@ export default function Portal() {
           <span className={styles.eyebrowTag}>; portal</span>
           <span className={styles.eyebrowLine} />
           {user ? (
-            <button type="button" className={styles.signOut} onClick={() => signOut(firebase().auth)}>{t('portal_signout')}</button>
+            <button type="button" className={styles.signOut} onClick={() => setAskingSignOut(true)}>{t('portal_signout')}</button>
           ) : null}
         </div>
         <div className={styles.card} data-screen={screen}>
@@ -481,6 +525,9 @@ export default function Portal() {
           {screen === 'revoked' && <RevokedState t={t} tenant={tenant} onReconnect={() => { setError(null); setPhase('reconnect') }} />}
         </div>
       </div>
+      {user && askingSignOut ? (
+        <SignOutDialog t={t} onConfirm={confirmSignOut} onCancel={() => setAskingSignOut(false)} />
+      ) : null}
     </main>
   )
 }
