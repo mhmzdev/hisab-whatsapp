@@ -1,0 +1,15 @@
+# Dev-profile override for docker-compose.runner.yml — `make dev` layers this on top so the base
+# file's FIRESTORE_EMULATOR_HOST/GCLOUD_PROJECT pass-through (local/emulator profile) is untouched.
+# GOOGLE_APPLICATION_CREDENTIALS and the service-account bind mount exist only when this file is
+# applied. This file deliberately does NOT try to clear FIRESTORE_EMULATOR_HOST with an empty
+# value: google-cloud-firestore's client checks os.getenv("FIRESTORE_EMULATOR_HOST") is not None,
+# so FIRESTORE_EMULATOR_HOST= would still point it at an emulator on host "". `make dev` instead
+# runs docker compose under `env -u FIRESTORE_EMULATOR_HOST`, so the base file's bare
+# `- FIRESTORE_EMULATOR_HOST` pass-through finds nothing and the variable is genuinely absent
+# inside the container, regardless of what the calling shell has exported.
+services:
+  runner:
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/service-account.json
+    volumes:
+      - ${RUNNER_SERVICE_ACCOUNT:-./service-account.json}:/app/service-account.json:ro

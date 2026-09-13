@@ -65,9 +65,10 @@ Dockerfile · docker-compose.yml · config.example.yaml · .env.example
 | Switch endpoint | `cp examples/config.openrouter.yaml config.yaml` or `examples/config.gemini.yaml` |
 | Validate the sponsor config before a demo | `python3 tests/check_endpoint.py --config config-dev.yaml` |
 | Terminal mode on the configured ledger | `python3 -m hisab.loop --stdin` |
-| Container | `docker compose up -d --build` · `docker compose logs -f` |
+| Container | `docker compose up -d --build` (or `make selfhost`) · `docker compose logs -f` |
 | Strict check on any ledger | `hledger -f <dir>/hisab.md check --strict` |
-| Hosted mode, the full local loop | `make landing` · `make emulators` · `make runner-up` (then `runner-logs` / `runner-down` / `runner-down-v`) — see runner/README.md |
+| Hosted mode, the full local loop (Gemini + emulators + runner + portal at :3031) | `make up` (then `make down` / `make down-v`) — see runner/README.md |
+| Hosted mode, the dev profile (OpenRouter + the dedicated dev Firebase project) | `make dev` — fails fast until the project is provisioned |
 | Firestore rules as owner and attacker (throwaway emulator) | `make rules-test` |
 
 ## Docker, and which ledger is mounted

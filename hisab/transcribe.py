@@ -14,9 +14,8 @@ def transcribe(path, cfg):
     provider = (tc.get("provider") or "openrouter").lower()
     if provider == "gemini":
         return _gemini(path, os.environ.get("GEMINI_API_KEY", ""), tc.get("gemini_model") or "gemini-2.5-flash")
-    # "openrouter" and "openai" share the OpenAI-compatible /audio/transcriptions shape; base_url and key env are config
-    base = (tc.get("base_url") or ("https://api.openai.com/v1" if provider == "openai" else "https://openrouter.ai/api/v1")).rstrip("/")
-    key_env = tc.get("api_key_env") or ("OPENAI_API_KEY" if provider == "openai" else "OPENROUTER_API_KEY")
+    base = (tc.get("base_url") or "https://openrouter.ai/api/v1").rstrip("/")
+    key_env = tc.get("api_key_env") or "OPENROUTER_API_KEY"
     key = os.environ.get(key_env, "").strip() or cfg["secrets"]["openrouter_key"]
     if not key:
         raise RuntimeError(f"{key_env} is not set")

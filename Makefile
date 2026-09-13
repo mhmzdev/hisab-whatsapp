@@ -1,37 +1,37 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help up dev down down-v logs restart check sample demo stdin check-endpoint bakeoff shell landing landing-check landing-serve landing-up landing-down rules-test emulators runner-up runner-logs runner-down runner-down-v
+.PHONY: help selfhost selfhost-dev selfhost-down selfhost-down-v selfhost-logs selfhost-restart selfhost-shell up dev down down-v check sample demo stdin check-endpoint bakeoff landing landing-check landing-serve landing-up landing-down rules-test emulators emulators-up emulators-down runner-up runner-logs runner-down runner-down-v
 
-# 3030 dev server, 3031 Firebase Hosting emulator (firebase.json). 5000 is macOS AirPlay.
+# 3030 self-host landing server, 3031 Firebase Hosting emulator (firebase.json). 5000 is macOS AirPlay.
 LANDING_PORT ?= 3030
 LANDING_PID  := .landing-server.pid
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-up: HISAB_VAULT ?= ./vault
-up: landing landing-up ## Worker (Docker) + landing page, both live. Override: make up HISAB_VAULT=/path/to/folder LANDING_PORT=5050
+selfhost: HISAB_VAULT ?= ./vault
+selfhost: landing landing-up ## Self-host worker (Docker) + landing page, both live. Override: make selfhost HISAB_VAULT=/path/to/folder LANDING_PORT=5050
 	HISAB_VAULT=$(HISAB_VAULT) docker compose up -d --build
-	@echo "worker  → docker compose (make logs)"
+	@echo "worker  → docker compose (make selfhost-logs)"
 	@echo "landing → http://localhost:$(LANDING_PORT)"
 
-dev: HISAB_VAULT ?= ./sample-vault
-dev: HISAB_CONFIG ?= ./config-dev.yaml
-dev: ## Docker up against the sample ledger with the OpenRouter sponsor config. Override: make dev HISAB_VAULT=/path/to/folder HISAB_CONFIG=/path/to/config.yaml
+selfhost-dev: HISAB_VAULT ?= ./sample-vault
+selfhost-dev: HISAB_CONFIG ?= ./config-dev.yaml
+selfhost-dev: ## Self-host worker against the sample ledger with the OpenRouter sponsor config. Override: make selfhost-dev HISAB_VAULT=/path/to/folder HISAB_CONFIG=/path/to/config.yaml
 	HISAB_VAULT=$(HISAB_VAULT) HISAB_CONFIG=$(HISAB_CONFIG) docker compose up -d --build
 
-down: landing-down ## Docker down and stop the landing page, keep state
+selfhost-down: landing-down ## Self-host Docker down and stop the landing page, keep state
 	docker compose down
 
-down-v: ## Docker down and wipe the store (next message starts setup from zero)
+selfhost-down-v: ## Self-host Docker down and wipe the store (next message starts setup from zero)
 	docker compose down -v
 
-logs: ## Follow container logs
+selfhost-logs: ## Follow self-host container logs
 	docker compose logs -f
 
-restart: up ## Rebuild and restart against your local ledger (alias for up)
+selfhost-restart: selfhost ## Rebuild and restart the self-host worker against your local ledger (alias for selfhost)
 
-shell: ## Peek at the mounted vault and message store inside the container
+selfhost-shell: ## Peek at the self-host mounted vault and message store inside the container
 	docker compose exec -T hisab sh -c 'ls /app/vault; cat /app/data/messages.jsonl'
 
 check: ## Run the no-network smoke test
@@ -52,24 +52,59 @@ check-endpoint: ## Validate a pasted key: model, tools, transcription. Pass ARGS
 bakeoff: ## Compare a model on the fixed demo script: make bakeoff MODEL=anthropic/claude-haiku-4.5
 	bash tests/bakeoff.sh $(MODEL)
 
-landing: ## Build the Hosted Hisab landing page and portal shell to landing/out
-	cd landing && npm install && npm run build
+landing: NEXT_PUBLIC_USE_EMULATORS ?= 1
+landing: ## Build the Hosted Hisab landing page and portal shell to landing/out. Override: make landing NEXT_PUBLIC_USE_EMULATORS=0 for the dev/remote profile
+	cd landing && npm install && NEXT_PUBLIC_USE_EMULATORS=$(NEXT_PUBLIC_USE_EMULATORS) npm run build
 
 landing-check: ## Run the landing static checks (three languages, verification direction, no payment collection)
 	python3 tests/check_landing.py
 
-# ---- hosted mode: emulators on the host, the runner in Docker, the portal from landing/out ----
+# ---- hosted mode: local profile (emulators on the host, runner in Docker, portal from landing/out) ----
 # 3031 serves landing/out through the Hosting emulator; auth 9099 and firestore 8080 are in firebase.json.
 FIREBASE_PROJECT ?= demo-hisab
+EMULATORS_PID := .emulators.pid
+
+up: landing emulators-up runner-up ## Hosted local stack: Gemini runner + Auth/Firestore/Hosting emulators + portal at :3031
+	@echo "OTPs → tail -f firebase-debug.log, or: curl http://localhost:9099/emulator/v1/projects/$(FIREBASE_PROJECT)/verificationCodes"
+
+down: runner-down emulators-down ## Stop the hosted local stack, keep runner-data/
+down-v: runner-down-v emulators-down ## Stop the hosted local stack AND wipe runner-data/
+
+dev: NEXT_PUBLIC_USE_EMULATORS := 0
+dev: RUNNER_CONFIG ?= ./runner/config-dev.yaml
+dev: RUNNER_SERVICE_ACCOUNT ?= ./service-account.json
+dev: ## Hosted dev-profile stack: OpenRouter runner against the dev Firebase project, portal built with emulators off
+	@test -f $(RUNNER_SERVICE_ACCOUNT) || { echo "$(RUNNER_SERVICE_ACCOUNT) missing — the dev Firebase project isn't provisioned yet"; exit 1; }
+	@test -f $(RUNNER_CONFIG) || { echo "$(RUNNER_CONFIG) missing — cp examples/runner-config.openrouter.yaml $(RUNNER_CONFIG)"; exit 1; }
+	@grep -q '^RUNNER_PRIVATE_KEY=.\+' .env || { echo "RUNNER_PRIVATE_KEY missing from .env — python3 -m runner.keygen"; exit 1; }
+	$(MAKE) landing NEXT_PUBLIC_USE_EMULATORS=$(NEXT_PUBLIC_USE_EMULATORS)
+	RUNNER_CONFIG=$(RUNNER_CONFIG) RUNNER_SERVICE_ACCOUNT=$(RUNNER_SERVICE_ACCOUNT) env -u FIRESTORE_EMULATOR_HOST docker compose -f docker-compose.runner.yml -f docker-compose.runner.dev.yml up -d --build
+	@echo "runner (dev) → docker compose -f docker-compose.runner.yml -f docker-compose.runner.dev.yml"
 
 emulators: ## Auth + Firestore + Hosting emulators in the foreground (demo project; OTPs print here). Run `make landing` first
 	@test -d landing/out || { echo "landing/out missing — run 'make landing' first"; exit 1; }
 	firebase emulators:start --only auth,firestore,hosting --project $(FIREBASE_PROJECT)
 
-runner-up: ## Runner in Docker against the local emulators. Needs runner/config.yaml and RUNNER_PRIVATE_KEY in .env
-	@test -f runner/config.yaml || { echo "runner/config.yaml missing — cp runner/config.example.yaml runner/config.yaml"; exit 1; }
+emulators-up: ## Auth + Firestore + Hosting emulators in the background (demo project; OTPs land in firebase-debug.log). Run `make landing` first
+	@test -d landing/out || { echo "landing/out missing — run 'make landing' first"; exit 1; }
+	@if [ -f $(EMULATORS_PID) ] && kill -0 `cat $(EMULATORS_PID)` 2>/dev/null; then \
+		echo "emulators already running (pid `cat $(EMULATORS_PID)`)"; \
+	elif lsof -ti :3031 >/dev/null 2>&1; then \
+		echo "port 3031 is in use by something else"; exit 1; \
+	else \
+		nohup firebase emulators:start --only auth,firestore,hosting --project $(FIREBASE_PROJECT) >firebase-debug.log 2>&1 & echo $$! >$(EMULATORS_PID); \
+		sleep 2; \
+	fi
+
+emulators-down: ## Stop the background emulators
+	@if [ -f $(EMULATORS_PID) ]; then kill `cat $(EMULATORS_PID)` 2>/dev/null; rm -f $(EMULATORS_PID); echo "emulators stopped"; else echo "emulators not running"; fi
+
+runner-up: RUNNER_CONFIG ?= ./runner/config.yaml
+runner-up: ## Runner in Docker against the local emulators, on RUNNER_CONFIG (default Gemini). Needs RUNNER_CONFIG and RUNNER_PRIVATE_KEY in .env
+	@test -f $(RUNNER_CONFIG) || { echo "$(RUNNER_CONFIG) missing — cp runner/config.example.yaml $(RUNNER_CONFIG)"; exit 1; }
 	@grep -q '^RUNNER_PRIVATE_KEY=.\+' .env || { echo "RUNNER_PRIVATE_KEY missing from .env — python3 -m runner.keygen"; exit 1; }
-	FIRESTORE_EMULATOR_HOST=host.docker.internal:8080 GCLOUD_PROJECT=$(FIREBASE_PROJECT) docker compose -f docker-compose.runner.yml up -d --build
+	@docker compose -f docker-compose.yml ps -q --status running 2>/dev/null | grep -q . && { echo "self-host container is running (docker-compose.yml) — same agent token risks HTTP 409 from two pollers. Run 'make selfhost-down' first."; exit 1; } || true
+	RUNNER_CONFIG=$(RUNNER_CONFIG) FIRESTORE_EMULATOR_HOST=host.docker.internal:8080 GCLOUD_PROJECT=$(FIREBASE_PROJECT) docker compose -f docker-compose.runner.yml up -d --build
 	@echo "runner  → docker compose -f docker-compose.runner.yml (make runner-logs)"
 	@echo "portal  → http://localhost:3031/portal/"
 
@@ -95,7 +130,7 @@ landing-up: ## Serve the built landing page in the background (LANDING_PORT, def
 	@if [ -f $(LANDING_PID) ] && kill -0 `cat $(LANDING_PID)` 2>/dev/null; then \
 		echo "landing already serving on $(LANDING_PORT) (pid `cat $(LANDING_PID)`)"; \
 	elif lsof -ti :$(LANDING_PORT) >/dev/null 2>&1; then \
-		echo "port $(LANDING_PORT) is in use by something else — retry with: make up LANDING_PORT=<free port>"; exit 1; \
+		echo "port $(LANDING_PORT) is in use by something else — retry with: make selfhost LANDING_PORT=<free port>"; exit 1; \
 	else \
 		cd landing/out && { nohup python3 -m http.server $(LANDING_PORT) >$(CURDIR)/.landing-server.log 2>&1 & echo $$! >$(CURDIR)/$(LANDING_PID); }; \
 		sleep 1; \

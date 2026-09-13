@@ -8,7 +8,7 @@ DEFAULTS = {
     "hosted": False,  # hosted mode, runner-set: this tenant came through portal verification — enables the one-time welcome (#7)
     "quota": {"monthly_limit": None},  # hosted mode, runner-set: cap on model calls/month; None = unlimited (self-host)
     "ledger": {"path": "./vault", "template": "personal", "currency": "PKR"},
-    "model": {"id": "openai/gpt-4o-mini", "base_url": None, "api_key_env": None, "provider_pin": None, "agents_sdk": False},
+    "model": {"id": "openai/gpt-4o-mini", "base_url": None, "api_key_env": None, "provider_pin": None},
     "transcription": {"provider": "openrouter", "model": "openai/whisper-1", "base_url": None, "api_key_env": None, "language": None, "gemini_model": "gemini-2.5-flash"},
     "memory": {"window_turns": 20, "keep_days": 30},
     "whatsapp": {"poll_timeout": 20, "chunk_chars": 3500, "rate_limits": {
@@ -30,6 +30,9 @@ def load(path=None):
     path = Path(path or os.environ.get("HISAB_CONFIG", "config.yaml"))
     raw = yaml.safe_load(path.read_text(encoding="utf-8")) if path.exists() else {}
     cfg = _merge(DEFAULTS, raw)
+    provider = (cfg["transcription"].get("provider") or "openrouter").lower()
+    if provider not in ("openrouter", "gemini"):
+        raise SystemExit(f"transcription.provider must be 'openrouter' or 'gemini', got {provider!r}")
     root = path.resolve().parent
     cfg["ledger"]["path"] = str((root / cfg["ledger"]["path"]).resolve())
     cfg["state"]["path"] = str((root / cfg["state"]["path"]).resolve())

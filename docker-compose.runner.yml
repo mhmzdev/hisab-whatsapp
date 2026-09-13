@@ -1,13 +1,15 @@
 # Hosted mode only — separate from docker-compose.yml, which self-host users run unchanged.
 #
-# local profile (Firebase Emulator Suite): `make emulators` on the host (auth + firestore + hosting,
-# ports in firebase.json), then `make runner-up`, which starts this file with
-# FIRESTORE_EMULATOR_HOST=host.docker.internal:8080 and GCLOUD_PROJECT=demo-hisab in the runner's
-# environment. Neither variable is a secret; they are passed through from the shell, not stored in .env.
+# local profile (Firebase Emulator Suite): `make up` on its own brings up the emulators in the
+# background and starts this file with FIRESTORE_EMULATOR_HOST=host.docker.internal:8080 and
+# GCLOUD_PROJECT=demo-hisab. Neither variable is a secret; they are passed through from the
+# shell, not stored in .env.
 #
-# dev profile (an existing dedicated, non-production Firebase project): leave FIRESTORE_EMULATOR_HOST
-# unset, uncomment the GOOGLE_APPLICATION_CREDENTIALS volume/env below pointing at a gitignored
-# service-account JSON. Never point either profile at a production project or a payment provider.
+# dev profile (an existing dedicated, non-production Firebase project): `make dev` layers
+# docker-compose.runner.dev.yml on top, which supplies GOOGLE_APPLICATION_CREDENTIALS and the
+# service-account bind mount, and runs docker compose under `env -u FIRESTORE_EMULATOR_HOST` so
+# that variable is genuinely absent rather than set to an empty string (see the override file's
+# own comment for why). Never point either profile at a production project or a payment provider.
 services:
   runner:
     build:
@@ -17,11 +19,9 @@ services:
     environment:
       - FIRESTORE_EMULATOR_HOST        # pass-through: set in the shell for the local profile, absent for dev
       - GCLOUD_PROJECT
-      # GOOGLE_APPLICATION_CREDENTIALS: /app/service-account.json   # dev profile only
     volumes:
-      - ./runner/config.yaml:/app/runner/config.yaml:ro
+      - ${RUNNER_CONFIG:-./runner/config.yaml}:/app/runner/config.yaml:ro
       - ./runner-data:/app/runner-data   # vault/<uid>, data/<uid>, tenants/<uid> for every tenant
-      # - ./service-account.json:/app/service-account.json:ro   # dev profile only, gitignored
     extra_hosts:
       - "host.docker.internal:host-gateway"   # Linux hosts; Docker Desktop already resolves it
     restart: unless-stopped

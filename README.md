@@ -57,7 +57,7 @@ You need an Android phone with WhatsApp, Docker, and an [OpenRouter](https://ope
 1. In WhatsApp: Settings → Agents → Create an agent → Chat info → copy the API key.
 2. `cp .env.example .env` and paste the WhatsApp key and your OpenRouter key.
 3. `cp config.example.yaml config.yaml`. The defaults are fine; change the model if you like.
-4. `docker compose up -d`
+4. `docker compose up -d` (or `make selfhost`)
 5. Send your agent any message. It asks your language, then up to eight questions, writes your chart of accounts, and posts what you sent.
 
 Your ledger lives in `./vault/` on your machine. Nothing goes to anyone but your model provider.
@@ -66,9 +66,9 @@ Your ledger lives in `./vault/` on your machine. Nothing goes to anyone but your
 
 ## Hosted Hisab (in progress)
 
-For people who will never run Docker: sign in with a phone number, paste your agent's key, send the code the portal shows you to your agent, and we run the worker. Your key and ledger then live on our server, encrypted. Send `export-ledger` to your agent and the ledger comes back as a ZIP; revoke stops the worker and deletes the key. Self-host (above) keeps both on your own machine. 300 PKR/month is the presentation price; nothing in this repo collects it.
+For people who will never run Docker: sign in with a phone number, paste your agent's key, send the code the portal shows you to your agent, and we run the worker. Your key and ledger then live on our server, encrypted. Send `export-ledger` to your agent and the ledger comes back as a ZIP; revoke stops the worker and deletes the key. Self-host (above, `make selfhost`) keeps both on your own machine. 300 PKR/month is the presentation price; nothing in this repo collects it.
 
-What exists today: the landing page and portal in `landing/` (phone sign-in, the key sealed in the browser, the `verify <code>` step, a Connected screen with live activity and a working Revoke), the runner in `runner/` that turns a Firestore tenant into one isolated worker, matches the code, enforces the monthly model-call allowance and retains a revoked ledger for 30 days, and the `export-ledger` command. `make landing` · `make emulators` · `make runner-up` is the whole local loop (see `runner/README.md`). Design: [`docs/brainstorm/hosted-portal.md`](docs/brainstorm/hosted-portal.md); spec: [`docs/specs/001-hosted-portal.md`](docs/specs/001-hosted-portal.md).
+What exists today: the landing page and portal in `landing/` (phone sign-in, the key sealed in the browser, the `verify <code>` step, a Connected screen with live activity and a working Revoke), the runner in `runner/` that turns a Firestore tenant into one isolated worker, matches the code, enforces the monthly model-call allowance and retains a revoked ledger for 30 days, and the `export-ledger` command. `make up` runs the whole local hosted stack — the Auth/Firestore/Hosting emulators, the runner on Gemini, and the portal at http://localhost:3031/portal/ — as one command (see `runner/README.md`); `make dev` runs the runner on OpenRouter against the dedicated dev Firebase project once it exists. Design: [`docs/brainstorm/hosted-portal.md`](docs/brainstorm/hosted-portal.md); spec: [`docs/specs/001-hosted-portal.md`](docs/specs/001-hosted-portal.md).
 
 ## Viewing
 

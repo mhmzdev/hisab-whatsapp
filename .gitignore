@@ -56,3 +56,6 @@ NOTES.md
 # landing dev server
 .landing-server.pid
 .landing-server.log
+
+# hosted-mode background emulators (make up / make emulators-up)
+.emulators.pid
