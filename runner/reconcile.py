@@ -101,7 +101,7 @@ def reconcile(tenant_docs, runner_cfg, manager, update=None):
 def on_worker_exit(uid, returncode, tenant_docs, update=None):
     """A worker exit -> the tenant-document write it deserves, or None. Only the auth failure is surfaced:
     it never becomes valid on retry, so the tenant parks in `error` (not a running status — no restart
-    loop) with a lastError CODE the portal renders in three languages, until a new ciphertext arrives."""
+    loop) with a lastError CODE the portal renders in English and Urdu, until a new ciphertext arrives."""
     if returncode != AUTH_EXIT_CODE:
         return None
     assert "auth" in LAST_ERROR_CODES

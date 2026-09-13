@@ -5,7 +5,6 @@ import { useLanguage } from './LanguageProvider'
 const OPTIONS = [
   { value: 'en', label: 'English' },
   { value: 'ur', label: 'اردو' },
-  { value: 'roman', label: 'Roman Urdu' },
 ]
 
 export default function LanguageSwitcher() {

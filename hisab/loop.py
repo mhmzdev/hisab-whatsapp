@@ -21,6 +21,11 @@ REMINDER_INTERVAL = 10 * 60  # pending tenants hear the language-neutral reminde
 VERIFY_RE = re.compile(r"verify\s+\d{4,8}$", re.IGNORECASE)  # a verify-shaped message; the runner does the real match
 
 
+def _both(key):
+    """A fixed string sent before any language is known: the English line, then the Urdu one."""
+    return s(key, "en") + "\n" + s(key, "ur")
+
+
 class Hisab:
     def __init__(self, cfg):
         self.cfg = cfg
@@ -51,6 +56,9 @@ class Hisab:
             return self.setup.start(), None
         if low.startswith("/lang"):
             lg = parse_lang(low[5:])
+            if lg and self.setup.active():
+                self.setup.set_lang(lg)
+                return s("lang_set", lg), None
             if lg and self.ledger.exists():
                 self.ledger.set_settings({"language": lg})
                 return s("lang_set", lg), None
@@ -65,8 +73,8 @@ class Hisab:
             looks_like_entry = bool(t) and not t.startswith("/") and bool(re.search(r"\d", t))
             if looks_like_entry:
                 q = self.setup.start(parked=t)
-                return s("no_ledger_parked", "en") + "\n\n" + q, None
-            return s("no_ledger", "en") + "\n\n" + self.setup.start(), None
+                return _both("no_ledger_parked") + "\n\n" + q, None
+            return _both("no_ledger") + "\n\n" + self.setup.start(), None
         return self._agent(t, quoted_id, image)
 
     def _agent(self, text, quoted_id, image=None):

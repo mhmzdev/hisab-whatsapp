@@ -295,7 +295,7 @@ function formatDate(ms) {
   }
 }
 
-// "12 minutes ago" in the page language. Urdu has a locale of its own; Roman Urdu reads the English form.
+// "12 minutes ago" in the page language, English or Urdu.
 function relative(ms, lang, now) {
   if (!ms) return null
   const diff = Math.round((ms - now) / 1000)   // negative = in the past
@@ -323,7 +323,7 @@ function ConnectedState({ t, lang, user, tenant, setError }) {
   const used = tenant?.usedThisMonth ?? 0
   const limit = tenant?.quotaLimit ?? null
   const quotaPct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0
-  const language = tenant?.language ? t(`portal_lang_${tenant.language}`) : t('portal_connected_not_yet')
+  const language = tenant?.language ? t(tenant.language === 'ur' ? 'portal_lang_ur' : 'portal_lang_en') : t('portal_connected_not_yet')
 
   async function confirmRevoke() {
     setError(null)

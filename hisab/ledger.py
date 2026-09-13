@@ -10,6 +10,8 @@ from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
+from .i18n import norm_lang
+
 
 class LedgerError(Exception):
     pass
@@ -52,7 +54,7 @@ class Ledger:
         return cur
 
     def language(self):
-        return self.settings().get("language", "en")
+        return norm_lang(self.settings().get("language", "en"))
 
     # ---------- files ----------
     def quarter_file(self, d=None, create=True):

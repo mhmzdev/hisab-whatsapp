@@ -56,7 +56,7 @@ landing: NEXT_PUBLIC_USE_EMULATORS ?= 1
 landing: ## Build the Hosted Hisab landing page and portal shell to landing/out. Override: make landing NEXT_PUBLIC_USE_EMULATORS=0 for the dev/remote profile
 	cd landing && npm install && NEXT_PUBLIC_USE_EMULATORS=$(NEXT_PUBLIC_USE_EMULATORS) npm run build
 
-landing-check: ## Run the landing static checks (three languages, verification direction, no payment collection)
+landing-check: ## Run the landing static checks (en and ur, verification direction, no payment collection)
 	python3 tests/check_landing.py
 
 # ---- hosted mode: local profile (emulators on the host, runner in Docker, portal from landing/out) ----

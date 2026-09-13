@@ -47,7 +47,7 @@ In plain terms. Still no implementation.
 1. As a <person texting the agent / shop owner / self-hoster / judge in a terminal>, I can <X> so that <benefit>.
 
 ## Decisions
-Tool shape, prompt rule, ledger convention, store field, language strings — the clarifications the grilling produced. Which existing patterns it reuses; which invariants it respects (six tools, strict check, entry numbers, offset-after-batch, three languages).
+Tool shape, prompt rule, ledger convention, store field, language strings — the clarifications the grilling produced. Which existing patterns it reuses; which invariants it respects (six tools, strict check, entry numbers, offset-after-batch, fixed strings in `en` and `ur`).
 
 ## Testing decisions
 The seam(s) from Step 2 and the closest prior-art test to mirror in tests/smoke.py.

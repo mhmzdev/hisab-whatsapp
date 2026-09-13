@@ -24,13 +24,16 @@ try:
         raise AssertionError("bad transcription provider accepted")
     print("config: rejects unknown transcription provider")
 
-    for mode, answers in (("personal", ["English", "personal", "PKR", "Alfalah bank, cash, Easypaisa wallet", "Alfalah 15", "salary, freelance", "Meezan fund", "yes"]),
-                          ("shop", ["English", "shop", "PKR", "cash, Meezan bank", "Metro, Ali traders", "Bilal, Ahmed", "none", "rent 40000, salaries 60000"])):
+    for mode, answers in (("personal", ["personal", "PKR", "Alfalah bank, cash, Easypaisa wallet", "Alfalah 15", "salary, freelance", "Meezan fund", "yes"]),
+                          ("shop", ["shop", "PKR", "cash, Meezan bank", "Metro, Ali traders", "Bilal, Ahmed", "none", "rent 40000, salaries 60000"])):
         led = Ledger(tmp / mode); st = Store(tmp / f"state-{mode}"); su = Setup(led, st)
-        q = su.start(parked="2500 coffee"); assert "اردو" in q
+        q = su.start(parked="2500 coffee"); assert "personal" in q and "ذاتی" in q, q  # no language question: one bilingual greeting
+        replies = []
         for ans in answers:
-            q, done, parked = su.answer(ans)
+            q, done, parked = su.answer(ans); replies.append(q)
         assert done and parked == "2500 coffee", (mode, done, parked)
+        assert "Currency" in replies[0] and "/lang اردو" in replies[0] and sum("/lang" in r for r in replies) == 1, replies  # the note shows once
+        assert led.language() == "en"
         assert led.exists() and led.check()
         names = led.account_names()
         assert any(a.startswith("assets:") for a in names), names
@@ -156,14 +159,31 @@ try:
     assert [d for d, _ in af["not_yet_paid_this_month"]] == [], af  # rent and salaries both have September postings
     af8 = sample.afford("2026-08"); assert len(af8["not_yet_paid_this_month"]) == 2, af8
     print("afford:", af["can_afford"], "| August pending:", af8["not_yet_paid_this_month"])
-    # urdu flow: questions come back in urdu script, settings persisted
+    # urdu flow: the first answer is in Urdu script, so the questions are too; PKR and "cash" later do not flip it
     led = Ledger(tmp / "ur"); st = Store(tmp / "state-ur"); su = Setup(led, st); su.start()
-    r, _, _ = su.answer("اردو"); assert "ذاتی" in r, r
-    r, _, _ = su.answer("ذاتی"); assert "کرنسی" in r, r
-    for a in ["PKR", "cash", "نہیں", "salary", "نہیں", "نہیں"]:
+    r, _, _ = su.answer("ذاتی"); assert "کرنسی" in r and "/lang english" in r, r
+    r, _, _ = su.answer("PKR"); assert "/lang" not in r and "اکاؤنٹس" in r, r
+    for a in ["cash", "نہیں", "salary", "نہیں", "نہیں"]:
         r, done, _ = su.answer(a)
     assert done and led.language() == "ur" and "سیٹ اپ مکمل" in r, (done, r)
+    # an unrecognised first answer asks again in the language it was written in, and does not lock it
+    led = Ledger(tmp / "ur-retry"); st = Store(tmp / "state-ur-retry"); su = Setup(led, st); su.start()
+    r, _, _ = su.answer("سلام"); assert "ذاتی" in r and "personal" not in r, r
+    r, _, _ = su.answer("shop"); assert "Currency" in r and "/lang اردو" in r, r
+    # a setup saved before the language question was dropped carries on at the mode question
+    st.set_setup_state({"step": 0, "answers": {}, "parked": None, "flow": ["language", "mode", "currency", "money", "cards", "income", "investments", "donations"]})
+    r, _, _ = su.answer("personal"); assert "Currency" in r, r
+    st.set_setup_state({"step": 1, "answers": {"language": "roman"}, "parked": None, "flow": ["language", "mode", "currency", "money", "cards", "income", "investments", "donations"]})
+    r, _, _ = su.answer("personal"); assert "Currency" in r and "/lang" not in r, r
     print("urdu setup ok")
+
+    # fixed strings are written in en and ur only; Roman Urdu is something the model answers, not a language setting
+    from hisab.i18n import S as I18N_S, Q as I18N_Q, MODEL_LANG, LANGS, parse_lang
+    assert LANGS == ("en", "ur") and set(MODEL_LANG) == {"en", "ur"} and "Roman Urdu" in MODEL_LANG["en"]
+    assert all(set(d) <= {"en", "ur"} for d in list(I18N_S.values()) + list(I18N_Q.values()))
+    assert parse_lang("roman urdu") is None and parse_lang("اردو") == "ur" and parse_lang(" English") == "en"
+    led = Ledger(tmp / "legacy-roman"); led.set_settings({"language": "roman"}); assert led.language() == "en"
+    print("i18n: en/ur only; stored roman reads as en")
 
     # export-ledger over the WhatsApp transport: exact command, intercepted before the model loop,
     # ships a document (not chat text), respects the 16 MB cap, and never needs a model key to run
@@ -217,6 +237,16 @@ try:
     empty_app._handle_wa(wa3, {"from": frm, "type": "text", "id": "exp3", "text": {"body": "Export-Ledger"}})
     assert wa3.documents == [] and wa3.sent[-1][0] == "send", wa3.sent
     print("export: no-ledger reply ok")
+
+    # /lang during setup switches the remaining questions and suppresses the detection note; /lang roman asks again
+    lang_app = make_app(tmp / "lang-vault", tmp / "lang-state")
+    r, _ = lang_app.handle("hello"); assert "ابھی کوئی کھاتہ نہیں" in r and "No ledger" in r and "ذاتی" in r, r
+    r, _ = lang_app.handle("/lang roman urdu"); assert "/lang English" in r, r
+    r, _ = lang_app.handle("/lang اردو"); assert r == "زبان: اردو۔", r
+    r, _ = lang_app.handle("shop"); assert "کرنسی" in r and "/lang" not in r, r
+    r, _ = lang_app.handle("/lang english"); assert r == "Language: English.", r
+    r, _ = lang_app.handle("PKR"); assert "money accounts" in r, r
+    print("lang: /lang mid-setup ok")
 
     # quota: model calls only (never raw messages), warn at 80%, hard-stop at the limit, free commands exempt,
     # and the count survives a fresh Hisab instance pointed at the same state dir (a runner restart/replay)
@@ -335,14 +365,14 @@ try:
         for i in range(3, 7):
             pending_app._handle_wa(fake_wa, {"from": "923001234567", "type": "text", "id": f"m{i}", "text": {"body": f"{i}00 chai"}})
         sends = [x for x in fake_wa.sent if x[0] == "send"]
-        assert len(sends) == 1 and "verify" in sends[0][2] and "اردو" in sends[0][2] and "Roman" in sends[0][2], fake_wa.sent
+        assert len(sends) == 1 and "verify" in sends[0][2] and "ابھی جڑا نہیں" in sends[0][2] and "Roman" not in sends[0][2], fake_wa.sent
         assert not any(x[0] == "typing" for x in fake_wa.sent) and fake_wa.downloaded == [], (fake_wa.sent, fake_wa.downloaded)
         assert pending_app.store.lookup("m1") and pending_app.store.lookup("m2") and pending_app.store.lookup("m6")
         assert not pending_app.ledger.exists() and pending_app.store.usage()["calls"] == 0
         assert pending_app.store.creator() == "923001234567"
         from hisab.i18n import S as I18N
         for key in ("pending_reminder", "welcome"):
-            assert all(I18N[key].get(lg) for lg in ("en", "ur", "roman")), key
+            assert all(I18N[key].get(lg) for lg in ("en", "ur")) and "Roman" not in I18N[key]["en"], key
         print("runner: pending mute + one reminder per window ok")
 
         # the welcome: exactly once across two worker instances on one state dir (a runner restart)
@@ -351,10 +381,11 @@ try:
         wa_w1, wa_w2 = FakeWA(), FakeWA()
         app_w1 = Hisab(hosted_cfg); app_w1._welcome_if_due(wa_w1)
         app_w2 = Hisab(hosted_cfg); app_w2._welcome_if_due(wa_w2)
-        assert len(wa_w1.sent) == 1 and wa_w1.sent[0][1] == "923001234567" and "Connected" in wa_w1.sent[0][2] and "اردو" in wa_w1.sent[0][2], wa_w1.sent
+        assert len(wa_w1.sent) == 1 and wa_w1.sent[0][1] == "923001234567" and "Connected" in wa_w1.sent[0][2] and "یہ ایجنٹ اب آپ کا حساب ہے" in wa_w1.sent[0][2], wa_w1.sent
         assert wa_w2.sent == [], wa_w2.sent
-        assert app_w2.setup.active(), "the welcome opens setup so the next reply is the language answer"
-        reply, done, _ = app_w2.setup.answer("اردو"); assert not done and "کھاتہ" in reply, reply  # first question, in Urdu
+        assert app_w2.setup.active(), "the welcome opens setup so the next reply answers personal or shop"
+        assert "ذاتی" in wa_w1.sent[0][2] and "personal" in wa_w1.sent[0][2], wa_w1.sent
+        reply, done, _ = app_w2.setup.answer("دکان"); assert not done and "کرنسی" in reply, reply  # answered in Urdu, next question in Urdu
         selfhost_cfg = dict(hosted_cfg, hosted=False, state={"path": str(tmp / "selfhost-state")})
         Store(selfhost_cfg["state"]["path"]).set_creator("923001234567")
         wa_sh = FakeWA(); Hisab(selfhost_cfg)._welcome_if_due(wa_sh)
@@ -507,6 +538,9 @@ try:
         got = snapshot(act_uid, runner_cfg, act_cache, today=act_today)
         assert got == {"lastSeenAt": 1_757_700_000_000, "entriesThisMonth": 2, "language": "ur", "usedThisMonth": 7, "quotaLimit": 1000}, got
         assert tuple(got) == ACTIVITY_FIELDS
+        Path(runner_cfg["vault_root"], "t-roman").mkdir(parents=True, exist_ok=True)
+        Path(runner_cfg["vault_root"], "t-roman", "settings.json").write_text(json.dumps({"language": "roman"}), encoding="utf-8")
+        assert snapshot("t-roman", runner_cfg, act_cache, today=act_today)["language"] == "en"  # an old roman setting shows as English
         assert snapshot("t-nostate-at-all", runner_cfg, act_cache, today=act_today) == {"lastSeenAt": None, "entriesThisMonth": 0, "language": None, "usedThisMonth": 0, "quotaLimit": 1000}
         assert snapshot(act_uid, runner_cfg, act_cache, today=_date(2026, 10, 1))["entriesThisMonth"] == 0  # a new month, no Q4 file yet
         assert snapshot(act_uid, runner_cfg, act_cache, today=_date(2026, 10, 1))["usedThisMonth"] == 0  # usage.json is last month's
@@ -655,6 +689,19 @@ try:
     landing_strings = Path(__file__).resolve().parent.parent / "landing" / "content" / "strings.json"
     if landing_strings.exists():
         from check_landing import run as check_landing_run
+        # the page ships exactly en and ur: an extra roman fails, a missing ur fails
+        fake_root = Path(tmp) / "landing-fake"
+        (fake_root / "landing" / "content").mkdir(parents=True)
+        (fake_root / "firebase.json").write_text(json.dumps({"hosting": {"public": "landing/out"}, "emulators": {"hosting": {"port": 3031}}}))
+        fake_strings = {"brand": {"en": "Hosted Hisab", "ur": "Hosted Hisab"},
+                        "portal_verify_instruction": {"en": "Send verify {nonce}", "ur": "verify {nonce} بھیجیں"}}
+        def fake_check(extra):
+            s = json.loads(json.dumps(fake_strings)); s.update(extra)
+            (fake_root / "landing" / "content" / "strings.json").write_text(json.dumps(s, ensure_ascii=False))
+            return check_landing_run(fake_root)
+        assert fake_check({}) == [], fake_check({})
+        assert any("unexpected language 'roman'" in f for f in fake_check({"hero_title": {"en": "A ledger", "ur": "کھاتہ", "roman": "Khata"}}))
+        assert any("[hero_title][ur]: missing or empty" in f for f in fake_check({"hero_title": {"en": "A ledger"}}))
         landing_failures = check_landing_run(Path(__file__).resolve().parent.parent)
         assert not landing_failures, landing_failures
         print("landing: ok")

@@ -20,7 +20,7 @@ hisab/
   tools.py       the SIX tools: append_entry, undo_last, report, learn_rule, read_accounts, add_account — schemas + execution
   ledger.py      hledger on markdown: quarter files, append under strict check with rollback, undo by entry number, reports, rules, periodic rules, settings
   setup.py       the setup conversation: language first, then ≤8 questions, personal or shop; writes accounts/rules/hisab.md/settings.json from templates/
-  i18n.py        every fixed user-facing string in en / ur / roman, plus the model's reply-shape line per language
+  i18n.py        every fixed user-facing string in en / ur, plus the model's reply-shape line per language
   store.py       runtime state: offset, messages.jsonl (keyed by WhatsApp id), entry-number map, setup state, rolling window
   wa.py          WhatsApp Agent Platform client: poll, download, typing, send with chunking, send_document, markdown → WhatsApp;
                  per-method rate limiter (messages/statuses/updates/media, own rolling 60s window each, per agent — config
@@ -47,11 +47,11 @@ Dockerfile · docker-compose.yml · config.example.yaml · .env.example
 - **Six tools, nothing else.** No shell, no free file access, no network beyond the model, transcription and WhatsApp. A feature that needs a seventh tool needs a conversation first.
 - **Every ledger write goes through `Ledger.append`** under `hledger check --strict`; a rejected block rolls back. Entry numbers come only from `next_entry_number`; undo is by number.
 - **Transport invariants:** skip a message id already in the store; advance the offset only after the batch; chunk replies under 3,500 chars.
-- **Language:** any new user-facing string lives in `i18n.py` in all three of `en`, `ur`, `roman`. Model replies stay one line; shapes per language are in `MODEL_LANG`.
+- **Language:** any new user-facing string lives in `i18n.py` in both `en` and `ur` — never Roman Urdu; users may chat in it and the model answers in kind (`MODEL_LANG["en"]`). Model replies stay one line; shapes per language are in `MODEL_LANG`.
 - **Ledger conventions the Obsidian dashboard reads:** alphabetic commodities (`PKR`, `USD`, never `$`), transfers as three postings with a bare `equity:transfer`, recurring items and budgets as `~ monthly` rules, rates as `P` lines.
 - **Privacy.** Nothing from the author's personal ledger, vault, VPS, tokens or WhatsApp id enters this repo, an issue, a PR or a doc. `.env`, `config.yaml`, `vault/`, `data/`, `scratch-*` are gitignored and never read into a document.
 - **Never touch** `.env`, `config.yaml` or anything under `vault/` from a skill.
-- **Hosted mode:** the runner alone talks to Firestore and alone writes `status`/`creatorId`/`lastError`; the worker alone talks to WhatsApp. `lastError` holds a code from `runner/errors.py`, never a sentence — the portal renders it in three languages. `runner-data/`, `runner/config.yaml` and `landing/.env.local` are gitignored like `vault/`.
+- **Hosted mode:** the runner alone talks to Firestore and alone writes `status`/`creatorId`/`lastError`; the worker alone talks to WhatsApp. `lastError` holds a code from `runner/errors.py`, never a sentence — the portal renders it in English and Urdu. `runner-data/`, `runner/config.yaml` and `landing/.env.local` are gitignored like `vault/`.
 
 ## Commands
 
@@ -131,7 +131,7 @@ docs:
   feat_checklist: docs/feat-checklist
 ```
 
-Vocabulary: **entry** (one transaction, numbered `n:`), **posting** (one line of it), **ledger** (the folder: `hisab.md`, `accounts.md`, `rules.md`, quarter files, `settings.json`), **tool** (one of six), **store** (`messages.jsonl` and friends), **setup** (the first conversation), **template** (a chart of accounts), **language** (`en` / `ur` / `roman`), **demo agent** (the WhatsApp agent used for testing, separate from any personal one).
+Vocabulary: **entry** (one transaction, numbered `n:`), **posting** (one line of it), **ledger** (the folder: `hisab.md`, `accounts.md`, `rules.md`, quarter files, `settings.json`), **tool** (one of six), **store** (`messages.jsonl` and friends), **setup** (the first conversation), **template** (a chart of accounts), **language** (`en` / `ur`; set by the first setup answer, changed by `/lang`), **demo agent** (the WhatsApp agent used for testing, separate from any personal one).
 
 ## Origin
 

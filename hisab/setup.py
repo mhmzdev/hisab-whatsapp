@@ -3,12 +3,12 @@ import json
 import re
 from datetime import date
 from pathlib import Path
-from .i18n import q, s, parse_lang
+from .i18n import q, s, detect_lang, norm_lang
 
 TEMPLATES = Path(__file__).resolve().parent.parent / "templates"
 
-PERSONAL = ["language", "mode", "currency", "money", "cards", "income", "investments", "donations"]
-SHOP = ["language", "mode", "currency", "money", "suppliers", "staff", "income_shop", "fixed"]
+PERSONAL = ["mode", "currency", "money", "cards", "income", "investments", "donations"]
+SHOP = ["mode", "currency", "money", "suppliers", "staff", "income_shop", "fixed"]
 
 
 def slug(s):
@@ -38,21 +38,27 @@ class Setup:
 
     def lang(self):
         st = self.store.setup_state()
-        return (st or {}).get("answers", {}).get("language", "en")
+        return norm_lang((st or {}).get("answers", {}).get("language", "en"))
+
+    def set_lang(self, lg):
+        """/lang during setup: the rest of the questions follow it, and no detection note is added."""
+        st = self.store.setup_state()
+        st["answers"]["language"] = lg
+        self.store.set_setup_state(st)
 
     def answer(self, text):
         """Feed one answer. Returns (reply, done, parked_message)."""
         st = self.store.setup_state()
+        if "language" in st["flow"]:  # a setup started before the language question was dropped
+            st["flow"] = [k for k in st["flow"] if k != "language"]
+            st["step"] = max(0, st["step"] - 1)
         key = st["flow"][st["step"]]
-        lang = st["answers"].get("language", "en")
         t = text.strip()
-        if key == "language":
-            lg = parse_lang(t)
-            if not lg:
-                return s("lang_ask", "en"), False, None
-            st["answers"]["language"] = lg
-            lang = lg
-        elif key == "mode":
+        # no language question: the first answer (to the bilingual greeting) decides, unless /lang already did
+        detected = "language" not in st["answers"]
+        lang = detect_lang(t) if detected else norm_lang(st["answers"]["language"])
+        note = ""
+        if key == "mode":
             if re.search(r"shop|dukan|dukaan|store|business|kiryana|karyana|دکان|دوکان", t, re.I):
                 mode = "shop"
             elif re.search(r"personal|apna|mera|myself|me\b|home|ghar|ذاتی|زاتی|اپنا", t, re.I):
@@ -60,6 +66,9 @@ class Setup:
             else:
                 return q("mode_again", lang), False, None
             st["answers"]["mode"] = mode
+            if detected:
+                st["answers"]["language"] = lang
+                note = "\n" + s("lang_note", lang)
             st["flow"] = SHOP if mode == "shop" else PERSONAL
         elif key == "currency":
             cur = re.sub(r"[^A-Za-z]", "", t).upper()
@@ -75,7 +84,7 @@ class Setup:
             self.store.set_setup_state(None)
             return (q("done", lang, dir=self.ledger.dir.name) + (q("done_parked", lang) if parked else ""), True, parked)
         self.store.set_setup_state(st)
-        return q(st["flow"][st["step"]], lang), False, None
+        return q(st["flow"][st["step"]], lang) + note, False, None
 
     # ---------- file generation ----------
     def write(self, a):
@@ -129,7 +138,7 @@ class Setup:
         (d / "accounts.md").write_text(text, encoding="utf-8")
         (d / "rules.md").write_text(rules_src.read_text(encoding="utf-8"), encoding="utf-8")
         (d / "hisab.md").write_text(f"# Hisab — master file\n\ncommodity {cur} 1,000.00\ncommodity USD 1,000.00\n\ninclude accounts.md\n", encoding="utf-8")
-        self.ledger.set_settings({"language": a.get("language", "en"), "mode": mode, "currency": cur})
+        self.ledger.set_settings({"language": norm_lang(a.get("language", "en")), "mode": mode, "currency": cur})
         self.ledger.quarter_file(date.today())
         self.ledger.check()
 

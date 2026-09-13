@@ -20,7 +20,7 @@ Honour `.agents/skills/README.md`. You are the skeptic. Interrogate until every 
 - **The strict check.** What does hledger reject here, and what does the user see when it does? Rollback preserved?
 - **Entry numbers and the store.** Does it keep `n:` monotonic across quarter files? Does undo-by-reply still resolve? Is replay by message id still idempotent?
 - **Transport.** Offset advanced only after the batch? What happens on a 429, a 503, a dropped hotspot, a 4,096-char reply?
-- **Setup and language.** Does it exist in all three languages in `i18n.py`? Does the model's reply shape stay one line?
+- **Setup and language.** Does it exist in `en` and `ur` in `i18n.py`? Does the model's reply shape stay one line?
 - **Conventions the dashboard reads.** Alphabetic commodities, three-posting transfers via `equity:transfer`, `~ monthly` rules, `P` lines.
 - **Privacy.** Anything that would carry personal data, a token, or the author's own ledger into the repo, an issue, or a doc?
 - **Verification seam.** `tests/smoke.py` (no network), `tests/demo_terminal.sh` (needs a key), the phone. Which one proves this?

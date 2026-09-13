@@ -13,7 +13,8 @@ export function LanguageProvider({ children }) {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved === 'en' || saved === 'ur' || saved === 'roman') {
+      // the page speaks en and ur only; any other saved value (an old Roman Urdu choice) stays on the English default
+      if (saved === 'en' || saved === 'ur') {
         setLangState(saved)
       }
     } catch {}

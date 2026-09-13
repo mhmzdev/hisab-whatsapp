@@ -1,10 +1,10 @@
-"""Static checks on landing/: three-language completeness, verification direction, no payment collection, no WhatsApp branding, firebase.json shape, a portal string for every runner lastError code. Stdlib only, no node."""
+"""Static checks on landing/: two-language completeness (exactly en and ur; Roman Urdu is the agent's, not the page's), verification direction, no payment collection, no WhatsApp branding, firebase.json shape, a portal string for every runner lastError code. Stdlib only, no node."""
 import json
 import re
 import sys
 from pathlib import Path
 
-LANGS = ("en", "ur", "roman")
+LANGS = ("en", "ur")
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -42,6 +42,9 @@ def run(root):
                 v = value.get(lang)
                 if not isinstance(v, str) or not v.strip():
                     failures.append(f"strings.json[{key}][{lang}]: missing or empty")
+            for lang in value:
+                if lang not in LANGS:
+                    failures.append(f"strings.json[{key}]: unexpected language {lang!r}")
 
         verify_keys = [k for k in strings if "verify_instruction" in k]
         if not verify_keys:
