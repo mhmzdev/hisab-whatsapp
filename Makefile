@@ -79,7 +79,7 @@ runner-logs: ## Follow the runner's logs (tenant transitions, worker exits, ever
 runner-down: ## Stop the runner, keep every tenant's ledger and state under runner-data/
 	docker compose -f docker-compose.runner.yml down
 
-runner-down-v: ## Stop the runner AND delete runner-data/ (every tenant's ledger, state and per-tenant config)
+runner-down-v: ## Stop the runner AND delete runner-data/ (every tenant's ledger, state, per-tenant config and the inactive/ retention copies)
 	docker compose -f docker-compose.runner.yml down
 	rm -rf runner-data
 

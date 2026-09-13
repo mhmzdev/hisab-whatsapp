@@ -5,6 +5,8 @@
 vault_root: ../runner-data/vault
 data_root: ../runner-data/data
 tenants_dir: ../runner-data/tenants
+inactive_root: ../runner-data/inactive   # a revoked tenant's vault and state move to <uid>/<revokedAt>/ here …
+retention_days: 30                       # … and are deleted by the runner's hourly sweep once older than this
 
 ledger:
   template: shop          # personal | shop — used only when a tenant's ledger folder is empty

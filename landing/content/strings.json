@@ -473,5 +473,30 @@
     "en": "Something went wrong. Try again.",
     "ur": "کچھ غلط ہو گیا۔ دوبارہ کوشش کریں۔",
     "roman": "Kuch ghalat ho gaya. Dobara koshish karein."
+  },
+  "portal_connected_not_yet": {
+    "en": "Not yet",
+    "ur": "ابھی نہیں",
+    "roman": "Abhi nahi"
+  },
+  "portal_connected_revoking": {
+    "en": "Revoking… the agent stops within a few seconds.",
+    "ur": "منسوخ ہو رہا ہے… ایجنٹ چند سیکنڈ میں رک جائے گا۔",
+    "roman": "Revoke ho raha hai… agent chand second mein ruk jayega."
+  },
+  "portal_lang_en": {
+    "en": "English",
+    "ur": "انگریزی",
+    "roman": "English"
+  },
+  "portal_lang_ur": {
+    "en": "Urdu",
+    "ur": "اردو",
+    "roman": "Urdu"
+  },
+  "portal_lang_roman": {
+    "en": "Roman Urdu",
+    "ur": "رومن اردو",
+    "roman": "Roman Urdu"
   }
 }
