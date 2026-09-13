@@ -1,7 +1,8 @@
 'use client'
 
-import { Fragment, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { useLanguage } from './LanguageProvider'
+import { readSignedIn } from './signedIn'
 import { EXCHANGES, SHOP_EXCHANGES } from '@/content/mock.js'
 import styles from './landing.module.css'
 
@@ -19,6 +20,8 @@ function Eyebrow({ n }) {
 export default function Home() {
   const { t } = useLanguage()
   const [plan, setPlan] = useState('monthly')
+  const [signedIn, setSignedIn] = useState(false)
+  useEffect(() => setSignedIn(readSignedIn()), [])
 
   return (
     <main>
@@ -27,7 +30,7 @@ export default function Home() {
           <h1 className={styles.title}>{t('hero_title')}</h1>
           <p className={styles.subline}>{t('hero_subline')}</p>
           <div className={styles.ctaRow}>
-            <a className={styles.cta} href="/portal/">{t('hero_cta')}</a>
+            <a className={styles.cta} href="/portal/">{signedIn ? t('cta_go_to_portal') : t('hero_cta')}</a>
             <a className={styles.ctaSecondary} href="https://github.com/mhmzdev/hisab-whatsapp">{t('hero_cta_secondary')}</a>
           </div>
         </div>
@@ -215,7 +218,7 @@ export default function Home() {
           <div className={styles.priceDetails}>
             <p>{t('price_includes')}</p>
             <div className={styles.priceActions}>
-              <a className={styles.priceCta} href="/portal/">{t('price_cta')}</a>
+              <a className={styles.priceCta} href="/portal/">{signedIn ? t('cta_go_to_portal') : t('price_cta')}</a>
               <span className={styles.priceNote}>{t('price_payment_note')}</span>
             </div>
           </div>

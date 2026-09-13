@@ -1,4 +1,4 @@
-"""Static checks on landing/: two-language completeness (exactly en and ur; Roman Urdu is the agent's, not the page's), verification direction, no payment collection, no WhatsApp branding, firebase.json shape, a portal string for every runner lastError code. Stdlib only, no node."""
+"""Static checks on landing/: no Firebase/libsodium on the landing page, the pre-paint theme script, two-language completeness (exactly en and ur; Roman Urdu is the agent's, not the page's), verification direction, no payment collection, no WhatsApp branding, firebase.json shape, a portal string for every runner lastError code. Stdlib only, no node."""
 import json
 import re
 import sys
@@ -18,6 +18,7 @@ REVERSE_VERIFICATION_DENYLIST = [
 PAYMENT_INPUT_RE = re.compile(r"card|cvc|cvv|iban|expiry", re.IGNORECASE)
 PAYMENT_PROVIDER_RE = re.compile(r"stripe|paypal|razorpay|jazzcash|easypaisa|checkout\.", re.IGNORECASE)
 WHATSAPP_ASSET_RE = re.compile(r"^whatsapp.*\.(svg|png|jpg|webp)$", re.IGNORECASE)
+LANDING_FORBIDDEN_IMPORT_RE = re.compile(r"firebase|libsodium|^\.{1,2}/portal/|^@/app/portal/")
 WHATSAPP_NAME_RE = re.compile(r"Hisab for WhatsApp|WhatsApp Hisab|Hisab WhatsApp", re.IGNORECASE)
 
 
@@ -116,6 +117,19 @@ def run(root):
                 for m in re.finditer(r'(?:src|href|action)\s*=\s*[\'"]([^\'"]*)[\'"]', text, re.IGNORECASE):
                     if PAYMENT_PROVIDER_RE.search(m.group(1)):
                         failures.append(f"{path.relative_to(root)}: payment-provider reference found ({m.group(1)})")
+
+    # the landing page answers "signed in?" from the portal's localStorage hint, never by importing the
+    # portal's Firebase/libsodium code — a signed-out visitor must not download it (#23)
+    landing_page = landing / "app" / "page.jsx"
+    if landing_page.exists():
+        for m in re.finditer(r"""(?:from|import)\s*\(?\s*['"]([^'"]+)['"]""", landing_page.read_text()):
+            if LANDING_FORBIDDEN_IMPORT_RE.search(m.group(1)):
+                failures.append(f"landing/app/page.jsx: imports {m.group(1)!r} — the landing page must not load Firebase or portal code")
+
+    # the theme is applied by an inline script in <head> before first paint; without it a reload flashes the wrong theme
+    layout = landing / "app" / "layout.jsx"
+    if layout.exists() and not re.search(r"<head>[\s\S]*dangerouslySetInnerHTML=\{\{\s*__html:\s*THEME_SCRIPT\s*\}\}[\s\S]*</head>", layout.read_text()):
+        failures.append("landing/app/layout.jsx: no pre-paint THEME_SCRIPT in <head>")
 
     firebase_json_path = root / "firebase.json"
     if not firebase_json_path.exists():

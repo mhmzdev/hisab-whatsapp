@@ -8,6 +8,7 @@ import { PLAN } from '@/content/mock.js'
 import { firebase, RUNNER_PUBLIC_KEY } from './firebase'
 import { generateNonce, NONCE_TTL_MS, sealKey } from './crypto'
 import styles from './portal.module.css'
+import { SIGNED_IN_KEY } from '../signedIn'
 
 // The screen is derived from two facts, never chosen by hand: is someone signed in, and what does
 // their own tenants/{uid} document say. The runner owns `status`; the browser can only write the
@@ -457,6 +458,11 @@ export default function Portal() {
   useEffect(() => {
     const { auth } = firebase()
     return onAuthStateChanged(auth, (u) => {
+      // a hint for the landing page, which must not load Firebase just to word its buttons (#23)
+      try {
+        if (u) localStorage.setItem(SIGNED_IN_KEY, '1')
+        else localStorage.removeItem(SIGNED_IN_KEY)
+      } catch {}
       setUser(u || null)
       setPhase(null)
       setPending(null)

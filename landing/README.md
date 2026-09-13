@@ -11,7 +11,7 @@ From the repo root:
 | Command | What |
 |---|---|
 | `make landing` | `npm install && npm run build` — writes the static export to `landing/out/`. `NEXT_PUBLIC_USE_EMULATORS=0` for the dev/remote profile |
-| `make landing-check` | Runs `tests/check_landing.py` — two-language completeness (exactly `en` and `ur`), verification direction, no payment collection, `firebase.json` shape, a portal string per runner `lastError` code |
+| `make landing-check` | Runs `tests/check_landing.py` — no Firebase on the landing page, the pre-paint theme script, two-language completeness (exactly `en` and `ur`), verification direction, no payment collection, `firebase.json` shape, a portal string per runner `lastError` code |
 | `make emulators` | Serves `landing/out` at http://localhost:3031 through the Hosting emulator, with Auth and Firestore beside it (foreground; `make up` is the background hosted stack) |
 | `make up` | The whole hosted local stack: emulators in the background, the runner on Gemini, the portal at http://localhost:3031/portal/ |
 | `make dev` | The runner on OpenRouter against the dedicated dev Firebase project, portal built with emulators off |
@@ -31,6 +31,17 @@ local Emulator Suite. Rebuild after changing any of them.
 Every fixed user-facing string lives in `landing/content/strings.json`, one dict, key → `{en, ur}`. A string ships in exactly those two languages or it does not ship — `tests/check_landing.py` fails on a missing one and on any other language key. Urdu is Urdu script. The page has no Roman Urdu: that is how people text the ledger, not how they read a landing page, and the agent follows the same rule: its fixed strings are `en` and `ur`, and the model answers a user who writes Roman Urdu in Roman Urdu.
 
 Any key whose name contains `verify_instruction` must contain the literal word `verify` and the `{nonce}` placeholder in every language — the portal always tells the user to *send* a code to their agent, never that a code was *sent to* them. Every code in `runner/errors.py` needs a `portal_error_<code>` key: the runner stores codes, the portal renders words.
+
+## Theme and the signed-in hint
+
+Two per-browser `localStorage` keys, nothing on a server:
+
+| Key | Values | Written by | Read by |
+|---|---|---|---|
+| `hisab-theme` | `system` · `light` · `dark` | `ThemeToggle.jsx` (the header, both routes) | `theme.js` — `THEME_SCRIPT` runs inline in `<head>` and sets `<html data-theme="light\|dark">` before first paint, resolving `system` through `prefers-color-scheme`; the dark tokens in `globals.css` hang off `[data-theme="dark"]` |
+| `hisab-signed-in` | `1` or absent | the portal's `onAuthStateChanged` (set on a user, removed on sign-out) | `page.jsx` — hero and pricing buttons read "Go to portal" instead of "Get started" |
+
+The landing page never imports Firebase, libsodium or `./portal/` code; a signed-out visitor downloads none of it. `tests/check_landing.py` enforces that and the presence of the pre-paint script. A session that expires without a portal visit leaves the hint behind: the button says "Go to portal" and the portal shows sign-in.
 
 ## How the portal decides what to show
 
