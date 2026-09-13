@@ -12,6 +12,7 @@ Acceptance checklists written by /review, one per slug; /open-pr seeds the PR Te
 
 | Checklist | Slug | Proven / manual / failing | Date |
 |---|---|---|---|
+| [GH-23-theme-toggle-signed-in-landing](GH-23-theme-toggle-signed-in-landing.md) | GH-23-theme-toggle-signed-in-landing | 11 / 1 / 0 | 2026-09-14 |
 | [GH-22-landing-two-languages](GH-22-landing-two-languages.md) | GH-22-landing-two-languages | 15 / 3 / 0 | 2026-09-14 |
 | [GH-26-portal-signout-confirm](GH-26-portal-signout-confirm.md) | GH-26-portal-signout-confirm | 7 / 1 / 0 | 2026-09-14 |
 | [GH-21-openrouter-gemini-make-targets](GH-21-openrouter-gemini-make-targets.md) | GH-21-openrouter-gemini-make-targets | 11 / 0 / 0 | 2026-09-13 |

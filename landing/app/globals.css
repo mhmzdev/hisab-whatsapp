@@ -22,33 +22,35 @@
   --wave: rgba(11, 20, 26, 0.4);
   --slot-a: rgba(11, 20, 26, 0.1);
   --slot-b: rgba(11, 20, 26, 0.035);
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --brand: #25D366;
-    --brand-strong: #075E54;
-    --bubble: #005C4B;
-    --bubble-in: #202C33;
-    --bubble-in2: #202C33;
-    --bubble-line: rgba(233, 237, 239, 0.08);
-    --bg: #0B141A;
-    --surface: #111B21;
-    --surface2: #202C33;
-    --chat-bg: #0B141A;
-    --bezel: #2A3942;
-    --text: #E9EDEF;
-    --text2: #C3CBD0;
-    --muted: #8696A0;
-    --line: #22313A;
-    --tint: rgba(37, 211, 102, 0.16);
-    --code-bg: #05080A;
-    --code-text: #E9EDEF;
-    --price-line: #128C7E;
-    --wave: rgba(233, 237, 239, 0.55);
-    --slot-a: rgba(233, 237, 239, 0.13);
-    --slot-b: rgba(233, 237, 239, 0.04);
-  }
+/* the pre-paint script in layout.jsx always sets data-theme to light or dark (System resolves through
+   prefers-color-scheme there, and ThemeToggle keeps it live), so the dark tokens live in one place */
+:root[data-theme="dark"] {
+  --brand: #25D366;
+  --brand-strong: #075E54;
+  --bubble: #005C4B;
+  --bubble-in: #202C33;
+  --bubble-in2: #202C33;
+  --bubble-line: rgba(233, 237, 239, 0.08);
+  --bg: #0B141A;
+  --surface: #111B21;
+  --surface2: #202C33;
+  --chat-bg: #0B141A;
+  --bezel: #2A3942;
+  --text: #E9EDEF;
+  --text2: #C3CBD0;
+  --muted: #8696A0;
+  --line: #22313A;
+  --tint: rgba(37, 211, 102, 0.16);
+  --code-bg: #05080A;
+  --code-text: #E9EDEF;
+  --price-line: #128C7E;
+  --wave: rgba(233, 237, 239, 0.55);
+  --slot-a: rgba(233, 237, 239, 0.13);
+  --slot-b: rgba(233, 237, 239, 0.04);
+  color-scheme: dark;
 }
 
 * {
@@ -93,6 +95,20 @@ code, pre, .mono {
   display: flex;
   align-items: baseline;
   gap: 10px;
+  text-decoration: none;
+  border-radius: 6px;
+}
+
+.brand-mark:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 4px;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .brand-word {
