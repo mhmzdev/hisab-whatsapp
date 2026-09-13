@@ -11,7 +11,6 @@ model:
   base_url: null                 # null = OpenRouter
   api_key_env: null              # null = OPENROUTER_API_KEY
   provider_pin: null
-  agents_sdk: false
 
 transcription:
   provider: openrouter

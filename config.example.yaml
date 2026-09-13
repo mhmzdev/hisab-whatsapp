@@ -10,10 +10,9 @@ model:
   base_url: null           # any OpenAI-compatible endpoint; null = OpenRouter. e.g. https://generativelanguage.googleapis.com/v1beta/openai
   api_key_env: null        # env var holding the key for that endpoint; null = OPENROUTER_API_KEY
   provider_pin: null       # e.g. "openai" to keep requests on one provider (OpenRouter provider routing)
-  agents_sdk: false        # experimental: run the loop through the OpenAI Agents SDK instead of the raw tool-calling loop
 
 transcription:
-  provider: openrouter     # openrouter | openai | gemini (openai/openrouter share the /audio/transcriptions shape; gemini = google-genai)
+  provider: openrouter     # openrouter | gemini
   model: openai/whisper-1  # openrouter provider: via /audio/transcriptions
   gemini_model: gemini-2.5-flash
   language: null           # null = auto (English, Urdu, Roman Urdu); "ur" to force Urdu

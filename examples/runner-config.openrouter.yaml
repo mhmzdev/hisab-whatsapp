@@ -1,0 +1,23 @@
+# OpenRouter profile for runner/config.yaml — used by the dev profile (`make dev`) against the
+# dedicated dev Firebase project. cp examples/runner-config.openrouter.yaml runner/config-dev.yaml
+vault_root: ../runner-data/vault
+data_root: ../runner-data/data
+tenants_dir: ../runner-data/tenants
+
+ledger:
+  template: shop
+  currency: PKR
+
+quota:
+  monthly_limit: 1000
+
+model:
+  id: openai/gpt-4.1-mini
+  base_url: null           # null = OpenRouter
+  api_key_env: null        # null = OPENROUTER_API_KEY
+  provider_pin: null
+
+transcription:
+  provider: openrouter
+  model: openai/whisper-1
+  language: null

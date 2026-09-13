@@ -10,10 +10,12 @@ From the repo root:
 
 | Command | What |
 |---|---|
-| `make landing` | `npm install && npm run build` — writes the static export to `landing/out/` |
+| `make landing` | `npm install && npm run build` — writes the static export to `landing/out/`. `NEXT_PUBLIC_USE_EMULATORS=0` for the dev/remote profile |
 | `make landing-check` | Runs `tests/check_landing.py` — three-language completeness, verification direction, no payment collection, `firebase.json` shape, a portal string per runner `lastError` code |
-| `make emulators` | Serves `landing/out` at http://localhost:3031 through the Hosting emulator, with Auth and Firestore beside it |
-| `make up` | Runs the self-host worker and serves `landing/out` at `http://localhost:3030` (no Firebase; the portal will not sign in) |
+| `make emulators` | Serves `landing/out` at http://localhost:3031 through the Hosting emulator, with Auth and Firestore beside it (foreground; `make up` is the background hosted stack) |
+| `make up` | The whole hosted local stack: emulators in the background, the runner on Gemini, the portal at http://localhost:3031/portal/ |
+| `make dev` | The runner on OpenRouter against the dedicated dev Firebase project, portal built with emulators off |
+| `make selfhost` | Runs the self-host worker and serves `landing/out` at `http://localhost:3030` (no Firebase; the portal will not sign in) |
 
 `python3 tests/smoke.py` runs the landing check automatically once `landing/content/strings.json` exists.
 

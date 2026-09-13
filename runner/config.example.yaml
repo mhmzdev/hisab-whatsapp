@@ -1,6 +1,8 @@
 # Copy to runner/config.yaml. Safe to commit; the one secret (RUNNER_PRIVATE_KEY) lives in .env.
 # vault_root/data_root/tenants_dir are resolved to absolute paths at load time RELATIVE TO THIS FILE
 # (runner/), so ../runner-data is the repo-root runner-data/ that docker-compose.runner.yml mounts.
+# This is the Gemini profile `make up` selects by default. For the OpenRouter dev profile see
+# examples/runner-config.openrouter.yaml — copy it to a gitignored runner/config-dev.yaml.
 
 vault_root: ../runner-data/vault
 data_root: ../runner-data/data
@@ -18,16 +20,12 @@ quota:
   monthly_limit: 1000
 
 # Always the runner's own — never tenant-supplied (spec 001, "Tenancy and ledger ownership").
-# Same shape as the root config.example.yaml; copy a block from examples/ if you want OpenRouter or Gemini.
 model:
-  id: openai/gpt-4o-mini
-  base_url: null           # null = OpenRouter
-  api_key_env: null        # null = OPENROUTER_API_KEY
+  id: gemini-3.8-flash
+  base_url: https://generativelanguage.googleapis.com/v1beta/openai
+  api_key_env: GEMINI_API_KEY
   provider_pin: null
-  agents_sdk: false
 
 transcription:
-  provider: openrouter
-  model: openai/whisper-1
+  provider: gemini
   gemini_model: gemini-2.5-flash
-  language: null

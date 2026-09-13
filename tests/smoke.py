@@ -3,6 +3,7 @@ import io, json, os, sys, tempfile, shutil, time, zipfile
 import contextlib
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from hisab import config as cfgmod
 from hisab.archive import build_export_zip
 from hisab.ledger import Ledger, LedgerError
 from hisab.store import Store
@@ -13,6 +14,16 @@ from hisab.wa import WhatsApp
 
 tmp = Path(tempfile.mkdtemp())
 try:
+    bad_cfg = tmp / "bad-provider.yaml"
+    bad_cfg.write_text("transcription:\n  provider: openai\n", encoding="utf-8")
+    try:
+        cfgmod.load(bad_cfg)
+    except SystemExit as e:
+        assert "openrouter" in str(e) and "gemini" in str(e), e
+    else:
+        raise AssertionError("bad transcription provider accepted")
+    print("config: rejects unknown transcription provider")
+
     for mode, answers in (("personal", ["English", "personal", "PKR", "Alfalah bank, cash, Easypaisa wallet", "Alfalah 15", "salary, freelance", "Meezan fund", "yes"]),
                           ("shop", ["English", "shop", "PKR", "cash, Meezan bank", "Metro, Ali traders", "Bilal, Ahmed", "none", "rent 40000, salaries 60000"])):
         led = Ledger(tmp / mode); st = Store(tmp / f"state-{mode}"); su = Setup(led, st)
@@ -173,7 +184,7 @@ try:
         return Hisab({
             "pending": False,
             "ledger": {"path": str(ledger_path), "template": "personal", "currency": "PKR"},
-            "model": {"id": "openai/gpt-4o-mini", "base_url": None, "api_key_env": None, "provider_pin": None, "agents_sdk": False},
+            "model": {"id": "openai/gpt-4o-mini", "base_url": None, "api_key_env": None, "provider_pin": None},
             "transcription": {"provider": "openrouter", "model": "openai/whisper-1", "base_url": None, "api_key_env": None, "language": None, "gemini_model": "gemini-2.5-flash"},
             "memory": {"window_turns": 20, "keep_days": 30},
             "whatsapp": {"poll_timeout": 20, "chunk_chars": 3500},
@@ -257,14 +268,26 @@ try:
             pass
         print("runner: crypto ok")
         from hisab.config import load as hisab_load
+        from runner import config as runner_cfgmod
         from runner.tenant_config import build_tenant_config, write_tenant_config
+
+        bad_runner_cfg = tmp / "bad-runner-provider.yaml"
+        bad_runner_cfg.write_text("transcription:\n  provider: openai\n", encoding="utf-8")
+        try:
+            runner_cfgmod.load(bad_runner_cfg)
+        except SystemExit as e:
+            assert "openrouter" in str(e) and "gemini" in str(e), e
+        else:
+            raise AssertionError("bad runner transcription provider accepted")
+        print("runner config: rejects unknown transcription provider")
+
         uid = "abc123uid"
         runner_cfg = {
             "vault_root": str(tmp / "vault"), "data_root": str(tmp / "data"),
             "tenants_dir": str(tmp / "tenants-elsewhere"),  # deliberately not under vault_root/data_root
             "inactive_root": str(tmp / "inactive"), "retention_days": 30,
             "ledger": {"template": "shop", "currency": "PKR"},
-            "model": {"id": "fake-model-id"}, "transcription": {"provider": "fake-provider"},
+            "model": {"id": "fake-model-id"}, "transcription": {"provider": "openrouter"},
             "quota": {"monthly_limit": 1000},
         }
         tenant_doc = {"agentName": "kiryana-demo-agent", "creatorId": "923001234567", "status": "pending"}
@@ -297,7 +320,7 @@ try:
         pending_cfg = {
             "pending": True,
             "ledger": {"path": str(tmp / "pending-vault"), "template": "personal", "currency": "PKR"},
-            "model": {"id": "openai/gpt-4o-mini", "base_url": None, "api_key_env": None, "provider_pin": None, "agents_sdk": False},
+            "model": {"id": "openai/gpt-4o-mini", "base_url": None, "api_key_env": None, "provider_pin": None},
             "transcription": {"provider": "openrouter", "model": "openai/whisper-1", "base_url": None, "api_key_env": None, "language": None, "gemini_model": "gemini-2.5-flash"},
             "memory": {"window_turns": 20, "keep_days": 30},
             "whatsapp": {"poll_timeout": 20, "chunk_chars": 3500},

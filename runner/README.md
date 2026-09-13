@@ -47,14 +47,24 @@ ciphertext was sealed under the retired key must resubmit it through the portal.
 
 ## The full local loop
 
-Three processes, one command each, from the repo root:
+One command from the repo root: `make up` builds the portal, brings up the Auth/Firestore/Hosting
+emulators in the background (`make emulators` is the foreground variant), and starts the runner on
+the Gemini profile (`runner/config.yaml`). `make down` stops all of it, keeping `runner-data/`;
+`make down-v` also wipes it. Lower-level pieces stay available: `make landing` (build only),
+`make emulators` (foreground), `make runner-up` / `runner-logs` / `runner-down` / `runner-down-v`
+(the runner alone, on `RUNNER_CONFIG`, default `./runner/config.yaml`).
 
-| Step | Command | Notes |
-|---|---|---|
-| 1. Build the portal | `make landing` | reads `landing/.env.local` (copy `landing/.env.example`; set `NEXT_PUBLIC_RUNNER_PUBLIC_KEY`) |
-| 2. Emulators | `make emulators` | auth 9099, firestore 8080, hosting 3031 serving `landing/out`; **phone OTPs print in this terminal** |
-| 3. Runner | `make runner-up` | Docker, `FIRESTORE_EMULATOR_HOST=host.docker.internal:8080`; `make runner-logs` / `make runner-down` / `make runner-down-v` |
-| 4. Portal | http://localhost:3031/portal/ | sign in with any number (the emulator never sends SMS), paste a **demo** agent's key, send `verify <nonce>` from the phone that created that agent |
+| Step | What |
+|---|---|
+| `make up` | portal built, emulators up in the background, runner up on Gemini |
+| http://localhost:3031/portal/ | sign in with any number (the emulator never sends SMS), paste a **demo** agent's key, send `verify <nonce>` from the phone that created that agent |
+| OTPs | `tail -f firebase-debug.log`, or `curl http://localhost:9099/emulator/v1/projects/demo-hisab/verificationCodes` |
+| `make down` / `make down-v` | stop the stack, optionally wiping `runner-data/` |
+
+The dev profile (`make dev`) runs the runner on OpenRouter (`RUNNER_CONFIG=./runner/config-dev.yaml`)
+against the dedicated dev Firebase project instead of the emulators — see the profile table below.
+It fails fast with one line if the service-account JSON isn't there yet; the project doesn't exist
+as of this writing, so `make dev` is wiring and docs only until it does.
 
 Then `make rules-test` for the rules as an attacker, `python3 tests/smoke.py` for everything else.
 
@@ -62,8 +72,8 @@ Then `make rules-test` for the rules as an attacker, `python3 tests/smoke.py` fo
 
 | Profile | Firestore | Credentials | Command |
 |---|---|---|---|
-| `local` | Firebase Emulator Suite, any `demo-*` project id | none — the client uses anonymous credentials (firebase-admin itself refuses to start without ADC, so `firestore_listener._client` builds the underlying client directly) | `make emulators` then `make runner-up` |
-| `dev` | An existing dedicated Firebase project — never production. Phone auth needs the Blaze plan | a gitignored service-account JSON | the commented `dev` block in `docker-compose.runner.yml` |
+| `local` | Firebase Emulator Suite, any `demo-*` project id | none — the client uses anonymous credentials (firebase-admin itself refuses to start without ADC, so `firestore_listener._client` builds the underlying client directly) | `make up` |
+| `dev` | An existing dedicated Firebase project — never production. Phone auth needs the Blaze plan | a gitignored service-account JSON, mounted by `docker-compose.runner.dev.yml` | `make dev` |
 
 ## Layout
 
