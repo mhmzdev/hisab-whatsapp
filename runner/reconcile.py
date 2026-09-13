@@ -3,9 +3,10 @@ worker processes. Volatile fields (lastSeenAt, entriesThisMonth, createdAt) are 
 state hash, so activity/quota writes never bounce a worker that hasn't actually changed.
 
 Status is runner-owned (firestore.rules lets no client write it). Two transitions live here:
-  no status (or `error` with a new ciphertext) + decryptable keyCiphertext  -> pending   (admission)
-  worker exited with hisab.wa.AUTH_EXIT_CODE                                -> error + lastError "auth"
-The third, pending -> connected, is runner/verify.py's, driven by main.py's 2-second loop.
+  no status, `revoked`, or `error` with a new ciphertext, + decryptable keyCiphertext -> pending   (admission)
+  worker exited with hisab.wa.AUTH_EXIT_CODE                                          -> error + lastError "auth"
+pending -> connected is runner/verify.py's and any status -> revoked is runner/lifecycle.py's, both
+driven by main.py's 2-second loop.
 """
 import hashlib
 import json
@@ -52,13 +53,16 @@ def admission(doc, runner_cfg):
     decrypted this", never "the client asserted it" — a client cannot write status at all."""
     status = doc.get("status")
     resubmitted = status == "error" and doc.get("lastErrorKey") != key_fingerprint(doc.get("keyCiphertext"))
-    if status is not None and not resubmitted:
+    # a revoked document's ciphertext was deleted by the runner, so any ciphertext on it is a new connection
+    if status is not None and not resubmitted and status != "revoked":
         return None
     try:
         decrypt(doc["keyCiphertext"], runner_cfg["secrets"]["runner_private_key"])
     except (CryptoError, KeyError):
         return None
-    return {"status": "pending", "lastError": None, "lastErrorKey": None}
+    # revokeRequestedAt is cleared too: a stale request left on a revoked document (client-writable) must
+    # not revoke the fresh connection on the very next tick
+    return {"status": "pending", "lastError": None, "lastErrorKey": None, "revokedAt": None, "revokeRequestedAt": None}
 
 
 def reconcile(tenant_docs, runner_cfg, manager, update=None):

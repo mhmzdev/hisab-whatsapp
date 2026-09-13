@@ -1,10 +1,12 @@
 rules_version = '2';
 // Owner-scoped rules for the portal's client writes (#7). The runner reads and writes tenants with
 // the privileged Admin SDK, which bypasses these rules entirely, so everything the runner owns —
-// status, creatorId, lastError — is simply never writable from a browser: a signed-in user may
-// create and update ONLY the five client fields on their own tenants/{uid}, never delete it, and
-// never touch another uid's document. "pending" therefore always means "the runner accepted this",
-// never "the client asserted it" (docs/exec-plans/active/GH-7-connect-portal-user.md, Approach).
+// status, creatorId, lastError, revokedAt — is simply never writable from a browser: a signed-in
+// user may create and update ONLY the client fields on their own tenants/{uid}, never delete it,
+// and never touch another uid's document. "pending" therefore always means "the runner accepted
+// this", never "the client asserted it" (docs/exec-plans/completed/GH-7-connect-portal-user.md).
+// revokeRequestedAt (#5) is the one client field that starts a transition: the runner sees it, stops
+// the worker, moves the ledger aside, deletes the ciphertext and writes status "revoked" itself.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /tenants/{uid} {
@@ -12,7 +14,7 @@ service cloud.firestore {
         return request.auth != null && request.auth.uid == uid;
       }
       function clientFields() {
-        return ['agentName', 'keyCiphertext', 'nonce', 'nonceExpiresAt', 'createdAt'];
+        return ['agentName', 'keyCiphertext', 'nonce', 'nonceExpiresAt', 'createdAt', 'revokeRequestedAt'];
       }
       allow read: if isOwner();
       // a create carrying status/creatorId is rejected outright, not pinned to a literal

@@ -9,6 +9,8 @@ DEFAULTS = {
     "vault_root": "./runner-data/vault",
     "data_root": "./runner-data/data",
     "tenants_dir": "./runner-data/tenants",
+    "inactive_root": "./runner-data/inactive",  # revoked tenants' ledgers, <uid>/<revokedAt>/, swept after retention_days
+    "retention_days": 30,
     "ledger": {"template": "shop", "currency": "PKR"},
     "quota": {"monthly_limit": 1000},
     "model": {"id": "openai/gpt-4o-mini", "base_url": None, "api_key_env": None, "provider_pin": None, "agents_sdk": False},
@@ -30,5 +32,11 @@ def load(path=None):
     root = path.resolve().parent
     for key in ("vault_root", "data_root", "tenants_dir"):
         cfg[key] = str((root / cfg[key]).resolve())
+    # A config written before inactive_root existed must not park revoked ledgers under runner/ (outside the
+    # compose mount, lost on the next image build): unless set explicitly, inactive/ sits beside vault_root.
+    if (raw or {}).get("inactive_root"):
+        cfg["inactive_root"] = str((root / cfg["inactive_root"]).resolve())
+    else:
+        cfg["inactive_root"] = str(Path(cfg["vault_root"]).parent / "inactive")
     cfg["secrets"] = {"runner_private_key": os.environ.get("RUNNER_PRIVATE_KEY", "").strip()}
     return cfg

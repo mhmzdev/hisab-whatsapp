@@ -19,15 +19,6 @@ export const SHOP_EXCHANGES = {
   ],
 }
 
-// The Connected screen's activity/entries/language/plan/quota rows until #5 syncs them into the tenant
-// document; agentName and connectedAt already come from Firestore.
-export const CONNECTED = {
-  agentName: 'Ali Traders',
-  connectedSince: '3 September 2026',
-  lastActivity: '12 minutes ago',
-  entriesThisMonth: 47,
-  language: 'Roman Urdu',
-  plan: 'PKR 300 / month · first month free',
-  quotaUsed: 212,
-  quotaTotal: 1000,
-}
+// The Connected screen's plan row. Presentation only — spec 001 takes no payment and has no plan
+// tiers; every other row on that screen is live from the tenant document (runner/activity.py).
+export const PLAN = 'PKR 300 / month · first month free'
