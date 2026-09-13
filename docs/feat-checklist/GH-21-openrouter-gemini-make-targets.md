@@ -49,8 +49,7 @@ it actually lives) — reworded to name `env -u FIRESTORE_EMULATOR_HOST` directl
 compose profiles with `docker compose config -q` and `python3 tests/smoke.py` (`ALL OK`) after.
 
 Note for the record, not a finding against this diff: a second `make up` run during this review hit
-"port 3031 is in use by something else" — traced to a firebase emulator process (pid 10613/10664,
-`cwd /Users/hamza/Development/Work/hisab-whatsapp`, the *main* checkout, not this worktree) started by
-the lead's own concurrent GH-5 testing on the same machine. The first `make up`/`make down` run earlier
-in this review, with the ports genuinely free, completed and tore down cleanly — that's the result
-recorded above.
+"port 3031 is in use by something else" — a firebase emulator started from the main checkout by a
+concurrent session on the same machine was holding the port. The first `make up`/`make down` run
+earlier in this review, with the ports genuinely free, completed and tore down cleanly — that is the
+result recorded above.
