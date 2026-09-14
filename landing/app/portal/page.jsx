@@ -7,6 +7,7 @@ import { useLanguage } from '../LanguageProvider'
 import { PLAN } from '@/content/mock.js'
 import { firebase, RUNNER_PUBLIC_KEY } from './firebase'
 import { generateNonce, NONCE_TTL_MS, sealKey } from './crypto'
+import { normalizePkMobile } from './phone'
 import styles from './portal.module.css'
 import { SIGNED_IN_KEY } from '../signedIn'
 
@@ -35,8 +36,8 @@ function SigninState({ t, onSent, setError }) {
   const verifierRef = useRef(null)
 
   async function send() {
-    const local = digits.replace(/\D/g, '')
-    if (local.length < 9) return setError('portal_signin_error')
+    const phone = normalizePkMobile(digits)
+    if (!phone) return setError('portal_signin_error')
     setBusy(true)
     setError(null)
     try {
@@ -44,7 +45,6 @@ function SigninState({ t, onSent, setError }) {
       if (!verifierRef.current) {
         verifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-anchor', { size: 'invisible' })
       }
-      const phone = `+92${local}`
       const confirmation = await signInWithPhoneNumber(auth, phone, verifierRef.current)
       onSent(phone, confirmation)
     } catch (e) {
@@ -65,6 +65,8 @@ function SigninState({ t, onSent, setError }) {
           type="tel"
           name="phone"
           autoComplete="tel-national"
+          inputMode="numeric"
+          maxLength={16}
           placeholder="300 000 0000"
           className={styles.phoneInput}
           value={digits}

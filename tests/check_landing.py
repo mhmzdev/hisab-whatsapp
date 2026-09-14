@@ -126,6 +126,15 @@ def run(root):
             if LANDING_FORBIDDEN_IMPORT_RE.search(m.group(1)):
                 failures.append(f"landing/app/page.jsx: imports {m.group(1)!r} — the landing page must not load Firebase or portal code")
 
+    # sign-in sends only a normalised Pakistani mobile (+923XXXXXXXXX): never "+92" glued to raw input (#37)
+    portal_page = landing / "app" / "portal" / "page.jsx"
+    if portal_page.exists():
+        src = portal_page.read_text()
+        if not re.search(r"import\s*\{[^}]*\bnormalizePkMobile\b[^}]*\}\s*from\s*['\"]\./phone['\"]", src) or "normalizePkMobile(" not in src:
+            failures.append("landing/app/portal/page.jsx: sign-in must normalise the number with normalizePkMobile from ./phone")
+        if re.search(r"`\+92\$\{", src):
+            failures.append("landing/app/portal/page.jsx: builds `+92${...}` from raw input — use normalizePkMobile")
+
     # the theme is applied by an inline script in <head> before first paint; without it a reload flashes the wrong theme
     layout = landing / "app" / "layout.jsx"
     if layout.exists() and not re.search(r"<head>[\s\S]*dangerouslySetInnerHTML=\{\{\s*__html:\s*THEME_SCRIPT\s*\}\}[\s\S]*</head>", layout.read_text()):

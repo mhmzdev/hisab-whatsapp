@@ -931,6 +931,23 @@ try:
             print("runner: JS -> Python round trip skipped (needs node and landing/node_modules/libsodium-wrappers)")
     else:
         print("runner: skipped (no runner/)")
+    # #37: the portal's phone normaliser, run through node exactly as the browser loads it
+    phone_js = Path(__file__).resolve().parent.parent / "landing" / "app" / "portal" / "phone.js"
+    if shutil.which("node") and phone_js.exists():
+        import subprocess
+        cases = {"03460159889": "+923460159889", "3460159889": "+923460159889", "0346 0159889": "+923460159889",
+                 "0346-0159889": "+923460159889", "+923460159889": "+923460159889", "923460159889": "+923460159889",
+                 "00923460159889": "+923460159889", "+92 346 0159889": "+923460159889",
+                 "02134567890": None, "346015988": None, "034601598890": None, "+14155550100": None, "": None, "9234601598": None}
+        js = (f"import({json.dumps(str(phone_js))}).then(m => process.stdout.write(JSON.stringify("
+              "JSON.parse(process.argv[1]).map(x => m.normalizePkMobile(x)))))")
+        out = subprocess.run(["node", "-e", js, json.dumps(list(cases))], capture_output=True, text=True, timeout=60)
+        assert out.returncode == 0, out.stderr[-500:]
+        got = dict(zip(cases, json.loads(out.stdout)))
+        assert got == cases, {k: (got[k], v) for k, v in cases.items() if got[k] != v}
+        print(f"portal: {len(cases)} phone inputs normalise to +923XXXXXXXXX or are refused")
+    else:
+        print("portal: phone normaliser skipped (needs node)")
     landing_strings = Path(__file__).resolve().parent.parent / "landing" / "content" / "strings.json"
     if landing_strings.exists():
         from check_landing import run as check_landing_run
