@@ -5,6 +5,8 @@ import os
 from pathlib import Path
 import yaml
 
+from hisab.config import DEFAULTS as WORKER_DEFAULTS, PROVIDERS
+
 DEFAULTS = {
     "vault_root": "./runner-data/vault",
     "data_root": "./runner-data/data",
@@ -13,8 +15,9 @@ DEFAULTS = {
     "retention_days": 30,
     "ledger": {"template": "shop", "currency": "PKR"},
     "quota": {"monthly_limit": 1000},
-    "model": {"id": "openai/gpt-4o-mini", "base_url": None, "api_key_env": None, "provider_pin": None},
-    "transcription": {"provider": "openrouter", "model": "openai/whisper-1", "base_url": None, "api_key_env": None, "language": None, "gemini_model": "gemini-2.5-flash"},
+    # the worker's own defaults: provider auto resolves in each worker from the runner's .env (hisab/config.py)
+    "model": dict(WORKER_DEFAULTS["model"]),
+    "transcription": dict(WORKER_DEFAULTS["transcription"]),
 }
 
 
@@ -29,9 +32,10 @@ def load(path=None):
     path = Path(path or os.environ.get("RUNNER_CONFIG", "runner/config.yaml"))
     raw = yaml.safe_load(path.read_text(encoding="utf-8")) if path.exists() else {}
     cfg = _merge(DEFAULTS, raw)
-    provider = (cfg["transcription"].get("provider") or "openrouter").lower()
-    if provider not in ("openrouter", "gemini"):
-        raise SystemExit(f"transcription.provider must be 'openrouter' or 'gemini', got {provider!r}")
+    for section in ("model", "transcription"):
+        provider = (cfg[section].get("provider") or "auto").lower()
+        if provider not in PROVIDERS:
+            raise SystemExit(f"{section}.provider must be 'auto', 'openrouter' or 'gemini', got {provider!r}")
     root = path.resolve().parent
     for key in ("vault_root", "data_root", "tenants_dir"):
         cfg[key] = str((root / cfg[key]).resolve())

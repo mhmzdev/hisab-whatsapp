@@ -8,13 +8,15 @@ ledger:
 timezone: Asia/Karachi     # IANA name; export-ledger file names and captions use this clock
 
 model:
+  provider: auto           # auto: OPENROUTER_API_KEY if set, else GEMINI_API_KEY · or pin openrouter | gemini
   id: openai/gpt-4o-mini   # any OpenRouter model id; decided by testing the setup chat and Roman Urdu entries
+  gemini_id: gemini-3.8-flash  # used instead of id when the provider is gemini and id is an OpenRouter vendor/model id
   base_url: null           # any OpenAI-compatible endpoint; null = OpenRouter. e.g. https://generativelanguage.googleapis.com/v1beta/openai
   api_key_env: null        # env var holding the key for that endpoint; null = OPENROUTER_API_KEY
   provider_pin: null       # e.g. "openai" to keep requests on one provider (OpenRouter provider routing)
 
 transcription:
-  provider: openrouter     # openrouter | gemini
+  provider: auto           # auto (same key rule as the model) | openrouter | gemini
   model: openai/whisper-1  # openrouter provider: via /audio/transcriptions
   gemini_model: gemini-2.5-flash
   language: null           # null = auto (English, Urdu, Roman Urdu); "ur" to force Urdu

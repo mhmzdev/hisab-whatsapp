@@ -71,7 +71,7 @@ The same pipeline runs without WhatsApp: `python -m hisab.loop --stdin` reads li
 | [`hisab/tools.py`](hisab/tools.py) | The six tools: JSON schemas for the model and the Python that runs each | ledger |
 | [`hisab/ledger.py`](hisab/ledger.py) | hledger on markdown: files, append with strict check and rollback, undo by number, accounts, rules, periodic rules, reports, settings | `hledger` binary |
 | [`hisab/transcribe.py`](hisab/transcribe.py) | Voice → text, two providers | OpenRouter or Gemini |
-| [`hisab/config.py`](hisab/config.py) | `config.yaml` merged over defaults; secrets only from `.env` / environment | everything |
+| [`hisab/config.py`](hisab/config.py) | `config.yaml` merged over defaults; secrets only from `.env` / environment; `provider: auto` picks OpenRouter if its key is set, else Gemini, unless a config pins one | everything |
 
 ## State on disk
 

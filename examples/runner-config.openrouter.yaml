@@ -12,6 +12,7 @@ quota:
   monthly_limit: 1000
 
 model:
+  provider: openrouter     # pinned: make dev never falls back to GEMINI_API_KEY
   id: openai/gpt-4.1-mini
   base_url: null           # null = OpenRouter
   api_key_env: null        # null = OPENROUTER_API_KEY

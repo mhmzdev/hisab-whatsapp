@@ -24,6 +24,33 @@ try:
         raise AssertionError("bad transcription provider accepted")
     print("config: rejects unknown transcription provider")
 
+    # provider auto: OpenRouter key wins, Gemini key is the fallback, a pin or an explicit endpoint is never overridden
+    def _resolved(model=None, transcription=None, **env):
+        c = {"model": dict(cfgmod.DEFAULTS["model"], **(model or {})), "transcription": dict(cfgmod.DEFAULTS["transcription"], **(transcription or {}))}
+        return cfgmod.resolve_providers(c, env)
+    both = _resolved(OPENROUTER_API_KEY="o", GEMINI_API_KEY="g")
+    assert both["model"]["provider"] == "openrouter" and both["model"]["base_url"] is None and both["transcription"]["provider"] == "openrouter", both
+    gem = _resolved(GEMINI_API_KEY="g")
+    assert gem["model"]["provider"] == "gemini" and gem["model"]["base_url"] == cfgmod.GEMINI_URL, gem
+    assert gem["model"]["api_key_env"] == "GEMINI_API_KEY" and gem["model"]["id"] == "gemini-3.8-flash" and gem["transcription"]["provider"] == "gemini", gem
+    assert _resolved({"id": "gemini-2.5-pro"}, GEMINI_API_KEY="g")["model"]["id"] == "gemini-2.5-pro"  # a bare id is already Gemini's
+    none = _resolved()
+    assert none["model"]["provider"] == "auto" and none["transcription"]["provider"] == "openrouter", none
+    pinned = _resolved({"provider": "openrouter"}, {"provider": "openrouter"}, GEMINI_API_KEY="g")
+    assert pinned["model"]["provider"] == "openrouter" and pinned["model"]["base_url"] is None and pinned["transcription"]["provider"] == "openrouter", pinned
+    spelled = _resolved({"base_url": cfgmod.GEMINI_URL, "api_key_env": "GEMINI_API_KEY", "id": "gemini-3.8-flash"}, {"provider": "gemini"}, OPENROUTER_API_KEY="o")
+    assert spelled["model"]["provider"] == "gemini" and spelled["model"]["id"] == "gemini-3.8-flash" and spelled["transcription"]["provider"] == "gemini", spelled
+    custom = _resolved({"base_url": "http://localhost:11434/v1", "id": "llama3"}, OPENROUTER_API_KEY="o")
+    assert custom["model"]["provider"] == "custom" and custom["model"]["base_url"] == "http://localhost:11434/v1" and custom["transcription"]["provider"] == "openrouter", custom
+    from hisab.agent import Agent as _NoKeyAgent
+    try:
+        _NoKeyAgent({"model": dict(none["model"]), "secrets": {"openrouter_key": ""}}, None)
+    except RuntimeError as e:
+        assert "OPENROUTER_API_KEY or GEMINI_API_KEY" in str(e), e
+    else:
+        raise AssertionError("agent started with no model key")
+    print("config: provider auto picks OpenRouter, then Gemini; pins and explicit endpoints stay")
+
     for mode, answers in (("personal", ["personal", "PKR", "Alfalah bank, cash, Easypaisa wallet", "Alfalah 15", "salary, freelance", "Meezan fund", "yes"]),
                           ("shop", ["shop", "PKR", "cash, Meezan bank", "Metro, Ali traders", "Bilal, Ahmed", "none", "rent 40000, salaries 60000"])):
         led = Ledger(tmp / mode); st = Store(tmp / f"state-{mode}"); su = Setup(led, st)

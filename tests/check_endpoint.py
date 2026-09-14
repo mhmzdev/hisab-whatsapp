@@ -23,7 +23,8 @@ def report(name, passed, detail=""):
     global ok; ok = ok and passed
     print(f"[{'PASS' if passed else 'FAIL'}] {name}" + (f" — {detail}" if detail else ""))
 
-report(f"key in {key_env}", bool(key), "" if key else "empty — put it in .env")
+print(f"model {model} via {cfg['model'].get('provider')} · voice via {cfg['transcription'].get('provider')}")
+report(f"key in {key_env}", bool(key), "" if key else "empty — put OPENROUTER_API_KEY or GEMINI_API_KEY in .env")
 if not key:
     sys.exit(1)
 

@@ -26,6 +26,8 @@ python3 tests/check_endpoint.py             # key valid, model has tools, transc
 bash tests/demo_terminal.sh
 ```
 
+Only have a Gemini key? Put it on the `GEMINI_API_KEY` line and copy `config.example.yaml` instead: its provider is `auto`, which uses OpenRouter when that key is set and Gemini otherwise.
+
 Then type, one per line:
 
 ```
@@ -69,10 +71,10 @@ Architecture in one page: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ## Run it for real
 
-You need an Android phone with WhatsApp, Docker, and an [OpenRouter](https://openrouter.ai) key.
+You need an Android phone with WhatsApp, Docker, and an [OpenRouter](https://openrouter.ai) or [Gemini](https://aistudio.google.com/apikey) key.
 
 1. In WhatsApp: Settings → Agents → Create an agent → Chat info → copy the API key.
-2. `cp .env.example .env` and paste the WhatsApp key and your OpenRouter key.
+2. `cp .env.example .env` and paste the WhatsApp key and your model key (OpenRouter or Gemini; one is enough).
 3. `cp config.example.yaml config.yaml`. The defaults are fine; change the model if you like.
 4. `docker compose up -d` (or `make selfhost`)
 5. Send your agent any message. It asks personal or shop (in English and Urdu, answer in either), then up to seven more questions in that language, writes your chart of accounts, and posts what you sent.
