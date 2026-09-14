@@ -63,12 +63,16 @@ landing-check: ## Run the landing static checks (en and ur, verification directi
 # 3031 serves landing/out through the Hosting emulator; auth 9099 and firestore 8080 are in firebase.json.
 FIREBASE_PROJECT ?= demo-hisab
 EMULATORS_PID := .emulators.pid
+# Auth users and Firestore tenants survive a restart: imported on start, exported on a clean stop. Wiped by make down-v.
+EMULATOR_DATA := ./emulator-data
+EMULATOR_FLAGS := --only auth,firestore,hosting --project $(FIREBASE_PROJECT) --import=$(EMULATOR_DATA) --export-on-exit=$(EMULATOR_DATA)
 
 up: landing emulators-up runner-up ## Hosted local stack: Gemini runner + Auth/Firestore/Hosting emulators + portal at :3031
 	@echo "OTPs → tail -f firebase-debug.log, or: curl http://localhost:9099/emulator/v1/projects/$(FIREBASE_PROJECT)/verificationCodes"
 
 down: runner-down emulators-down ## Stop the hosted local stack, keep runner-data/
-down-v: runner-down-v emulators-down ## Stop the hosted local stack AND wipe runner-data/
+down-v: runner-down-v emulators-down ## Stop the hosted local stack AND wipe runner-data/ and emulator-data/
+	rm -rf $(EMULATOR_DATA)
 
 dev: NEXT_PUBLIC_USE_EMULATORS := 0
 dev: RUNNER_CONFIG ?= ./runner/config-dev.yaml
@@ -83,7 +87,8 @@ dev: ## Hosted dev-profile stack: OpenRouter runner against the dev Firebase pro
 
 emulators: ## Auth + Firestore + Hosting emulators in the foreground (demo project; OTPs print here). Run `make landing` first
 	@test -d landing/out || { echo "landing/out missing — run 'make landing' first"; exit 1; }
-	firebase emulators:start --only auth,firestore,hosting --project $(FIREBASE_PROJECT)
+	@mkdir -p $(EMULATOR_DATA)
+	firebase emulators:start $(EMULATOR_FLAGS)
 
 emulators-up: ## Auth + Firestore + Hosting emulators in the background (demo project; OTPs land in firebase-debug.log). Run `make landing` first
 	@test -d landing/out || { echo "landing/out missing — run 'make landing' first"; exit 1; }
@@ -92,12 +97,21 @@ emulators-up: ## Auth + Firestore + Hosting emulators in the background (demo pr
 	elif lsof -ti :3031 >/dev/null 2>&1; then \
 		echo "port 3031 is in use by something else"; exit 1; \
 	else \
-		nohup firebase emulators:start --only auth,firestore,hosting --project $(FIREBASE_PROJECT) >firebase-debug.log 2>&1 & echo $$! >$(EMULATORS_PID); \
+		mkdir -p $(EMULATOR_DATA); \
+		nohup firebase emulators:start $(EMULATOR_FLAGS) >firebase-debug.log 2>&1 & echo $$! >$(EMULATORS_PID); \
 		sleep 2; \
 	fi
 
-emulators-down: ## Stop the background emulators
-	@if [ -f $(EMULATORS_PID) ]; then kill `cat $(EMULATORS_PID)` 2>/dev/null; rm -f $(EMULATORS_PID); echo "emulators stopped"; else echo "emulators not running"; fi
+emulators-down: ## Stop the background emulators, saving Auth and Firestore to emulator-data/ first
+	@if [ -f $(EMULATORS_PID) ] && kill -0 `cat $(EMULATORS_PID)` 2>/dev/null; then \
+		mkdir -p $(EMULATOR_DATA); \
+		firebase emulators:export $(EMULATOR_DATA) --project $(FIREBASE_PROJECT) --force >>firebase-debug.log 2>&1 \
+			|| echo "export failed — see firebase-debug.log; relying on export-on-exit"; \
+		pid=`cat $(EMULATORS_PID)`; kill -INT $$pid; \
+		for i in `seq 60`; do kill -0 $$pid 2>/dev/null || break; sleep 0.5; done; \
+		if kill -0 $$pid 2>/dev/null; then kill $$pid; echo "emulators did not stop in 30s; killed"; else echo "emulators stopped, data in $(EMULATOR_DATA)"; fi; \
+		rm -f $(EMULATORS_PID); \
+	else rm -f $(EMULATORS_PID); echo "emulators not running"; fi
 
 runner-up: RUNNER_CONFIG ?= ./runner/config.yaml
 runner-up: ## Runner in Docker against the local emulators, on RUNNER_CONFIG (default Gemini). Needs RUNNER_CONFIG and RUNNER_PRIVATE_KEY in .env

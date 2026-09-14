@@ -28,6 +28,7 @@ scratch-*/
 
 # runner (hosted mode): per-tenant vault/data/config, dev-profile service account
 runner-data/
+emulator-data/
 service-account*.json
 
 # firebase emulator logs and the rules test's dependencies
