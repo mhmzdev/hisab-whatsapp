@@ -37,6 +37,8 @@ def revoke(uid, runner_cfg, manager, update=None, now_ms=None):
     now_ms = now_ms or int(time.time() * 1000)
     manager.stop(uid)
     dest = Path(runner_cfg["inactive_root"]) / uid / str(now_ms)
+    # media is processed, never stored (#33): nothing of a leaving user's voice or photos is retained
+    shutil.rmtree(Path(runner_cfg["data_root"]) / uid / "media", ignore_errors=True)
     for name, root in (("vault", runner_cfg["vault_root"]), ("data", runner_cfg["data_root"])):
         src = Path(root) / uid
         if src.exists():

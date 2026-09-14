@@ -12,6 +12,7 @@ Acceptance checklists written by /review, one per slug; /open-pr seeds the PR Te
 
 | Checklist | Slug | Proven / manual / failing | Date |
 |---|---|---|---|
+| [GH-33-media-delete-after-processing](GH-33-media-delete-after-processing.md) | GH-33-media-delete-after-processing | 6 / 0 / 0 | 2026-09-14 |
 | [GH-40-local-clock](GH-40-local-clock.md) | GH-40-local-clock | 6 / 0 / 0 | 2026-09-14 |
 | [GH-37-portal-pk-phone-normalise](GH-37-portal-pk-phone-normalise.md) | GH-37-portal-pk-phone-normalise | 5 / 0 / 0 | 2026-09-14 |
 | [GH-36-export-ledger-delivery](GH-36-export-ledger-delivery.md) | GH-36-export-ledger-delivery | 6 / 0 / 0 | 2026-09-14 |

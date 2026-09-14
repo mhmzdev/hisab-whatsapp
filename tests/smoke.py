@@ -570,6 +570,64 @@ try:
     assert "unbalanced" in tool_err and "hledger: Error" not in tool_err and str(broken_vault) not in tool_err, tool_err
     print("errors: media miss, too many steps, and a broken ledger's tool error — all coded or cleaned")
 
+    # #33: media is processed, never stored — deleted once its one use succeeds, kept by a failure, swept after 24h
+    media_app = make_app(sample_vault, tmp / "media-state")
+    def media_file(name):
+        f = media_app.media_dir / name; f.write_bytes(b"x"); return f
+    class MediaWA(ExportFakeWA):
+        def __init__(self, f):
+            super().__init__(); self.f = f
+        def download(self, media_id, dest_dir):
+            return self.f, "application/octet-stream"
+    real_transcribe = loop_mod.transcribe
+    try:
+        # voice: transcribed -> gone, even though the model call then fails (the transcript is what's kept)
+        loop_mod.transcribe = lambda path, cfg: "500 chai"
+        media_app.agent = RaisingAgent(HisabError("model_unavailable", "down"))
+        v_ok = media_file("v-ok.ogg")
+        with contextlib.redirect_stderr(io.StringIO()):
+            media_app._handle_wa(MediaWA(v_ok), {"from": frm, "type": "audio", "id": "wamid.m1", "audio": {"id": "a1"}})
+        assert not v_ok.exists(), "a transcribed voice note must be deleted"
+        # voice: transcription failed -> kept (its purpose wasn't served)
+        def bad(path, cfg):
+            raise RuntimeError("stt down")
+        loop_mod.transcribe = bad
+        v_bad = media_file("v-bad.ogg")
+        with contextlib.redirect_stderr(io.StringIO()):
+            media_app._handle_wa(MediaWA(v_bad), {"from": frm, "type": "audio", "id": "wamid.m2", "audio": {"id": "a2"}})
+        assert v_bad.exists(), "a voice note whose transcription failed is kept for the sweep"
+    finally:
+        loop_mod.transcribe = real_transcribe
+    # photo: model returned -> gone; model failed -> kept
+    p_bad = media_file("p-bad.jpg")
+    with contextlib.redirect_stderr(io.StringIO()):
+        media_app._handle_wa(MediaWA(p_bad), {"from": frm, "type": "image", "id": "wamid.m3", "image": {"id": "i1", "caption": ""}})
+    assert p_bad.exists(), "a photo whose model call failed is kept for the sweep"
+    media_app.agent = FakeAgent()
+    p_ok = media_file("p-ok.jpg")
+    media_app._handle_wa(MediaWA(p_ok), {"from": frm, "type": "image", "id": "wamid.m4", "image": {"id": "i2", "caption": ""}})
+    assert not p_ok.exists(), "a photo the model processed must be deleted"
+    # sweep: older than 24h goes, younger stays, never outside media/ files
+    old, young = media_file("old.ogg"), media_file("young.jpg")
+    sub = media_app.media_dir / "keep-subdir"; sub.mkdir(exist_ok=True)
+    exports = media_app.media_dir.parent / "exports"; exports.mkdir(exist_ok=True)
+    old_export = exports / "old.zip"; old_export.write_bytes(b"PK")
+    day_ago = time.time() - 25 * 3600
+    for f in (old, p_bad, v_bad, old_export):
+        os.utime(f, (day_ago, day_ago))
+    os.utime(young, (time.time() - 3600, time.time() - 3600))
+    restarted = make_app(sample_vault, tmp / "media-state")  # worker start sweeps
+    assert not old.exists() and not p_bad.exists() and not v_bad.exists(), "files older than 24h are swept at start"
+    assert young.exists() and sub.exists() and old_export.exists(), "younger files, subfolders and exports/ are untouched"
+    os.utime(young, (day_ago, day_ago))
+    restarted._last_media_sweep = time.time()
+    restarted._sweep_media()
+    assert young.exists(), "the poll-loop sweep is throttled to once an hour"
+    restarted._last_media_sweep = time.time() - 2 * 3600
+    restarted._sweep_media()
+    assert not young.exists(), "a due poll-loop sweep removes expired media"
+    print("media: deleted once processed, kept on failure, swept after 24h (start + hourly), revoke purges media")
+
     runner_dir = Path(__file__).resolve().parent.parent / "runner"
     if runner_dir.exists():
         from runner.crypto import CryptoError, decrypt, generate_keypair, seal
@@ -889,6 +947,7 @@ try:
             rv_vault, rv_state = Path(runner_cfg["vault_root"]) / rv_uid, Path(runner_cfg["data_root"]) / rv_uid
             rv_vault.mkdir(parents=True); (rv_vault / "hisab.md").write_text("# ledger\n", encoding="utf-8")
             rv_state.mkdir(parents=True); (rv_state / "creator.json").write_text('{"id": "923001234567"}', encoding="utf-8")
+            (rv_state / "media").mkdir(); (rv_state / "media" / "failed-turn.ogg").write_bytes(b"OggS")
             assert manager3.running_uids() == {rv_uid} and (Path(runner_cfg["tenants_dir"]) / rv_uid / "config.yaml").exists()
             assert poll_revokes({rv_uid: rv_doc, "t-ok": {"status": "revoked", "revokeRequestedAt": 9}}, runner_cfg, manager3, update=fake_update) == {}
             assert writes == [] and manager3.running_uids() == {rv_uid}, "no request (or a stale one on a revoked doc) is a no-op"
@@ -902,6 +961,7 @@ try:
             inactive = Path(runner_cfg["inactive_root"]) / rv_uid / "1000"
             assert not rv_vault.exists() and not rv_state.exists(), "vault and state must move, not stay"
             assert (inactive / "vault" / "hisab.md").exists() and (inactive / "data" / "creator.json").exists() and (inactive / MARKER).exists(), list(inactive.rglob("*"))
+            assert not (inactive / "data" / "media").exists(), "revoke must not retain a leaving user's media (#33)"
             assert not (Path(runner_cfg["tenants_dir"]) / rv_uid).exists(), "the per-tenant config is deleted"
             # the runner crashed before its write landed: the request is still on the document, the second pass is harmless
             again = poll_revokes({rv_uid: {**rv_doc, "revokeRequestedAt": 7}}, runner_cfg, manager3, update=fake_update, now_ms=2_000)

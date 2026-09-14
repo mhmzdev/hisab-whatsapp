@@ -20,6 +20,10 @@ from .wa import MAX_DOCUMENT_BYTES, AUTH_EXIT_CODE, AuthError
 from .i18n import s, parse_lang
 
 MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")  # not strftime %b: locale-free
+# Media is processed, never stored (#33): a file is deleted once its one use succeeds; one kept by a failed or
+# crashed turn is swept after MEDIA_TTL, at worker start and at most every MEDIA_SWEEP_INTERVAL from the poll loop.
+MEDIA_TTL = 24 * 3600
+MEDIA_SWEEP_INTERVAL = 3600
 REMINDER_INTERVAL = 10 * 60  # pending tenants hear the language-neutral reminder at most this often (seconds)
 VERIFY_RE = re.compile(r"verify\s+\d{4,8}$", re.IGNORECASE)  # a verify-shaped message; the runner does the real match
 
@@ -39,6 +43,8 @@ class Hisab:
         self.agent = Agent(cfg, self.ledger)
         self.media_dir = Path(cfg["state"]["path"]) / "media"
         self.media_dir.mkdir(parents=True, exist_ok=True)
+        self._last_media_sweep = 0
+        self._sweep_media(force=True)
 
     def handle(self, text, msg_id=None, quoted_id=None, image=None):
         """One inbound message → (reply text, entry number or None). Sets self._pending_document when the
@@ -106,6 +112,8 @@ class Hisab:
         used = self.store.record_model_call() if limit else None
         try:
             reply, tools = self.agent.run(history, content, hint)
+            if image:
+                Path(image).unlink(missing_ok=True)  # the photo's one use succeeded; nothing reads it again (#33)
             self._last_block = tools.last_block
             if limit and used >= limit * 0.8:
                 reply = f"{reply}\n{s('quota_warning', lang, used=used, limit=limit)}"
@@ -163,6 +171,7 @@ class Hisab:
         print(f"Polling WhatsApp. Ledger: {self.ledger.dir}")
         self._welcome_if_due(wa)
         while True:
+            self._sweep_media()
             try:
                 msgs, nxt = wa.poll(offset)
             except AuthError as e:
@@ -209,6 +218,7 @@ class Hisab:
                 text = transcribe(path, self.cfg)
             except Exception as e:
                 self._fail(wa, frm, errors.classify(e, default="transcription_failed"), e, mid); return
+            Path(path).unlink(missing_ok=True)  # transcribed: the text is what's kept, never the voice (#33)
             text = f"[Voice note]: {text}"
         elif typ == "image":
             path, _ = wa.download(m["image"]["id"], self.media_dir)
@@ -282,6 +292,20 @@ class Hisab:
         self.store.set_welcomed()
         for i in ids:
             self.store.add(i, "out", text)
+
+    def _sweep_media(self, force=False):
+        """Delete media files older than MEDIA_TTL: the leftovers of failed or crashed turns. Only files directly in
+        media/; throttled to MEDIA_SWEEP_INTERVAL unless forced. Never raises — a sweep must not stop the worker."""
+        now = time.time()
+        if not force and now - self._last_media_sweep < MEDIA_SWEEP_INTERVAL:
+            return
+        self._last_media_sweep = now
+        try:
+            for f in self.media_dir.iterdir():
+                if f.is_file() and now - f.stat().st_mtime > MEDIA_TTL:
+                    f.unlink(missing_ok=True)
+        except OSError as e:
+            print(f"media sweep failed: {e}", file=sys.stderr)
 
     def _fail(self, wa, frm, code, exc, mid):
         errors.log(code, exc, mid)
