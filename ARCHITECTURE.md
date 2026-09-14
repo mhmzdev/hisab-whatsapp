@@ -67,7 +67,7 @@ The same pipeline runs without WhatsApp: `python -m hisab.loop --stdin` reads li
 | Where | What | Owner |
 |---|---|---|
 | **Ledger folder** (`vault/` by default, mounted into the container) | `hisab.md` (master: commodities + includes) · `accounts.md` (chart of accounts, `~ monthly` rules) · `rules.md` (keyword → account, learned) · `YYYY-Qn.md` (transactions, `## YYYY-MM` headings, `n:` tags) · `settings.json` (language, mode, currency) | the user; written only through `ledger.py` |
-| **State folder** (`data/`, a named Docker volume) | `offset` · `messages.jsonl` · `setup.json` · `creator.json` · `media/` | `store.py` and `loop.py` |
+| **State folder** (`data/`, a named Docker volume) | `offset` · `messages.jsonl` · `setup.json` · `creator.json` · `media/` (transient: a file is deleted once transcribed or seen by the model; a failed turn's file is swept after 24 h; never exported, never stored elsewhere) | `store.py` and `loop.py` |
 | **Config** | `config.yaml` (safe to commit, gitignored anyway) · `.env` (secrets, never committed) | the operator |
 
 The ledger folder is the product. Open it in Obsidian with hledger-dashboard and it is a balance sheet; `hledger` on the command line reads it as-is.
