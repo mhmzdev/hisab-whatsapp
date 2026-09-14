@@ -27,9 +27,7 @@ S = {
  "unsupported": {
   "en": "Can't read {typ} yet — text, voice notes and photos only.",
   "ur": "{typ} ابھی نہیں پڑھ سکتا — صرف ٹیکسٹ، وائس نوٹ اور تصویر۔"},
- "export_ready": {
-  "en": "Here's your ledger — the canonical markdown files, nothing else.",
-  "ur": "یہ آپ کا کھاتہ ہے — صرف اصل مارک ڈاؤن فائلیں، کچھ اور نہیں۔"},
+ "export_ready": {"en": "Ledger backup · {when}", "ur": "کھاتے کا بیک اپ · {when}"},
  # Failure replies (#27): one per chat code in hisab/errors.py, rendered only through errors.reply. Each says
  # what happened and what to do next; no exception text ever. "_selfhost" overrides when the next step differs.
  "err_model_auth": {
@@ -60,6 +58,12 @@ S = {
  "err_export_failed": {
   "en": "Couldn't send the ledger export. Send *export-ledger* again in a bit.",
   "ur": "کھاتہ بھیجا نہیں جا سکا۔ تھوڑی دیر میں *export-ledger* دوبارہ بھیجیں۔"},
+ "err_export_rejected": {
+  "en": "WhatsApp wouldn't accept the ledger file, so nothing was sent. The operator has been told.",
+  "ur": "WhatsApp نے کھاتے کی فائل قبول نہیں کی، اس لیے کچھ نہیں بھیجا گیا۔ آپریٹر کو اطلاع ہو چکی ہے۔"},
+ "err_export_rejected_selfhost": {
+  "en": "WhatsApp wouldn't accept the ledger file, so nothing was sent. The reason is in the log.",
+  "ur": "WhatsApp نے کھاتے کی فائل قبول نہیں کی، اس لیے کچھ نہیں بھیجا گیا۔ وجہ لاگ میں ہے۔"},
  "err_export_too_large": {
   "en": "Ledger export is {mb} MB, over WhatsApp's 16 MB document limit.",
   "ur": "کھاتے کی فائل {mb} MB ہے، WhatsApp کی 16 MB حد سے زیادہ۔"},

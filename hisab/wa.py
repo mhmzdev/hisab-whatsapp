@@ -163,13 +163,20 @@ class WhatsApp:
                 time.sleep(1)
         return ids
 
-    def send_document(self, to, path, filename, caption=None):
-        """Upload a local file and send it as a WhatsApp document. Returns the sent message id."""
+    def send_document(self, to, path, filename, caption=None, mime="application/octet-stream"):
+        """Upload a local file and send it as a WhatsApp document. Returns the sent message id.
+
+        The platform accepts only its listed document types plus application/octet-stream "for a generic
+        binary file" (manual, POST /agent/v1/media → Accepted media types); application/zip is refused with
+        400/131053. The type goes in the `type` form field and on the file part. A 131053 is permanent
+        (type or size), so it raises the export_rejected code instead of inviting a retry (#36)."""
         path = Path(path)
         with path.open("rb") as f:
             r = self._request("media_post", "POST", f"{BASE}/media", headers=self.h,
-                               files={"file": (filename, f, "application/zip")},
-                               data={"messaging_product": "whatsapp"}, timeout=60)
+                               files={"file": (filename, f, mime)},
+                               data={"messaging_product": "whatsapp", "type": mime}, timeout=60)
+        if r.status_code == 400 and _error_code(r) == 131053:
+            raise errors.HisabError("export_rejected", f"media upload refused: HTTP 400 {r.text[:300]}")
         if r.status_code // 100 != 2:
             raise RuntimeError(f"media upload failed: HTTP {r.status_code} {r.text[:300]}")
         media_id = r.json().get("id")

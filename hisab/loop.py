@@ -5,7 +5,9 @@ import re
 import sys
 import time
 import traceback
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from . import config as cfgmod
 from . import errors
@@ -18,6 +20,7 @@ from .transcribe import transcribe
 from .wa import MAX_DOCUMENT_BYTES, AUTH_EXIT_CODE, AuthError
 from .i18n import s, parse_lang
 
+MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")  # not strftime %b: locale-free
 REMINDER_INTERVAL = 10 * 60  # pending tenants hear the language-neutral reminder at most this often (seconds)
 VERIFY_RE = re.compile(r"verify\s+\d{4,8}$", re.IGNORECASE)  # a verify-shaped message; the runner does the real match
 
@@ -117,14 +120,16 @@ class Hisab:
         if not self.ledger.exists():
             return s("no_ledger", lang), None
         export_dir = self.media_dir.parent / "exports"
-        dest = export_dir / f"hisab-export-{time.strftime('%Y%m%d-%H%M%S')}.zip"
+        now = datetime.now(ZoneInfo(self.cfg.get("timezone") or "Asia/Karachi"))
+        dest = export_dir / f"hisab-{now:%Y-%m-%d-%H%M}.zip"
         build_export_zip(self.ledger, dest)
         size = dest.stat().st_size
         if size > MAX_DOCUMENT_BYTES:
             dest.unlink(missing_ok=True)
             return errors.reply("export_too_large", lang, self.cfg.get("hosted"), mb=f"{size / (1024 * 1024):.1f}"), None
         self._pending_document = dest
-        return s("export_ready", lang), None
+        when = f"{now.day} {MONTHS[now.month - 1]} {now.year}{'،' if lang == 'ur' else ','} {now:%H:%M}"
+        return s("export_ready", lang, when=when), None
 
     # ---------- transports ----------
     def run_stdin(self):

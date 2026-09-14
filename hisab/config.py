@@ -1,6 +1,7 @@
 """Config: config.yaml (safe to commit) + .env (secrets). Paths resolve relative to the config file."""
 import os
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import yaml
 
 DEFAULTS = {
@@ -16,6 +17,7 @@ DEFAULTS = {
         "window_seconds": 60, "messages_per_min": 12, "statuses_per_min": 12, "updates_per_min": 15, "media_per_min": 12,
     }},
     "state": {"path": "./data"},
+    "timezone": "Asia/Karachi",  # IANA name; export-ledger file names and captions read the clock in it (#36)
 }
 
 
@@ -33,6 +35,10 @@ def load(path=None):
     provider = (cfg["transcription"].get("provider") or "openrouter").lower()
     if provider not in ("openrouter", "gemini"):
         raise SystemExit(f"transcription.provider must be 'openrouter' or 'gemini', got {provider!r}")
+    try:
+        ZoneInfo(str(cfg["timezone"]))
+    except (ZoneInfoNotFoundError, ValueError):
+        raise SystemExit(f"timezone must be an IANA name like 'Asia/Karachi', got {cfg['timezone']!r}")
     root = path.resolve().parent
     cfg["ledger"]["path"] = str((root / cfg["ledger"]["path"]).resolve())
     cfg["state"]["path"] = str((root / cfg["state"]["path"]).resolve())

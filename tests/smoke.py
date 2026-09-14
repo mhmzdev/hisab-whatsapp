@@ -188,6 +188,7 @@ try:
     # export-ledger over the WhatsApp transport: exact command, intercepted before the model loop,
     # ships a document (not chat text), respects the 16 MB cap, and never needs a model key to run
     import hisab.loop as loop_mod
+    import re as _re_mod
     from hisab.loop import Hisab
 
     class ExportFakeWA:
@@ -218,7 +219,7 @@ try:
     connected_app._handle_wa(wa1, {"from": frm, "type": "text", "id": "exp1", "text": {"body": "export-ledger"}})
     assert len(wa1.documents) == 1 and wa1.sent == [("typing", "exp1")], (wa1.documents, wa1.sent)
     to, path, filename, caption = wa1.documents[0]
-    assert to == frm and filename.startswith("hisab-export-") and filename.endswith(".zip") and caption
+    assert to == frm and _re_mod.fullmatch(r"hisab-\d{4}-\d{2}-\d{2}-\d{4}\.zip", filename) and caption.startswith("Ledger backup · "), (filename, caption)
     assert not Path(path).exists(), "sent export must be cleaned up locally"
     print("export: whatsapp document send ok —", filename)
 
@@ -237,6 +238,70 @@ try:
     empty_app._handle_wa(wa3, {"from": frm, "type": "text", "id": "exp3", "text": {"body": "Export-Ledger"}})
     assert wa3.documents == [] and wa3.sent[-1][0] == "send", wa3.sent
     print("export: no-ledger reply ok")
+
+    # #36: the upload declares a generic binary (the platform refuses application/zip), a 131053 refusal is
+    # its own permanent code, and the file name and caption read the configured clock (Asia/Karachi)
+    from hisab.errors import HisabError as _HisabError
+    from hisab import errors as _errors
+    captured = {}
+    def fake_media(verb, url, **kw):
+        if url.endswith("/media"):
+            captured.update(files=kw.get("files"), data=kw.get("data"))
+            return FakeResponse(200, {"id": "media-1"})
+        return FakeResponse(200, {"messages": [{"id": "wamid.doc"}]})
+    doc_file = tmp / "doc.zip"; doc_file.write_bytes(b"PK\x03\x04")
+    wa_mod.requests.request = fake_media
+    try:
+        assert WhatsApp("tok").send_document("923001234567", doc_file, "hisab-2026-09-14-1110.zip", caption="c") == "wamid.doc"
+    finally:
+        wa_mod.requests.request = real_request
+    assert captured["files"]["file"][2] == "application/octet-stream" and captured["data"]["type"] == "application/octet-stream", captured
+    for status, payload, want in ((400, {"error": {"code": 131053, "message": "application/zip is not a supported media type"}}, "export_rejected"),
+                                  (500, {"error": {"message": "boom"}}, None)):
+        wa_mod.requests.request = lambda verb, url, _s=status, _p=payload, **kw: FakeResponse(_s, _p)
+        try:
+            WhatsApp("tok").send_document("923001234567", doc_file, "x.zip"); raise AssertionError("upload refusal accepted")
+        except _HisabError as e:
+            assert want == e.code == "export_rejected" and "131053" in e.detail, e
+        except RuntimeError as e:
+            assert want is None and "HTTP 500" in str(e), e
+        finally:
+            wa_mod.requests.request = real_request
+    for exc, code in ((_HisabError("export_rejected", "HTTP 400 131053"), "export_rejected"), (RuntimeError("media upload failed: HTTP 500"), "export_failed")):
+        class RefusingWA(ExportFakeWA):
+            def send_document(self, to, path, filename, caption=None, _e=exc):
+                raise _e
+        wa_x = RefusingWA()
+        with contextlib.redirect_stderr(io.StringIO()):
+            connected_app._handle_wa(wa_x, {"from": frm, "type": "text", "id": f"wamid.{code}", "text": {"body": "export-ledger"}})
+        assert wa_x.sent[-1][2] == _errors.reply(code, "en"), (code, wa_x.sent)
+    assert "again" not in _errors.reply("export_rejected", "en", True) and "again" in _errors.reply("export_failed", "en", True)
+
+    from datetime import datetime as _dt, timezone as _tz
+    class FixedClock(_dt):
+        @classmethod
+        def now(cls, tz=None):
+            return _dt(2026, 9, 14, 6, 10, tzinfo=_tz.utc).astimezone(tz)
+    real_dt = loop_mod.datetime
+    loop_mod.datetime = FixedClock
+    try:
+        for lang, caption in (("en", "Ledger backup · 14 Sep 2026, 11:10"), ("ur", "کھاتے کا بیک اپ · 14 Sep 2026، 11:10")):
+            connected_app.ledger.set_settings({"language": lang})
+            wa_t = ExportFakeWA()
+            connected_app._handle_wa(wa_t, {"from": frm, "type": "text", "id": f"exp-clock-{lang}", "text": {"body": "export-ledger"}})
+            assert wa_t.documents[0][2] == "hisab-2026-09-14-1110.zip" and wa_t.documents[0][3] == caption, wa_t.documents
+    finally:
+        loop_mod.datetime = real_dt
+        connected_app.ledger.set_settings({"language": "en"})
+    assert cfgmod.load(tmp / "no-such-config.yaml")["timezone"] == "Asia/Karachi"
+    tz_cfg = tmp / "tz.yaml"; tz_cfg.write_text("timezone: Europe/London\n", encoding="utf-8")
+    assert cfgmod.load(tz_cfg)["timezone"] == "Europe/London"
+    tz_cfg.write_text("timezone: Mars/Olympus\n", encoding="utf-8")
+    try:
+        cfgmod.load(tz_cfg); raise AssertionError("unknown timezone accepted")
+    except SystemExit as e:
+        assert "Mars/Olympus" in str(e), e
+    print("export: octet-stream upload, 131053 -> export_rejected, hisab-2026-09-14-1110.zip + en/ur caption in Asia/Karachi")
 
     # /lang during setup switches the remaining questions and suppresses the detection note; /lang roman asks again
     lang_app = make_app(tmp / "lang-vault", tmp / "lang-state")
