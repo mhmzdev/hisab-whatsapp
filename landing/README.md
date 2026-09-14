@@ -34,7 +34,15 @@ Any key whose name contains `verify_instruction` must contain the literal word `
 
 ## Fonts
 
-`layout.jsx` loads Inter, IBM Plex Mono and Noto Nastaliq Urdu through `next/font/google`. The files are downloaded when the page is built and served from `landing/out/`, so a visitor never contacts Google, but `make landing` (and `npm run build`) needs network access. The logo mark comes from `landing/assets/` in both colours; `BrandMark.jsx` shows the one for the resolved theme.
+`layout.jsx` loads Inter, IBM Plex Mono and Noto Nastaliq Urdu through `next/font/google`. The files are downloaded when the page is built and served from `landing/out/`, so a visitor never contacts Google, but `make landing` (and `npm run build`) needs network access.
+
+The Urdu page reads in Jameel Noori Nastaleeq, `landing/assets/noori-nastaleeq.woff2`, loaded with `next/font/local`. It is about 4.7 MB, so it is never preloaded and only elements under `lang="ur"` use it (the `--urdu-face` token in `globals.css`); on the English page the few Urdu words (the header's حساب, the shop column, the footer watermark) stay in Noto and the file is never fetched. The woff2 is a subset of the source TTF (Urdu, Arabic presentation forms, basic Latin), which is not committed:
+
+```
+pip install fonttools brotli
+pyftsubset noori.ttf --unicodes="U+0020-007E,U+00A0,U+060C-06FF,U+200C-200F,U+2013-2014,U+2018-201D,U+2026,U+FB50-FDFF,U+FE70-FEFF" \
+  --layout-features='*' --no-hinting --flavor=woff2 --output-file=landing/assets/noori-nastaleeq.woff2
+``` The logo mark comes from `landing/assets/` in both colours; `BrandMark.jsx` shows the one for the resolved theme.
 
 ## Theme and the signed-in hint
 

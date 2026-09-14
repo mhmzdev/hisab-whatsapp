@@ -28,6 +28,7 @@
   --radio: #C3CBD0;
   --font-body: var(--font-sans), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-code: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --urdu-face: var(--font-urdu), "Noto Nastaliq Urdu";
   color-scheme: light;
 }
 
@@ -75,8 +76,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* the Urdu page reads in Noori; Noto shows while Noori downloads and stays the face on the English page (layout.jsx) */
+[lang="ur"] {
+  --urdu-face: var(--font-noori), var(--font-urdu), "Noto Nastaliq Urdu";
+}
+
+/* Nastaleeq's descending strokes need more room than the Latin line-heights the page is set in */
+[lang="ur"] :is(p, h3, li) {
+  line-height: 1.95;
+}
+
 .urdu {
-  font-family: var(--font-urdu), "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--urdu-face), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 img {
