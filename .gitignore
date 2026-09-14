@@ -41,6 +41,7 @@ tests/rules/node_modules/
 landing/node_modules/
 landing/.next/
 landing/out/
+landing/out-pages/
 landing/.env*.local
 .firebaserc
 

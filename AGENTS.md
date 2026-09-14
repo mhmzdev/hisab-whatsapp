@@ -143,4 +143,4 @@ Vocabulary: **entry** (one transaction, numbered `n:`), **posting** (one line of
 
 ## Origin
 
-Extracted from a personal system the author has run since September 2026 (a bash relay to Claude Code over a private vault). This repo is the public, API-level rewrite. The relay itself is a separate repo, `whatsapp-agent-relay`, published after the hackathon it was built for.
+Extracted from a personal system the author has run since September 2026 (a bash relay to Claude Code over a private vault). This repo is the public, API-level rewrite. The relay itself is a separate repo, `whatsapp-agent-relay`, published after the [hackathon](https://islamabad-rawalpindi.aitinkerers.org/p/agents-everywhere-beyond-the-chatbot-global-hackathon) it was built for.

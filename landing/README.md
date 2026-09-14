@@ -15,6 +15,8 @@ From the repo root:
 | `make emulators` | Serves `landing/out` at http://localhost:3031 through the Hosting emulator, with Auth and Firestore beside it (foreground; `make up` is the background hosted stack) |
 | `make up` | The whole hosted local stack: emulators in the background, the runner on Gemini, the portal at http://localhost:3031/portal/ |
 | `make dev` | The runner on OpenRouter against the dedicated dev Firebase project, portal built with emulators off |
+| `make landing-pages` | The public build for GitHub Pages: hosted sign-up off, under `/hisab` (`PAGES_BASE_PATH`), written to `landing/out-pages/` so `landing/out` is left alone |
+| `make landing-pages-sync` | Builds that and copies it into `../mhmzdev.github.io/hisab/` (`PAGES_DIR`) with a root `.nojekyll`; you commit and push in that repo |
 | `make selfhost` | Runs the self-host worker and serves `landing/out` at `http://localhost:3030` (no Firebase; the portal will not sign in) |
 
 `python3 tests/smoke.py` runs the landing check automatically once `landing/content/strings.json` exists.
@@ -38,6 +40,13 @@ local Emulator Suite. Rebuild after changing any of them.
 | `/portal/` | sign-in and the tenant screens | a coming-soon card; `firebase()` is never called |
 
 `make up` and `make dev` build with it on; `make landing` and `make selfhost` build it off. A command-line value wins over `landing/.env.local`. `tests/check_landing.py` fails if a page stops importing the gate.
+
+## Publishing on GitHub Pages
+
+The public page is https://mhmzdev.github.io/hisab/, a folder in the `mhmzdev/mhmzdev.github.io` repo beside the other sites there. `make landing-pages-sync`, then commit and push in that repo. Two things make a sub-path work:
+
+- `NEXT_PUBLIC_BASE_PATH=/hisab` sets Next's `basePath`, which prefixes its scripts, CSS, fonts and imported images. It does not touch a plain `<a href="/…">`, so every root-relative link goes through `withBase` in `app/paths.js`; `tests/check_landing.py` fails on one that doesn't.
+- `.nojekyll` at that repo's root. Without it Pages runs Jekyll, which drops `_next/`, and the page loads unstyled with no JavaScript.
 
 ## The `strings.json` contract
 

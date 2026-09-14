@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help selfhost selfhost-dev selfhost-down selfhost-down-v selfhost-logs selfhost-restart selfhost-shell up dev down down-v check sample demo stdin check-endpoint bakeoff landing landing-check landing-serve landing-up landing-down rules-test emulators emulators-up emulators-down runner-up runner-logs runner-down runner-down-v
+.PHONY: help selfhost selfhost-dev selfhost-down selfhost-down-v selfhost-logs selfhost-restart selfhost-shell up dev down down-v check sample demo stdin check-endpoint bakeoff landing landing-pages landing-pages-sync landing-check landing-serve landing-up landing-down rules-test emulators emulators-up emulators-down runner-up runner-logs runner-down runner-down-v
 
 # 3030 self-host landing server, 3031 Firebase Hosting emulator (firebase.json). 5000 is macOS AirPlay.
 LANDING_PORT ?= 3030
@@ -56,6 +56,20 @@ landing: NEXT_PUBLIC_USE_EMULATORS ?= 1
 landing: NEXT_PUBLIC_HOSTED ?= 0
 landing: ## Build the landing page and portal to landing/out; hosted sign-up off (the public build). Override: NEXT_PUBLIC_HOSTED=1, NEXT_PUBLIC_USE_EMULATORS=0
 	cd landing && npm install && NEXT_PUBLIC_USE_EMULATORS=$(NEXT_PUBLIC_USE_EMULATORS) NEXT_PUBLIC_HOSTED=$(NEXT_PUBLIC_HOSTED) npm run build
+
+# GitHub Pages: the public landing under PAGES_BASE_PATH on mhmzdev.github.io, hosted sign-up off. Built into
+# landing/out-pages so landing/out (what the emulators serve) is never overwritten.
+PAGES_BASE_PATH ?= /hisab
+PAGES_DIR ?= ../mhmzdev.github.io
+
+landing-pages: ## Build the public GitHub Pages landing into landing/out-pages (hosted off, under PAGES_BASE_PATH=/hisab)
+	cd landing && npm install && NEXT_PUBLIC_BASE_PATH=$(PAGES_BASE_PATH) NEXT_PUBLIC_HOSTED=0 NEXT_PUBLIC_USE_EMULATORS=0 NEXT_DIST_DIR=out-pages npm run build
+
+landing-pages-sync: landing-pages ## Copy that build into PAGES_DIR (../mhmzdev.github.io)$(PAGES_BASE_PATH) with .nojekyll; commit and push there yourself
+	@test -d $(PAGES_DIR)/.git || { echo "$(PAGES_DIR) is not a git checkout — clone mhmzdev/mhmzdev.github.io there or pass PAGES_DIR=<path>"; exit 1; }
+	rsync -a --delete landing/out-pages/ $(PAGES_DIR)$(PAGES_BASE_PATH)/
+	touch $(PAGES_DIR)/.nojekyll   # Jekyll would drop _next/, which holds every script and stylesheet
+	@echo "synced → $(PAGES_DIR)$(PAGES_BASE_PATH)/  (git -C $(PAGES_DIR) status)"
 
 landing-check: ## Run the landing static checks (en and ur, verification direction, no payment collection)
 	python3 tests/check_landing.py

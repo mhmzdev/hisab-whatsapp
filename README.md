@@ -13,7 +13,7 @@ A ledger you text. Send **"2500 coffee"**, a voice note in Urdu, Roman Urdu or E
 </p>
 <p align="center"><sub>Left: connecting a real agent, then setup, in English and Urdu. Right: a voice note posts #2; a forwarded bank receipt gets one question, answered by quoting it, and posts #3.</sub></p>
 
-> Built for the AI Tinkerers global hackathon *Agents, Everywhere* (2026-09-12). Extracted from a personal system the author has run since early September 2026; this is the public, API-level rewrite. Android only for the WhatsApp path — the platform has not shipped agent creation on iOS — so the terminal path below is how anyone else verifies it.
+> Built for the [AI Tinkerers global hackathon *Agents, Everywhere*](https://islamabad-rawalpindi.aitinkerers.org/p/agents-everywhere-beyond-the-chatbot-global-hackathon) (2026-09-12). Landing page: [mhmzdev.github.io/hisab](https://mhmzdev.github.io/hisab/). Extracted from a personal system the author has run since early September 2026; this is the public, API-level rewrite. Android only for the WhatsApp path — the platform has not shipped agent creation on iOS — so the terminal path below is how anyone else verifies it.
 
 ## Run it in your terminal, right now
 
@@ -114,7 +114,7 @@ Entries, voice notes and receipt photos go to the model provider you configured,
 
 ## Origin and related
 
-Extracted from a personal system running since September 2026: a bash relay on a VPS between a WhatsApp agent and Claude Code over a private vault, plus a ledger skill. This repo is the public rewrite as a plain API loop so it runs with any model. The relay itself is [`whatsapp-agent-relay`](https://github.com/mhmzdev/whatsapp-agent-relay), a separate repo, after the event.
+Extracted from a personal system running since September 2026: a bash relay on a VPS between a WhatsApp agent and Claude Code over a private vault, plus a ledger skill. This repo is the public rewrite as a plain API loop so it runs with any model. The relay itself is [`whatsapp-agent-relay`](https://github.com/mhmzdev/whatsapp-agent-relay), a separate repo, after [the event](https://islamabad-rawalpindi.aitinkerers.org/p/agents-everywhere-beyond-the-chatbot-global-hackathon).
 
 ## License
 

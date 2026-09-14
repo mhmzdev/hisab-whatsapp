@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import BrandMark from './BrandMark'
 import { HOSTED } from './hosted'
+import { withBase } from './paths'
 import { useLanguage } from './LanguageProvider'
 import LanguageSwitcher from './LanguageSwitcher'
 import { readSignedIn } from './signedIn'
@@ -27,7 +28,7 @@ export default function SiteNav() {
   return (
     <header className="site-nav">
       <div className="site-nav-inner">
-        <a className="brand-mark" href="/">
+        <a className="brand-mark" href={withBase('/')}>
           <BrandMark size={28} radius={8} />
           <span className="brand-word">Hisab</span>
           <span className="brand-urdu urdu" dir="rtl">حساب</span>
@@ -35,7 +36,7 @@ export default function SiteNav() {
         {onLanding && (
           <nav className="site-nav-links">
             {LINKS.map(({ id, key }) => (
-              <a key={id} href={`/#${id}`}>{t(key)}</a>
+              <a key={id} href={withBase(`/#${id}`)}>{t(key)}</a>
             ))}
           </nav>
         )}
@@ -43,7 +44,7 @@ export default function SiteNav() {
           <LanguageSwitcher />
           <ThemeToggle />
           {onLanding && HOSTED && (
-            <a className="site-nav-cta" href={signedIn ? '/portal/' : '/#pricing'}>
+            <a className="site-nav-cta" href={withBase(signedIn ? '/portal/' : '/#pricing')}>
               {signedIn ? t('cta_go_to_portal') : t('nav_get_started')}
             </a>
           )}
