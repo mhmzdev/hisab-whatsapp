@@ -121,6 +121,8 @@ class Hisab:
         except Exception as e:  # model, network, ledger, or a bug: a code for the user, the detail for the log
             code = errors.classify(e)
             errors.log(code, e, msg_id)
+            if used is not None and code.startswith("model_"):
+                self.store.refund_model_call()  # our outage served nothing; it must not use the user's allowance (#38)
             kw = {"reason": str(e).removeprefix("rejected, nothing written: ").rstrip(". ")[:200]} if code == "ledger_rejected" else {}
             return errors.reply(code, lang, self.cfg.get("hosted"), **kw), None
 
