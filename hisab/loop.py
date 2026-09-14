@@ -39,7 +39,7 @@ class Hisab:
         tz = cfg.get("timezone")
         self.store = Store(cfg["state"]["path"], cfg["memory"]["keep_days"], tz)
         self.ledger = Ledger(cfg["ledger"]["path"], cfg["ledger"]["currency"], tz)
-        self.setup = Setup(self.ledger, self.store)
+        self.setup = Setup(self.ledger, self.store, hosted=bool(cfg.get("hosted")))
         self.agent = Agent(cfg, self.ledger)
         self.media_dir = Path(cfg["state"]["path"]) / "media"
         self.media_dir.mkdir(parents=True, exist_ok=True)

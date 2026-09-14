@@ -23,9 +23,10 @@ def _none(x):
 
 
 class Setup:
-    def __init__(self, ledger, store):
+    def __init__(self, ledger, store, hosted=False):
         self.ledger = ledger
         self.store = store
+        self.hosted = hosted  # hosted mode: the ledger folder is vault/<uid>, never shown to the user (#28)
 
     def active(self):
         return self.store.setup_state() is not None
@@ -81,7 +82,8 @@ class Setup:
             self.write(st["answers"])
             parked = st.get("parked")
             self.store.set_setup_state(None)
-            return (q("done", lang, dir=self.ledger.dir.name) + (q("done_parked", lang) if parked else ""), True, parked)
+            done = q("done_hosted", lang) if self.hosted else q("done", lang, dir=self.ledger.dir.name)
+            return (done + (q("done_parked", lang) if parked else ""), True, parked)
         self.store.set_setup_state(st)
         return q(st["flow"][st["step"]], lang) + note, False, None
 
