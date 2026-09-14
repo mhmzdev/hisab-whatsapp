@@ -32,6 +32,10 @@ Every fixed user-facing string lives in `landing/content/strings.json`, one dict
 
 Any key whose name contains `verify_instruction` must contain the literal word `verify` and the `{nonce}` placeholder in every language — the portal always tells the user to *send* a code to their agent, never that a code was *sent to* them. Every portal code in `hisab/errors.py` needs a `portal_error_<code>` key: the runner stores codes, the portal renders words.
 
+## Fonts
+
+`layout.jsx` loads Inter, IBM Plex Mono and Noto Nastaliq Urdu through `next/font/google`. The files are downloaded when the page is built and served from `landing/out/`, so a visitor never contacts Google, but `make landing` (and `npm run build`) needs network access. The logo mark comes from `landing/assets/` in both colours; `BrandMark.jsx` shows the one for the resolved theme.
+
 ## Theme and the signed-in hint
 
 Two per-browser `localStorage` keys, nothing on a server:

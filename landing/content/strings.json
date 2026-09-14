@@ -8,12 +8,12 @@
     "ur": "شروع کریں"
   },
   "hero_title": {
-    "en": "A ledger you text",
-    "ur": "ایک کھاتہ جسے آپ لکھتے ہیں"
+    "en": "A ledger that texts back",
+    "ur": "ایک کھاتہ جو جواب دیتا ہے"
   },
   "hero_subline": {
-    "en": "Text an entry, a voice note or a receipt photo — in English or Urdu. We hold the key and the ledger for you, and you can take both with you any time.",
-    "ur": "اندراج، وائس نوٹ یا رسید کی تصویر بھیجیں — انگلش یا اردو میں۔ ہم آپ کی کلید اور کھاتہ اپنے پاس رکھتے ہیں، اور آپ جب چاہیں دونوں لے جا سکتے ہیں۔"
+    "en": "Send a number, a voice note in Urdu, or a receipt photo to your own WhatsApp agent. It keeps real books, answers back in one line, and lives in the chat you already have open.",
+    "ur": "اپنے WhatsApp ایجنٹ کو ایک رقم، اردو میں وائس نوٹ یا رسید کی تصویر بھیجیں۔ یہ اصلی حساب کتاب رکھتا ہے، ایک لائن میں جواب دیتا ہے، اور اسی چیٹ میں رہتا ہے جو آپ پہلے سے کھولے ہوئے ہیں۔"
   },
   "hero_cta": {
     "en": "Get started",
@@ -28,28 +28,28 @@
     "ur": "اندر آنے کے تین طریقے"
   },
   "card_text_title": {
-    "en": "Type it",
-    "ur": "لکھ کر بھیجیں"
+    "en": "Text.",
+    "ur": "لکھیں۔"
   },
   "card_text_body": {
-    "en": "Send an entry like 2500 chai and it's posted in seconds.",
-    "ur": "2500 chai جیسا اندراج بھیجیں اور فوراً درج ہو جائے گا۔"
+    "en": "“2500 coffee” is a complete entry. So is “paid Metro 20000”.",
+    "ur": "“2500 coffee” ایک مکمل اندراج ہے۔ “میٹرو کو 20000 دیے” بھی۔"
   },
   "card_voice_title": {
-    "en": "Say it in Urdu",
-    "ur": "اردو میں بولیں"
+    "en": "Voice.",
+    "ur": "آواز۔"
   },
   "card_voice_body": {
-    "en": "A voice note in Urdu or Roman Urdu becomes a real entry, same as typing.",
-    "ur": "اردو یا رومن اردو میں وائس نوٹ بھی ٹائپ کیے ہوئے اندراج جیسا ہی کام کرتا ہے۔"
+    "en": "A seven-second voice note at the till, in the language you think in.",
+    "ur": "کاؤنٹر پر سات سیکنڈ کا وائس نوٹ، اسی زبان میں جس میں آپ سوچتے ہیں۔"
   },
   "card_photo_title": {
-    "en": "Photograph a receipt",
-    "ur": "رسید کی تصویر بھیجیں"
+    "en": "Photo.",
+    "ur": "تصویر۔"
   },
   "card_photo_body": {
-    "en": "Snap the bill and send it — Hisab reads the total and posts it.",
-    "ur": "بل کی تصویر بھیجیں — حساب رقم پڑھ کر خود درج کر لے گا۔"
+    "en": "A receipt or a bank SMS screenshot. It reads the total and the payment method.",
+    "ur": "رسید یا بینک SMS کا اسکرین شاٹ۔ یہ رقم اور ادائیگی کا طریقہ پڑھ لیتا ہے۔"
   },
   "custody_title": {
     "en": "Who holds the key",
@@ -64,28 +64,16 @@
     "ur": "کچھ بھی آپ کے کمپیوٹر سے باہر نہ جائے؟ اس کے بجائے Hisab خود ہوسٹ کریں۔"
   },
   "why_title": {
-    "en": "Why not a chatbot",
-    "ur": "چیٹ بوٹ کیوں نہیں"
-  },
-  "why_undo": {
-    "en": "Undo is just a reply — no menus to dig through.",
-    "ur": "Undo صرف ایک ریپلائی ہے — کسی مینو میں جانے کی ضرورت نہیں۔"
-  },
-  "why_linked": {
-    "en": "Every ledger line sits right beside the message that made it.",
-    "ur": "کھاتے کی ہر لائن اسی پیغام کے ساتھ رہتی ہے جس نے اسے بنایا۔"
-  },
-  "why_strict": {
-    "en": "Every write passes a strict accounting check before it's saved — nothing unbalanced ever lands.",
-    "ur": "ہر اندراج محفوظ ہونے سے پہلے سخت حساب کی جانچ سے گزرتا ہے — کوئی غلط اندراج درج نہیں ہوتا۔"
+    "en": "Not a chatbot",
+    "ur": "چیٹ بوٹ نہیں"
   },
   "ledger_title": {
     "en": "Real books, not a categoriser",
     "ur": "اصلی حساب کتاب، محض درجہ بندی نہیں"
   },
   "ledger_body": {
-    "en": "Underneath is hledger, a real double-entry accounting engine. Every entry is checked before it lands; a bad one rolls back. Transfers are transfers, not spend, so the month total is honest. The ledger is a plain text file you can open anywhere.",
-    "ur": "نیچے hledger ہے، ایک اصلی ڈبل انٹری اکاؤنٹنگ انجن۔ ہر اندراج درج ہونے سے پہلے جانچا جاتا ہے؛ غلط اندراج واپس ہو جاتا ہے۔ ٹرانسفر صرف ٹرانسفر ہوتا ہے، خرچ نہیں، اس لیے مہینے کا ٹوٹل درست رہتا ہے۔ کھاتہ ایک plain text فائل ہے جسے آپ کہیں بھی کھول سکتے ہیں۔"
+    "en": "Underneath is hledger, a real double-entry accounting engine. Every entry is checked before it lands; a bad one rolls back. Transfers are transfers, not spend, so the month total is honest. The ledger is a plain text file you can open anywhere, and a desk dashboard reads it as-is.",
+    "ur": "نیچے hledger ہے، ایک اصلی ڈبل انٹری اکاؤنٹنگ انجن۔ ہر اندراج درج ہونے سے پہلے جانچا جاتا ہے؛ غلط اندراج واپس ہو جاتا ہے۔ ٹرانسفر صرف ٹرانسفر ہوتا ہے، خرچ نہیں، اس لیے مہینے کا ٹوٹل درست رہتا ہے۔ کھاتہ ایک plain text فائل ہے جسے آپ کہیں بھی کھول سکتے ہیں، اور ڈیسک ڈیش بورڈ اسے جوں کا توں پڑھ لیتا ہے۔"
   },
   "shop_title": {
     "en": "For the shop",
@@ -99,24 +87,12 @@
     "en": "How it works",
     "ur": "یہ کیسے کام کرتا ہے"
   },
-  "how_step1": {
-    "en": "Create your agent in WhatsApp — Settings → Agents → Create — then copy the key.",
-    "ur": "WhatsApp میں اپنا ایجنٹ بنائیں — Settings → Agents → Create — پھر کلید کاپی کریں۔"
-  },
-  "how_step2": {
-    "en": "Paste the key here — we show you a six-digit code.",
-    "ur": "کلید یہاں پیسٹ کریں — ہم آپ کو چھ ہندسوں کا کوڈ دکھائیں گے۔"
-  },
-  "how_step3": {
-    "en": "Send that code to your agent — it greets you in your language and asks a few questions.",
-    "ur": "وہ کوڈ اپنے ایجنٹ کو بھیجیں — یہ آپ کی زبان میں خوش آمدید کہے گا اور چند سوال پوچھے گا۔"
-  },
   "price_title": {
     "en": "Pricing",
     "ur": "قیمت"
   },
   "price_amount": {
-    "en": "300 PKR / month",
+    "en": "PKR 300 / month",
     "ur": "300 روپے / ماہ"
   },
   "price_free": {
@@ -124,16 +100,12 @@
     "ur": "پہلا مہینہ مفت"
   },
   "price_yearly_amount": {
-    "en": "3,000 PKR / year",
+    "en": "PKR 3,000 / year",
     "ur": "3,000 روپے / سال"
   },
   "price_yearly_free": {
     "en": "Two months free",
     "ur": "دو مہینے مفت"
-  },
-  "price_includes": {
-    "en": "One agent, one ledger, 1,000 model calls a month.",
-    "ur": "ایک ایجنٹ، ایک کھاتہ، مہینے میں 1,000 ماڈل کالز۔"
   },
   "price_payment_note": {
     "en": "Payments by JazzCash or Easypaisa transfer for now.",
@@ -143,21 +115,13 @@
     "en": "Get started",
     "ur": "شروع کریں"
   },
-  "footer_selfhost": {
-    "en": "Self-host on GitHub",
-    "ur": "GitHub پر خود ہوسٹ کریں"
-  },
-  "footer_distinction": {
-    "en": "Hosted Hisab keeps your key and ledger on our server. Self-host keeps them on yours.",
-    "ur": "Hosted Hisab میں کلید اور کھاتہ ہمارے سرور پر رہتا ہے۔ Self-host میں یہ آپ کے اپنے سسٹم پر رہتا ہے۔"
-  },
   "footer_note": {
     "en": "Android only for now.",
     "ur": "ابھی صرف Android کے لیے۔"
   },
   "footer_origin": {
-    "en": "Built in Islamabad.",
-    "ur": "اسلام آباد میں بنایا گیا۔"
+    "en": "Built in Islamabad",
+    "ur": "اسلام آباد میں بنایا گیا"
   },
   "portal_connect_title": {
     "en": "Connect your agent.",
@@ -430,5 +394,109 @@
   "cta_go_to_portal": {
     "en": "Go to portal",
     "ur": "پورٹل پر جائیں"
+  },
+  "header_tagline": {
+    "en": "a ledger that texts back",
+    "ur": "ایک کھاتہ جو جواب دیتا ہے"
+  },
+  "hero_platforms": {
+    "en": "Android · English · اردو",
+    "ur": "Android · انگلش · اردو"
+  },
+  "phone_agent_label": {
+    "en": "your agent",
+    "ur": "آپ کا ایجنٹ"
+  },
+  "why_undo_title": {
+    "en": "Undo is a reply.",
+    "ur": "Undo بس ایک ریپلائی ہے۔"
+  },
+  "why_undo_body": {
+    "en": "Quote the old message, say undo, and that entry reverses.",
+    "ur": "پرانے پیغام کو کوٹ کریں، undo لکھیں، اور وہ اندراج واپس ہو جاتا ہے۔"
+  },
+  "why_linked_title": {
+    "en": "Every line remembers its message.",
+    "ur": "ہر لائن کو اپنا پیغام یاد رہتا ہے۔"
+  },
+  "why_linked_body": {
+    "en": "The chat is the audit trail. Nothing is hidden in an app.",
+    "ur": "چیٹ ہی آڈٹ ٹریل ہے۔ کچھ بھی کسی ایپ میں چھپا نہیں۔"
+  },
+  "why_private_title": {
+    "en": "Only you can talk to it.",
+    "ur": "صرف آپ اس سے بات کر سکتے ہیں۔"
+  },
+  "why_private_body": {
+    "en": "Your agent answers one person: you.",
+    "ur": "آپ کا ایجنٹ صرف ایک شخص کو جواب دیتا ہے: آپ کو۔"
+  },
+  "ledger_dashboard_caption": {
+    "en": "Desk dashboard — balance sheet and net worth",
+    "ur": "ڈیسک ڈیش بورڈ — بیلنس شیٹ اور خالص مالیت"
+  },
+  "how_step1_title": {
+    "en": "Create your agent in WhatsApp.",
+    "ur": "WhatsApp میں اپنا ایجنٹ بنائیں۔"
+  },
+  "how_step1_body": {
+    "en": "Settings → Agents → Create. Copy the key.",
+    "ur": "Settings → Agents → Create۔ کلید کاپی کریں۔"
+  },
+  "how_step2_title": {
+    "en": "Paste the key here.",
+    "ur": "کلید یہاں پیسٹ کریں۔"
+  },
+  "how_step2_body": {
+    "en": "We show you a six-digit code.",
+    "ur": "ہم آپ کو چھ ہندسوں کا کوڈ دکھائیں گے۔"
+  },
+  "how_step3_title": {
+    "en": "Send the code to your agent.",
+    "ur": "کوڈ اپنے ایجنٹ کو بھیجیں۔"
+  },
+  "how_step3_body": {
+    "en": "That’s it. It greets you in your language and asks a few questions.",
+    "ur": "بس۔ یہ آپ کی زبان میں خوش آمدید کہے گا اور چند سوال پوچھے گا۔"
+  },
+  "how_hosted_note": {
+    "en": "Hosted means your key and ledger live on our server, encrypted. You can take the ledger and revoke the key any time. Prefer to run it yourself? It’s open source.",
+    "ur": "Hosted کا مطلب ہے کہ آپ کی کلید اور کھاتہ ہمارے سرور پر انکرپٹ حالت میں رہتے ہیں۔ آپ جب چاہیں کھاتہ لے جا سکتے ہیں اور کلید منسوخ کر سکتے ہیں۔ خود چلانا چاہتے ہیں؟ یہ اوپن سورس ہے۔"
+  },
+  "price_monthly_billing": {
+    "en": "per agent · billed monthly",
+    "ur": "فی ایجنٹ · ماہانہ ادائیگی"
+  },
+  "price_yearly_billing": {
+    "en": "per agent · billed once",
+    "ur": "فی ایجنٹ · ایک بار ادائیگی"
+  },
+  "price_feature_agent": {
+    "en": "one agent, one ledger",
+    "ur": "ایک ایجنٹ، ایک کھاتہ"
+  },
+  "price_feature_inputs": {
+    "en": "voice, photo and text",
+    "ur": "آواز، تصویر اور تحریر"
+  },
+  "price_feature_quota": {
+    "en": "1,000 AI interactions a month",
+    "ur": "مہینے میں 1,000 AI تعاملات"
+  },
+  "price_feature_export": {
+    "en": "export your ledger any time",
+    "ur": "جب چاہیں اپنا کھاتہ ایکسپورٹ کریں"
+  },
+  "price_feature_revoke": {
+    "en": "revoke any time",
+    "ur": "جب چاہیں منسوخ کریں"
+  },
+  "footer_github": {
+    "en": "GitHub",
+    "ur": "GitHub"
+  },
+  "footer_privacy": {
+    "en": "Privacy: entries and voice notes go only to the AI provider that answers them.",
+    "ur": "رازداری: اندراجات اور وائس نوٹ صرف اسی AI فراہم کنندہ کو جاتے ہیں جو ان کا جواب دیتا ہے۔"
   }
 }
