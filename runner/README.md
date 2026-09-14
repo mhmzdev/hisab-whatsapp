@@ -14,7 +14,7 @@ issues [#4](https://github.com/mhmzdev/hisab-whatsapp/issues/4) and
 | `status` | Written by | What runs |
 |---|---|---|
 | *(none)* | the portal creates `tenants/{uid}` with `agentName`, `keyCiphertext`, `nonce`, `nonceExpiresAt`, `createdAt` — and nothing else, `firestore.rules` rejects any other field from a client | nothing yet |
-| `pending` | the runner, once `keyCiphertext` decrypts with `RUNNER_PRIVATE_KEY` (`reconcile.admission`) | a muted worker: records inbounds, sends the trilingual reminder at most once per 10 minutes, no ledger, no model call |
+| `pending` | the runner, once `keyCiphertext` decrypts with `RUNNER_PRIVATE_KEY` (`reconcile.admission`) | a muted worker: records inbounds, sends the English-and-Urdu reminder at most once per 10 minutes, no ledger, no model call |
 | `connected` | the runner, when that tenant's `messages.jsonl` holds an exact case-insensitive `verify <nonce>` sent before `nonceExpiresAt` (`verify.check_pending`, polled every 2 s by `main.tick`); `creatorId` and `connectedAt` are written with it | the worker restarts unmuted (`pending` is in the state hash), sends the welcome once (`welcomed.json` marker), and the normal setup conversation follows |
 | `error` | the runner, when a worker exits with a status `hisab/errors.py` maps to a portal code (today `auth`, exit 3: WhatsApp rejected the token, 401/190 or 400/100); `lastError: "auth"` is a *code* the portal renders in English and Urdu, `lastErrorKey` fingerprints the ciphertext that failed | nothing — no restart loop. Pasting a different key in the portal re-admits the tenant |
 | `revoked` | the runner, when the portal writes `revokeRequestedAt` — the one client field that starts a transition ([#5](https://github.com/mhmzdev/hisab-whatsapp/issues/5), `lifecycle.revoke`): it stops the worker and waits for the exit, deletes `data/<uid>/media/` (media is never retained, #33), moves `vault/<uid>` and `data/<uid>` to `inactive_root/<uid>/<revokedAt>/` with a `revoked.json` marker, deletes the per-tenant config, then writes `revokedAt` and deletes `keyCiphertext`, `creatorId`, the nonce and every activity field | nothing. A new `keyCiphertext` on the document re-admits it as `pending` on an **empty** vault — reconnecting starts a new ledger |
@@ -49,8 +49,9 @@ ciphertext was sealed under the retired key must resubmit it through the portal.
 
 One command from the repo root: `make up` builds the portal, brings up the Auth/Firestore/Hosting
 emulators in the background (`make emulators` is the foreground variant), and starts the runner on
-the Gemini profile (`runner/config.yaml`). `make down` stops all of it, keeping `runner-data/`;
-`make down-v` also wipes it. Lower-level pieces stay available: `make landing` (build only),
+the Gemini profile (`runner/config.yaml`). `make down` stops all of it, keeping `runner-data/` and
+`emulator-data/` (the emulators' Auth users and Firestore tenants, exported on a clean stop and imported on
+the next start, so a restart keeps you signed in and connected); `make down-v` wipes both. Lower-level pieces stay available: `make landing` (build only),
 `make emulators` (foreground), `make runner-up` / `runner-logs` / `runner-down` / `runner-down-v`
 (the runner alone, on `RUNNER_CONFIG`, default `./runner/config.yaml`).
 
@@ -59,7 +60,7 @@ the Gemini profile (`runner/config.yaml`). `make down` stops all of it, keeping 
 | `make up` | portal built, emulators up in the background, runner up on Gemini |
 | http://localhost:3031/portal/ | sign in with any number (the emulator never sends SMS), paste a **demo** agent's key, send `verify <nonce>` from the phone that created that agent |
 | OTPs | `tail -f firebase-debug.log`, or `curl http://localhost:9099/emulator/v1/projects/demo-hisab/verificationCodes` |
-| `make down` / `make down-v` | stop the stack, optionally wiping `runner-data/` |
+| `make down` / `make down-v` | stop the stack, optionally wiping `runner-data/` and `emulator-data/` |
 
 The dev profile (`make dev`) runs the runner on OpenRouter (`RUNNER_CONFIG=./runner/config-dev.yaml`)
 against the dedicated dev Firebase project instead of the emulators — see the profile table below.

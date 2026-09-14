@@ -42,7 +42,9 @@ The Urdu page reads in Jameel Noori Nastaleeq, `landing/assets/noori-nastaleeq.w
 pip install fonttools brotli
 pyftsubset noori.ttf --unicodes="U+0020-007E,U+00A0,U+060C-06FF,U+200C-200F,U+2013-2014,U+2018-201D,U+2026,U+FB50-FDFF,U+FE70-FEFF" \
   --layout-features='*' --no-hinting --flavor=woff2 --output-file=landing/assets/noori-nastaleeq.woff2
-``` The logo mark comes from `landing/assets/` in both colours; `BrandMark.jsx` shows the one for the resolved theme.
+```
+
+The logo mark comes from `landing/assets/` in both colours; `BrandMark.jsx` shows the one for the resolved theme.
 
 ## Theme and the signed-in hint
 

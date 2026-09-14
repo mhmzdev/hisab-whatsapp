@@ -5,9 +5,9 @@ title: Hosted Hisab — landing page and portal
 description: A hosted Hisab service that connects one WhatsApp agent and one plain-text ledger to a phone-authenticated portal, with local-first development and no real subscription payments in the initial demo.
 tags: [spec, hosted, portal]
 timestamp: 2026-09-12T00:00:00Z
-status: ticketed
+status: shipped
 parent: https://github.com/mhmzdev/hisab-whatsapp/issues/1
-last_verified: 2026-09-12
+last_verified: 2026-09-14
 ---
 
 # 001 — Hosted Hisab — Spec

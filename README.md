@@ -6,6 +6,11 @@ A ledger you text. Send **"2500 coffee"**, a voice note in Urdu, Roman Urdu or E
 
 *Hisab* (حساب) is the word every Urdu speaker already uses for exactly this.
 
+<p align="center">
+  <img src="showcase/onboarding_hisab.jpg" width="300" alt="Connecting the agent, then setup: personal or shop, currency, money accounts, credit cards, in English and Urdu">
+</p>
+<p align="center"><sub>Connecting a real agent, then setup, in English and Urdu.</sub></p>
+
 > Built for the AI Tinkerers global hackathon *Agents, Everywhere* (2026-09-12). Extracted from a personal system the author has run since early September 2026; this is the public, API-level rewrite. Android only for the WhatsApp path — the platform has not shipped agent creation on iOS — so the terminal path below is how anyone else verifies it.
 
 ## Run it in your terminal, right now
@@ -47,8 +52,20 @@ You will see the supplier balance, a two-column month table, a posted entry with
 - **Setup is a conversation, in your language.** The first message asks, in English and Urdu, whether the ledger is personal or for a shop. Whichever you answer in becomes your language for up to eight questions and every fixed reply after; a one-line note says `/lang` switches it. Hisab is written in English and اردو; write to it in Roman Urdu and it answers in Roman Urdu.
 - **Forwarded bank SMS are entries.** Long-press the bank's message, share it to the agent, done.
 - **`export-ledger` returns your books.** Send it to the agent and the ledger folder comes back as a ZIP document named by local date and time (`hisab-2026-09-14-1110.zip`, `timezone` in config): no keys, no chat history.
+- **Failures say what to do next.** A model outage, an unreadable voice note or a rejected entry gets one fixed line in your language, never a stack trace or a provider's error.
 
 Architecture in one page: [`ARCHITECTURE.md`](ARCHITECTURE.md).
+
+## What you can send
+
+| Send | What happens |
+|---|---|
+| `2500 coffee` · `Metro ko 20000 diye` · a voice note · a receipt photo · a forwarded bank SMS | one posted entry, or one question if the amount or account is unclear |
+| `balances` · `is mahine vs pichla` · `what can I afford` | a report in a code block |
+| `undo`, or *undo* quoting an old message | the last entry, or that message's entry, reversed |
+| `export-ledger` | the ledger folder as a ZIP |
+| `/lang اردو` · `/lang english` | switch the language of every fixed reply |
+| `/help` · `/clear` (forget the chat context) · `/setup` (run setup again) | fixed replies, no model call |
 
 ## Run it for real
 
@@ -64,11 +81,11 @@ Your ledger lives in `./vault/` on your machine. Nothing goes to anyone but your
 
 **Setting it up for someone else** (a shop): they create the agent on *their* phone and send you the key; you run the container. They text, they get replies. You only ever see the ledger file, and only if they show you.
 
-## Hosted Hisab (in progress)
+## Hosted Hisab (built, not deployed)
 
 For people who will never run Docker: sign in with a phone number, paste your agent's key, send the code the portal shows you to your agent, and we run the worker. Your key and ledger then live on our server, encrypted. Send `export-ledger` to your agent and the ledger comes back as a ZIP; revoke stops the worker and deletes the key. Self-host (above, `make selfhost`) keeps both on your own machine. 300 PKR/month is the presentation price; nothing in this repo collects it.
 
-What exists today: the landing page and portal in `landing/` (phone sign-in, the key sealed in the browser, the `verify <code>` step, a Connected screen with live activity and a working Revoke), the runner in `runner/` that turns a Firestore tenant into one isolated worker, matches the code, enforces the monthly model-call allowance and retains a revoked ledger for 30 days, and the `export-ledger` command. `make up` runs the whole local hosted stack — the Auth/Firestore/Hosting emulators, the runner on Gemini, and the portal at http://localhost:3031/portal/ — as one command (see `runner/README.md`); `make dev` runs the runner on OpenRouter against the dedicated dev Firebase project once it exists. Design: [`docs/brainstorm/hosted-portal.md`](docs/brainstorm/hosted-portal.md); spec: [`docs/specs/001-hosted-portal.md`](docs/specs/001-hosted-portal.md).
+All of it works end to end on one machine; none of it is on the internet yet. The landing page and portal in `landing/` (phone sign-in, the key sealed in the browser, the `verify <code>` step, a Connected screen with live activity and a working Revoke), the runner in `runner/` that turns a Firestore tenant into one isolated worker, matches the code, enforces the monthly model-call allowance (refunded when the model side fails) and retains a revoked ledger for 30 days. `make up` runs the whole stack — the Auth/Firestore/Hosting emulators, the runner on Gemini, and the portal at http://localhost:3031/portal/ — as one command (see [`runner/README.md`](runner/README.md)); `make dev` runs the runner on OpenRouter against a dedicated dev Firebase project once one exists. The screenshot above is this flow on a real agent. Design: [`docs/brainstorm/hosted-portal.md`](docs/brainstorm/hosted-portal.md); spec: [`docs/specs/001-hosted-portal.md`](docs/specs/001-hosted-portal.md).
 
 ## Viewing
 
@@ -86,6 +103,10 @@ The same shape, one creator, long-poll, a fenced tool surface, is a different pr
 ## Privacy
 
 Entries, voice notes and receipt photos go to the model provider you configured, through OpenRouter or the endpoint you set. Nothing goes to the author. To keep one provider, set `model.provider_pin`. The ledger, the message store and your keys never leave the machine you run this on.
+
+## Working on it
+
+`python3 tests/smoke.py` is the check: no network, no keys. `make help` lists every target. Coding agents (and people) start at [`AGENTS.md`](AGENTS.md), then [`ARCHITECTURE.md`](ARCHITECTURE.md), then [`docs/INDEX.md`](docs/INDEX.md), which routes to every spec, plan and acceptance checklist behind the code. Work moves brainstorm → spec → GitHub issue → plan → review → PR, and those artifacts are committed beside the code.
 
 ## Origin and related
 

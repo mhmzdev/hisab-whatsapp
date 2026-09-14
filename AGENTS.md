@@ -24,6 +24,7 @@ hisab/
   setup.py       the setup conversation: language first, then ≤8 questions, personal or shop; writes accounts/rules/hisab.md/settings.json from templates/
   i18n.py        every fixed user-facing string in en / ur, plus the model's reply-shape line per language
   errors.py      THE error-code registry: every failure reply (chat) and runner lastError (portal) is a code; classify → log → reply
+  clock.py       the one clock: every "today", quota month and export name in config `timezone`, never the container's UTC
   store.py       runtime state: offset, messages.jsonl (keyed by WhatsApp id), entry-number map, setup state, rolling window
   wa.py          WhatsApp Agent Platform client: poll, download, typing, send with chunking, send_document, markdown → WhatsApp;
                  per-method rate limiter (messages/statuses/updates/media, own rolling 60s window each, per agent — config
@@ -40,9 +41,12 @@ runner/          hosted mode only: Firestore reconciler, one hisab.loop subproce
 landing/         hosted mode only: the static Next.js landing page + portal (phone auth, sealed-box key submit) — see landing/README.md
 firestore.rules  owner-scoped client writes on tenants/{uid}: five client fields only, never status/creatorId — tests/rules/ proves it
 tests/           smoke.py (no-network regression, THE check) · make_sample.py · demo_terminal.sh (terminal demo on a copy of the sample)
-docs/            lifecycle artifacts, INDEX.md at every level (see below)
+                 check_endpoint.py (validate a key) · bakeoff.sh (compare models) · check_landing.py (run by smoke) · rules/ (firestore.rules tests)
+examples/        config.openrouter.yaml, config.gemini.yaml, runner-config.openrouter.yaml — copied into the gitignored configs
+showcase/        README images: the cover and real-agent screenshots — check every screenshot for personal data before committing
+docs/            lifecycle artifacts, INDEX.md at every level (see below); docs/INDEX.md also routes to every README outside docs/
 ARCHITECTURE.md  bird's-eye view — read after this file
-Dockerfile · docker-compose.yml · config.example.yaml · .env.example
+Makefile (`make help`) · Dockerfile · docker-compose.yml · docker-compose.runner*.yml · config.example.yaml · .env.example
 ```
 
 ## Non-negotiables

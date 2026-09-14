@@ -12,4 +12,4 @@ Numbered WHAT/WHY contracts written by /to-spec. Status: draft → ticketed (par
 
 | Spec | Title | Status | Date |
 |---|---|---|---|
-| [001](001-hosted-portal.md) | Hosted Hisab — landing page and portal | ticketed | 2026-09-12 |
+| [001](001-hosted-portal.md) | Hosted Hisab — landing page and portal | shipped (parent [#1](https://github.com/mhmzdev/hisab-whatsapp/issues/1) closed 2026-09-13; built and running locally, not deployed) | 2026-09-12 |
