@@ -8,8 +8,10 @@ A ledger you text. Send **"2500 coffee"**, a voice note in Urdu, Roman Urdu or E
 
 <p align="center">
   <img src="showcase/onboarding_hisab.jpg" width="300" alt="Connecting the agent, then setup: personal or shop, currency, money accounts, credit cards, in English and Urdu">
+  &nbsp;&nbsp;
+  <img src="showcase/transactions_hisab.jpg" width="300" alt="A voice note posts petrol 500; a forwarded bank receipt gets one question, answered by quoting it, and posts as a loan to a friend">
 </p>
-<p align="center"><sub>Connecting a real agent, then setup, in English and Urdu.</sub></p>
+<p align="center"><sub>Left: connecting a real agent, then setup, in English and Urdu. Right: a voice note posts #2; a forwarded bank receipt gets one question, answered by quoting it, and posts #3.</sub></p>
 
 > Built for the AI Tinkerers global hackathon *Agents, Everywhere* (2026-09-12). Extracted from a personal system the author has run since early September 2026; this is the public, API-level rewrite. Android only for the WhatsApp path — the platform has not shipped agent creation on iOS — so the terminal path below is how anyone else verifies it.
 
@@ -25,6 +27,8 @@ cp examples/config.openrouter.yaml config.yaml
 python3 tests/check_endpoint.py             # key valid, model has tools, transcription answers
 bash tests/demo_terminal.sh
 ```
+
+Only have a Gemini key? Put it on the `GEMINI_API_KEY` line and copy `config.example.yaml` instead: its provider is `auto`, which uses OpenRouter when that key is set and Gemini otherwise.
 
 Then type, one per line:
 
@@ -69,10 +73,10 @@ Architecture in one page: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ## Run it for real
 
-You need an Android phone with WhatsApp, Docker, and an [OpenRouter](https://openrouter.ai) key.
+You need an Android phone with WhatsApp, Docker, and an [OpenRouter](https://openrouter.ai) or [Gemini](https://aistudio.google.com/apikey) key.
 
 1. In WhatsApp: Settings → Agents → Create an agent → Chat info → copy the API key.
-2. `cp .env.example .env` and paste the WhatsApp key and your OpenRouter key.
+2. `cp .env.example .env` and paste the WhatsApp key and your model key (OpenRouter or Gemini; one is enough).
 3. `cp config.example.yaml config.yaml`. The defaults are fine; change the model if you like.
 4. `docker compose up -d` (or `make selfhost`)
 5. Send your agent any message. It asks personal or shop (in English and Urdu, answer in either), then up to seven more questions in that language, writes your chart of accounts, and posts what you sent.
@@ -85,7 +89,7 @@ Your ledger lives in `./vault/` on your machine. Nothing goes to anyone but your
 
 For people who will never run Docker: sign in with a phone number, paste your agent's key, send the code the portal shows you to your agent, and we run the worker. Your key and ledger then live on our server, encrypted. Send `export-ledger` to your agent and the ledger comes back as a ZIP; revoke stops the worker and deletes the key. Self-host (above, `make selfhost`) keeps both on your own machine. 300 PKR/month is the presentation price; nothing in this repo collects it.
 
-All of it works end to end on one machine; none of it is on the internet yet. The landing page and portal in `landing/` (phone sign-in, the key sealed in the browser, the `verify <code>` step, a Connected screen with live activity and a working Revoke), the runner in `runner/` that turns a Firestore tenant into one isolated worker, matches the code, enforces the monthly model-call allowance (refunded when the model side fails) and retains a revoked ledger for 30 days. `make up` runs the whole stack — the Auth/Firestore/Hosting emulators, the runner on Gemini, and the portal at http://localhost:3031/portal/ — as one command (see [`runner/README.md`](runner/README.md)); `make dev` runs the runner on OpenRouter against a dedicated dev Firebase project once one exists. The screenshot above is this flow on a real agent. Design: [`docs/brainstorm/hosted-portal.md`](docs/brainstorm/hosted-portal.md); spec: [`docs/specs/001-hosted-portal.md`](docs/specs/001-hosted-portal.md).
+All of it works end to end on one machine; none of it is on the internet yet. The landing page and portal in `landing/` (phone sign-in, the key sealed in the browser, the `verify <code>` step, a Connected screen with live activity and a working Revoke), the runner in `runner/` that turns a Firestore tenant into one isolated worker, matches the code, enforces the monthly model-call allowance (refunded when the model side fails) and retains a revoked ledger for 30 days. `make up` runs the whole stack — the Auth/Firestore/Hosting emulators, the runner on Gemini, and the portal at http://localhost:3031/portal/ — as one command (see [`runner/README.md`](runner/README.md)); `make dev` runs the runner on OpenRouter against a dedicated dev Firebase project once one exists. The left screenshot above is this flow on a real agent. Design: [`docs/brainstorm/hosted-portal.md`](docs/brainstorm/hosted-portal.md); spec: [`docs/specs/001-hosted-portal.md`](docs/specs/001-hosted-portal.md).
 
 ## Viewing
 

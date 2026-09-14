@@ -53,8 +53,9 @@ bakeoff: ## Compare a model on the fixed demo script: make bakeoff MODEL=anthrop
 	bash tests/bakeoff.sh $(MODEL)
 
 landing: NEXT_PUBLIC_USE_EMULATORS ?= 1
-landing: ## Build the Hosted Hisab landing page and portal shell to landing/out. Override: make landing NEXT_PUBLIC_USE_EMULATORS=0 for the dev/remote profile
-	cd landing && npm install && NEXT_PUBLIC_USE_EMULATORS=$(NEXT_PUBLIC_USE_EMULATORS) npm run build
+landing: NEXT_PUBLIC_HOSTED ?= 0
+landing: ## Build the landing page and portal to landing/out; hosted sign-up off (the public build). Override: NEXT_PUBLIC_HOSTED=1, NEXT_PUBLIC_USE_EMULATORS=0
+	cd landing && npm install && NEXT_PUBLIC_USE_EMULATORS=$(NEXT_PUBLIC_USE_EMULATORS) NEXT_PUBLIC_HOSTED=$(NEXT_PUBLIC_HOSTED) npm run build
 
 landing-check: ## Run the landing static checks (en and ur, verification direction, no payment collection)
 	python3 tests/check_landing.py
@@ -67,6 +68,7 @@ EMULATORS_PID := .emulators.pid
 EMULATOR_DATA := ./emulator-data
 EMULATOR_FLAGS := --only auth,firestore,hosting --project $(FIREBASE_PROJECT) --import=$(EMULATOR_DATA) --export-on-exit=$(EMULATOR_DATA)
 
+up: NEXT_PUBLIC_HOSTED := 1
 up: landing emulators-up runner-up ## Hosted local stack: Gemini runner + Auth/Firestore/Hosting emulators + portal at :3031
 	@echo "OTPs → tail -f firebase-debug.log, or: curl http://localhost:9099/emulator/v1/projects/$(FIREBASE_PROJECT)/verificationCodes"
 
@@ -81,7 +83,7 @@ dev: ## Hosted dev-profile stack: OpenRouter runner against the dev Firebase pro
 	@test -f $(RUNNER_SERVICE_ACCOUNT) || { echo "$(RUNNER_SERVICE_ACCOUNT) missing — the dev Firebase project isn't provisioned yet"; exit 1; }
 	@test -f $(RUNNER_CONFIG) || { echo "$(RUNNER_CONFIG) missing — cp examples/runner-config.openrouter.yaml $(RUNNER_CONFIG)"; exit 1; }
 	@grep -q '^RUNNER_PRIVATE_KEY=.\+' .env || { echo "RUNNER_PRIVATE_KEY missing from .env — python3 -m runner.keygen"; exit 1; }
-	$(MAKE) landing NEXT_PUBLIC_USE_EMULATORS=$(NEXT_PUBLIC_USE_EMULATORS)
+	$(MAKE) landing NEXT_PUBLIC_USE_EMULATORS=$(NEXT_PUBLIC_USE_EMULATORS) NEXT_PUBLIC_HOSTED=1
 	RUNNER_CONFIG=$(RUNNER_CONFIG) RUNNER_SERVICE_ACCOUNT=$(RUNNER_SERVICE_ACCOUNT) env -u FIRESTORE_EMULATOR_HOST docker compose -f docker-compose.runner.yml -f docker-compose.runner.dev.yml up -d --build
 	@echo "runner (dev) → docker compose -f docker-compose.runner.yml -f docker-compose.runner.dev.yml"
 

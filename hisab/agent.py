@@ -41,7 +41,9 @@ class Agent:
         key_env = cfg["model"].get("api_key_env") or "OPENROUTER_API_KEY"
         self.key = os.environ.get(key_env, "").strip() or cfg["secrets"]["openrouter_key"]
         if not self.key:
-            raise RuntimeError(f"no API key: set {key_env} in .env")
+            # an operator's startup failure, never a chat reply; auto means neither key was found (hisab/config.py)
+            need = "OPENROUTER_API_KEY or GEMINI_API_KEY" if cfg["model"].get("provider") == "auto" else key_env
+            raise RuntimeError(f"no API key: set {need} in .env")
 
     def system(self):
         names = self.ledger.account_names()

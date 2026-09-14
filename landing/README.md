@@ -10,7 +10,7 @@ From the repo root:
 
 | Command | What |
 |---|---|
-| `make landing` | `npm install && npm run build` — writes the static export to `landing/out/`. `NEXT_PUBLIC_USE_EMULATORS=0` for the dev/remote profile |
+| `make landing` | `npm install && npm run build` — writes the static export to `landing/out/`, hosted sign-up off. `NEXT_PUBLIC_HOSTED=1` to open it, `NEXT_PUBLIC_USE_EMULATORS=0` for the dev/remote profile |
 | `make landing-check` | Runs `tests/check_landing.py` — no Firebase on the landing page, the pre-paint theme script, two-language completeness (exactly `en` and `ur`), verification direction, no payment collection, `firebase.json` shape, a portal string per runner `lastError` code |
 | `make emulators` | Serves `landing/out` at http://localhost:3031 through the Hosting emulator, with Auth and Firestore beside it (foreground; `make up` is the background hosted stack) |
 | `make up` | The whole hosted local stack: emulators in the background, the runner on Gemini, the portal at http://localhost:3031/portal/ |
@@ -25,6 +25,19 @@ From the repo root:
 secret: `NEXT_PUBLIC_FIREBASE_*` is the public web config, `NEXT_PUBLIC_RUNNER_PUBLIC_KEY` is the public
 half of `python3 -m runner.keygen`, and `NEXT_PUBLIC_USE_EMULATORS=1` points auth and Firestore at the
 local Emulator Suite. Rebuild after changing any of them.
+
+## Hosted sign-up is a build flag
+
+`NEXT_PUBLIC_HOSTED=1` opens it; anything else is the public build, and that is the default. `landing/app/hosted.js` is the one place it is read.
+
+| | `NEXT_PUBLIC_HOSTED=1` | off (default) |
+|---|---|---|
+| Hero and header CTA | Get started → `/portal/` (Go to portal when signed in) | Run it yourself → the README's self-host steps on GitHub |
+| Setup section | as written | a Coming soon note above the three steps |
+| Pricing | Get started, and the JazzCash/Easypaisa note | a Coming soon badge, Run it yourself, and "planned price, nothing to pay today" |
+| `/portal/` | sign-in and the tenant screens | a coming-soon card; `firebase()` is never called |
+
+`make up` and `make dev` build with it on; `make landing` and `make selfhost` build it off. A command-line value wins over `landing/.env.local`. `tests/check_landing.py` fails if a page stops importing the gate.
 
 ## The `strings.json` contract
 

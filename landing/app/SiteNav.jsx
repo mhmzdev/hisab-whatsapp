@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import BrandMark from './BrandMark'
+import { HOSTED } from './hosted'
 import { useLanguage } from './LanguageProvider'
 import LanguageSwitcher from './LanguageSwitcher'
 import { readSignedIn } from './signedIn'
@@ -41,9 +42,14 @@ export default function SiteNav() {
         <div className="header-controls">
           <LanguageSwitcher />
           <ThemeToggle />
-          {onLanding && (
+          {onLanding && HOSTED && (
             <a className="site-nav-cta" href={signedIn ? '/portal/' : '/#pricing'}>
               {signedIn ? t('cta_go_to_portal') : t('nav_get_started')}
+            </a>
+          )}
+          {onLanding && !HOSTED && (
+            <a className="site-nav-cta" href="https://github.com/mhmzdev/hisab-whatsapp#run-it-for-real" target="_blank" rel="noopener noreferrer">
+              {t('hero_cta_secondary')}
             </a>
           )}
         </div>

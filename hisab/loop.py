@@ -170,7 +170,8 @@ class Hisab:
         wa = WhatsApp(tok, self.cfg["whatsapp"]["poll_timeout"], self.cfg["whatsapp"]["chunk_chars"],
                       self.cfg["whatsapp"].get("rate_limits"))
         offset = self.store.offset()
-        print(f"Polling WhatsApp. Ledger: {self.ledger.dir}")
+        m = self.cfg["model"]
+        print(f"Polling WhatsApp. Ledger: {self.ledger.dir} · model {m['id']} via {m.get('provider')} · voice via {self.cfg['transcription']['provider']}")
         self._welcome_if_due(wa)
         while True:
             self._sweep_media()

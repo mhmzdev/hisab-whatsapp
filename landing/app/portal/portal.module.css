@@ -500,3 +500,10 @@
 .signOut:hover {
   color: var(--brand);
 }
+
+a.button {
+  display: block;
+  box-sizing: border-box;
+  text-align: center;
+  text-decoration: none;
+}

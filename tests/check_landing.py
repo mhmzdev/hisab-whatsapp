@@ -1,4 +1,4 @@
-"""Static checks on landing/: no Firebase/libsodium on the landing page, the pre-paint theme script, two-language completeness (exactly en and ur; Roman Urdu is the agent's, not the page's), verification direction, no payment collection, no WhatsApp branding, firebase.json shape, a portal string for every runner lastError code. Stdlib only, no node."""
+"""Static checks on landing/: no Firebase/libsodium on the landing page, the pre-paint theme script, two-language completeness (exactly en and ur; Roman Urdu is the agent's, not the page's), verification direction, no payment collection, no WhatsApp branding, the NEXT_PUBLIC_HOSTED gate, firebase.json shape, a portal string for every runner lastError code. Stdlib only, no node."""
 import json
 import re
 import sys
@@ -125,6 +125,15 @@ def run(root):
         for m in re.finditer(r"""(?:from|import)\s*\(?\s*['"]([^'"]+)['"]""", landing_page.read_text()):
             if LANDING_FORBIDDEN_IMPORT_RE.search(m.group(1)):
                 failures.append(f"landing/app/page.jsx: imports {m.group(1)!r} — the landing page must not load Firebase or portal code")
+
+    # hosted sign-up is a build flag, off unless NEXT_PUBLIC_HOSTED=1: no portal link or payment line may ship ungated
+    hosted_js = landing / "app" / "hosted.js"
+    if (landing / "app" / "page.jsx").exists() and (not hosted_js.exists() or "process.env.NEXT_PUBLIC_HOSTED === '1'" not in hosted_js.read_text()):
+        failures.append("landing/app/hosted.js: HOSTED must be process.env.NEXT_PUBLIC_HOSTED === '1'")
+    for rel in ("app/page.jsx", "app/SiteNav.jsx", "app/portal/page.jsx"):
+        path = landing / rel
+        if path.exists() and not re.search(r"import\s*\{\s*HOSTED\s*\}\s*from\s*['\"]\.{1,2}/hosted['\"]", path.read_text()):
+            failures.append(f"landing/{rel}: must gate hosted sign-up on HOSTED from hosted.js")
 
     # sign-in sends only a normalised Pakistani mobile (+923XXXXXXXXX): never "+92" glued to raw input (#37)
     portal_page = landing / "app" / "portal" / "page.jsx"

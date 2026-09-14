@@ -7,6 +7,7 @@ ledger:
   currency: PKR
 
 model:
+  provider: openrouter           # pinned: never falls back to GEMINI_API_KEY
   id: openai/gpt-4.1-mini        # tools verified on OpenRouter; run tests/bakeoff.sh to compare candidates
   base_url: null                 # null = OpenRouter
   api_key_env: null              # null = OPENROUTER_API_KEY

@@ -1098,3 +1098,26 @@
   color: #CFE3DF;
   max-width: 52em;
 }
+
+/* Hosted not open in this build (app/hosted.js): a badge on pricing and a note over the setup steps */
+.soonBadge {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+.soonNote {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 28px;
+  font-size: 15px;
+  color: var(--muted);
+}
