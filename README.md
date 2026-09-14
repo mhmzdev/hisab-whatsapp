@@ -52,7 +52,7 @@ You will see the supplier balance, a two-column month table, a posted entry with
 
 - **hledger**, a real plain-text accounting engine, not a categoriser. The ledger is a markdown file you can open anywhere. Every append runs `hledger check --strict`; a bad entry rolls back. Transfers are transfers, not spend, so the month total is honest.
 - **A small tool-calling loop** on any OpenAI-compatible endpoint (OpenRouter by default, one key for the model and voice transcription). **Six tools, nothing else:** append, undo, report, learn a category rule, read accounts, add account. No shell, no file access.
-- **The WhatsApp Agent Platform**: long-poll, one creator, thirty days of buffered messages. Idempotent by message id; the offset advances only after a batch, so a crash replays rather than drops or doubles. Model calls retry with backoff.
+- **The WhatsApp Agent Platform** ([WhatsApp's introduction to third-party agents](https://faq.whatsapp.com/1050934623978152), where platform changes are announced and the rest of its documentation is linked): long-poll, one creator, thirty days of buffered messages. Idempotent by message id; the offset advances only after a batch, so a crash replays rather than drops or doubles. Model calls retry with backoff.
 - **Setup is a conversation, in your language.** The first message asks, in English and Urdu, whether the ledger is personal or for a shop. Whichever you answer in becomes your language for up to eight questions and every fixed reply after; a one-line note says `/lang` switches it. Hisab is written in English and اردو; write to it in Roman Urdu and it answers in Roman Urdu.
 - **Forwarded bank SMS are entries.** Long-press the bank's message, share it to the agent, done.
 - **`export-ledger` returns your books.** Send it to the agent and the ledger folder comes back as a ZIP document named by local date and time (`hisab-2026-09-14-1110.zip`, `timezone` in config): no keys, no chat history.
@@ -75,7 +75,7 @@ Architecture in one page: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 You need an Android phone with WhatsApp, Docker, and an [OpenRouter](https://openrouter.ai) or [Gemini](https://aistudio.google.com/apikey) key.
 
-1. In WhatsApp: Settings → Agents → Create an agent → Chat info → copy the API key.
+1. In WhatsApp: Settings → Agents → Create an agent → Chat info → copy the API key. WhatsApp's own guide: [Introduction to Third-Party Agents on WhatsApp](https://faq.whatsapp.com/1050934623978152).
 2. `cp .env.example .env` and paste the WhatsApp key and your model key (OpenRouter or Gemini; one is enough).
 3. `cp config.example.yaml config.yaml`. The defaults are fine; change the model if you like.
 4. `docker compose up -d` (or `make selfhost`)
