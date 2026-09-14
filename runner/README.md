@@ -16,7 +16,7 @@ issues [#4](https://github.com/mhmzdev/hisab-whatsapp/issues/4) and
 | *(none)* | the portal creates `tenants/{uid}` with `agentName`, `keyCiphertext`, `nonce`, `nonceExpiresAt`, `createdAt` — and nothing else, `firestore.rules` rejects any other field from a client | nothing yet |
 | `pending` | the runner, once `keyCiphertext` decrypts with `RUNNER_PRIVATE_KEY` (`reconcile.admission`) | a muted worker: records inbounds, sends the trilingual reminder at most once per 10 minutes, no ledger, no model call |
 | `connected` | the runner, when that tenant's `messages.jsonl` holds an exact case-insensitive `verify <nonce>` sent before `nonceExpiresAt` (`verify.check_pending`, polled every 2 s by `main.tick`); `creatorId` and `connectedAt` are written with it | the worker restarts unmuted (`pending` is in the state hash), sends the welcome once (`welcomed.json` marker), and the normal setup conversation follows |
-| `error` | the runner, when a worker exits with `hisab.wa.AUTH_EXIT_CODE` (WhatsApp rejected the token: 401/190 or 400/100); `lastError: "auth"` is a *code* the portal renders in English and Urdu, `lastErrorKey` fingerprints the ciphertext that failed | nothing — no restart loop. Pasting a different key in the portal re-admits the tenant |
+| `error` | the runner, when a worker exits with a status `hisab/errors.py` maps to a portal code (today `auth`, exit 3: WhatsApp rejected the token, 401/190 or 400/100); `lastError: "auth"` is a *code* the portal renders in English and Urdu, `lastErrorKey` fingerprints the ciphertext that failed | nothing — no restart loop. Pasting a different key in the portal re-admits the tenant |
 | `revoked` | the runner, when the portal writes `revokeRequestedAt` — the one client field that starts a transition ([#5](https://github.com/mhmzdev/hisab-whatsapp/issues/5), `lifecycle.revoke`): it stops the worker and waits for the exit, moves `vault/<uid>` and `data/<uid>` to `inactive_root/<uid>/<revokedAt>/` with a `revoked.json` marker, deletes the per-tenant config, then writes `revokedAt` and deletes `keyCiphertext`, `creatorId`, the nonce and every activity field | nothing. A new `keyCiphertext` on the document re-admits it as `pending` on an **empty** vault — reconnecting starts a new ledger |
 
 While a tenant is `connected`, the runner also keeps the portal's Connected screen honest without
@@ -84,7 +84,6 @@ Then `make rules-test` for the rules as an attacker, `python3 tests/smoke.py` fo
 - `tenant_config.py` — UID-scoped per-tenant config: always the runner's global model/transcription, `quota.monthly_limit`, `pending`, `hosted: true`.
 - `verify.py` — `check_pending`/`poll_pending`: the nonce match, pure and file-based.
 - `reconcile.py` — the whole tenant collection → desired worker state, idempotent by content hash; `admission` and `on_worker_exit` are the two status transitions it owns.
-- `errors.py` — the `lastError` codes; `tests/check_landing.py` requires a portal string for each.
 - `workers.py` — `WorkerManager`: start/stop/restart/reap a tenant's `hisab.loop` subprocess.
 - `firestore_listener.py` / `main.py` — the one snapshot listener, the one write path, and the 2-second tick (worker exits → verify → revokes → hourly sweep → 10-second activity pass).
 

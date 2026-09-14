@@ -4,7 +4,7 @@ state hash, so activity/quota writes never bounce a worker that hasn't actually 
 
 Status is runner-owned (firestore.rules lets no client write it). Two transitions live here:
   no status, `revoked`, or `error` with a new ciphertext, + decryptable keyCiphertext -> pending   (admission)
-  worker exited with hisab.wa.AUTH_EXIT_CODE                                          -> error + lastError "auth"
+  worker exited with a status hisab/errors.py maps to a portal code                  -> error + lastError <code>
 pending -> connected is runner/verify.py's and any status -> revoked is runner/lifecycle.py's, both
 driven by main.py's 2-second loop.
 """
@@ -12,10 +12,9 @@ import hashlib
 import json
 import os
 
-from hisab.wa import AUTH_EXIT_CODE
+from hisab import errors
 
 from .crypto import CryptoError, decrypt
-from .errors import LAST_ERROR_CODES
 from .tenant_config import build_tenant_config, write_tenant_config
 
 RUNNING_STATUSES = ("pending", "connected")
@@ -99,14 +98,15 @@ def reconcile(tenant_docs, runner_cfg, manager, update=None):
 
 
 def on_worker_exit(uid, returncode, tenant_docs, update=None):
-    """A worker exit -> the tenant-document write it deserves, or None. Only the auth failure is surfaced:
-    it never becomes valid on retry, so the tenant parks in `error` (not a running status — no restart
-    loop) with a lastError CODE the portal renders in English and Urdu, until a new ciphertext arrives."""
-    if returncode != AUTH_EXIT_CODE:
+    """A worker exit -> the tenant-document write it deserves, or None. Only an exit status registered in
+    hisab/errors.py is surfaced (today "auth": a rejected token never becomes valid on retry), so the tenant
+    parks in `error` (not a running status — no restart loop) with a lastError CODE the portal renders in
+    English and Urdu, until a new ciphertext arrives. An ordinary crash maps to no code and restarts."""
+    code = errors.code_for_exit(returncode)
+    if not code:
         return None
-    assert "auth" in LAST_ERROR_CODES
     doc = tenant_docs.get(uid) or {}
-    fields = {"status": "error", "lastError": "auth", "lastErrorKey": key_fingerprint(doc.get("keyCiphertext"))}
+    fields = {"status": "error", "lastError": code, "lastErrorKey": key_fingerprint(doc.get("keyCiphertext"))}
     if update:
         update(uid, fields)
     return fields

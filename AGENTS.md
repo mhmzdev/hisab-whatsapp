@@ -1,13 +1,15 @@
 # Hisab on WhatsApp — agent guide
 
-A ledger you text: WhatsApp (or a terminal) → a tool-calling agent with exactly six tools → a plain-text hledger ledger in markdown, every write under `hledger check --strict`. This file is the canonical instructions for any coding agent (Claude Code reads it through `CLAUDE.md`; Codex and others read it directly). It is a router and a fact sheet, not a knowledge base: the README explains the product, the code explains itself, and the skills explain the process.
+A ledger you text: WhatsApp (or a terminal) → a tool-calling agent with exactly six tools → a plain-text hledger ledger in markdown, every write under `hledger check --strict`. This file is the canonical instructions for any coding agent (Claude Code reads it through `CLAUDE.md`; Codex and others read it directly). It is a router and a fact sheet, not a knowledge base: the README explains the product, the code explains itself, the skills explain the process, and the rules hold the conventions.
 
 ## Read in this order
 
 1. This file — how to work here and the repo facts.
 2. [`ARCHITECTURE.md`](ARCHITECTURE.md) — the bird's-eye view: one message's path, components, state, invariants, failure paths.
 3. [`docs/INDEX.md`](docs/INDEX.md) — the progressive-disclosure root for every artifact; each directory has its own `INDEX.md`.
-4. The code, starting from the file the task names.
+4. [`.agents/rules/`](.agents/rules/) — conventions for code in this repo, one file per topic. Read the rules for the area you touch; each file's `paths:` frontmatter says which area that is. Claude Code loads them automatically through the `.claude/rules` symlink.
+   - [`errors.md`](.agents/rules/errors.md) — failures are codes in `hisab/errors.py`, never exception text
+5. The code, starting from the file the task names.
 
 Docs follow the Open Knowledge Format: markdown, a small YAML frontmatter with `type`, an `INDEX.md` per directory, plain links as the graph.
 
@@ -21,6 +23,7 @@ hisab/
   ledger.py      hledger on markdown: quarter files, append under strict check with rollback, undo by entry number, reports, rules, periodic rules, settings
   setup.py       the setup conversation: language first, then ≤8 questions, personal or shop; writes accounts/rules/hisab.md/settings.json from templates/
   i18n.py        every fixed user-facing string in en / ur, plus the model's reply-shape line per language
+  errors.py      THE error-code registry: every failure reply (chat) and runner lastError (portal) is a code; classify → log → reply
   store.py       runtime state: offset, messages.jsonl (keyed by WhatsApp id), entry-number map, setup state, rolling window
   wa.py          WhatsApp Agent Platform client: poll, download, typing, send with chunking, send_document, markdown → WhatsApp;
                  per-method rate limiter (messages/statuses/updates/media, own rolling 60s window each, per agent — config
@@ -47,11 +50,12 @@ Dockerfile · docker-compose.yml · config.example.yaml · .env.example
 - **Six tools, nothing else.** No shell, no free file access, no network beyond the model, transcription and WhatsApp. A feature that needs a seventh tool needs a conversation first.
 - **Every ledger write goes through `Ledger.append`** under `hledger check --strict`; a rejected block rolls back. Entry numbers come only from `next_entry_number`; undo is by number.
 - **Transport invariants:** skip a message id already in the store; advance the offset only after the batch; chunk replies under 3,500 chars.
+- **Failures are codes.** No exception text, HTTP body, hledger banner or provider name ever reaches a user. Raise or classify to a code in `hisab/errors.py`, log the detail to stderr, reply with `errors.reply`. A new failure is one `CODES` row plus its `en`/`ur` strings. See `.agents/rules/errors.md`.
 - **Language:** any new user-facing string lives in `i18n.py` in both `en` and `ur` — never Roman Urdu; users may chat in it and the model answers in kind (`MODEL_LANG["en"]`). Model replies stay one line; shapes per language are in `MODEL_LANG`.
 - **Ledger conventions the Obsidian dashboard reads:** alphabetic commodities (`PKR`, `USD`, never `$`), transfers as three postings with a bare `equity:transfer`, recurring items and budgets as `~ monthly` rules, rates as `P` lines.
 - **Privacy.** Nothing from the author's personal ledger, vault, VPS, tokens or WhatsApp id enters this repo, an issue, a PR or a doc. `.env`, `config.yaml`, `vault/`, `data/`, `scratch-*` are gitignored and never read into a document.
 - **Never touch** `.env`, `config.yaml` or anything under `vault/` from a skill.
-- **Hosted mode:** the runner alone talks to Firestore and alone writes `status`/`creatorId`/`lastError`; the worker alone talks to WhatsApp. `lastError` holds a code from `runner/errors.py`, never a sentence — the portal renders it in English and Urdu. `runner-data/`, `runner/config.yaml` and `landing/.env.local` are gitignored like `vault/`.
+- **Hosted mode:** the runner alone talks to Firestore and alone writes `status`/`creatorId`/`lastError`; the worker alone talks to WhatsApp. `lastError` holds a portal code from `hisab/errors.py`, never a sentence — the portal renders it in English and Urdu. `runner-data/`, `runner/config.yaml` and `landing/.env.local` are gitignored like `vault/`.
 
 ## Commands
 
@@ -97,7 +101,7 @@ Rules for agents:
 
 ## How we work — the lifecycle
 
-Skills live in `.agents/skills/` (`.claude/skills` is a symlink to it). Each arrow is a human gate: finish, summarise, offer the next skill by name, wait.
+Skills live in `.agents/skills/` (`.claude/skills` is a symlink to it); rules live in `.agents/rules/` (`.claude/rules` is a symlink to it). Put a new convention in its own rule file with a `paths:` frontmatter and list it under "Read in this order"; never create a real `.claude/rules/` directory, because other agents would not see it. Each arrow is a human gate: finish, summarise, offer the next skill by name, wait.
 
     A  /brainstorm → /grill-me → /to-spec → /file-an-issue → /create-plan → /implement → /review → /open-pr
     B  <GitHub issue> → (/grill-me if the WHAT is contested) → /create-plan → /implement → /review → /open-pr

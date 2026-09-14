@@ -6,6 +6,8 @@ import time
 from pathlib import Path
 import requests
 
+from . import errors
+
 BASE = "https://api.whatsapp.com/agent/v1"
 MAX_DOCUMENT_BYTES = 16 * 1024 * 1024  # WhatsApp's platform cap for outbound documents
 
@@ -22,7 +24,7 @@ DEFAULT_RATE_LIMITS = {
 # HTTP 409 on /updates: another poller replaced this one's cursor — the two-pollers-on-one-agent
 # footgun AGENTS.md warns about, named by the platform as error.code 1752041.
 
-AUTH_EXIT_CODE = 3  # hisab.loop's exit status on AuthError; runner/reconcile.py maps it to lastError "auth"
+AUTH_EXIT_CODE = errors.exit_status("auth")  # hisab.loop's exit status on AuthError; the runner maps it back through hisab/errors.py
 
 
 class AuthError(Exception):

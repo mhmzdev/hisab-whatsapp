@@ -83,12 +83,12 @@ def run(root):
         if brand_en != "Hosted Hisab":
             failures.append(f"strings.json[brand][en]: expected 'Hosted Hisab', got {brand_en!r}")
 
-        # every lastError code the runner can write has a portal string — the portal renders codes through t()
-        errors_py = root / "runner" / "errors.py"
+        # every portal code in hisab/errors.py (what the runner writes as lastError) has a portal string
+        errors_py = root / "hisab" / "errors.py"
         if errors_py.exists():
             sys.path.insert(0, str(root))
-            from runner.errors import LAST_ERROR_CODES
-            for code in LAST_ERROR_CODES:
+            from hisab.errors import PORTAL_CODES
+            for code in PORTAL_CODES:
                 key = f"portal_error_{code}"
                 if key not in strings:
                     failures.append(f"strings.json: no {key} for runner lastError code {code!r}")

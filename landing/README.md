@@ -30,7 +30,7 @@ local Emulator Suite. Rebuild after changing any of them.
 
 Every fixed user-facing string lives in `landing/content/strings.json`, one dict, key → `{en, ur}`. A string ships in exactly those two languages or it does not ship — `tests/check_landing.py` fails on a missing one and on any other language key. Urdu is Urdu script. The page has no Roman Urdu: that is how people text the ledger, not how they read a landing page, and the agent follows the same rule: its fixed strings are `en` and `ur`, and the model answers a user who writes Roman Urdu in Roman Urdu.
 
-Any key whose name contains `verify_instruction` must contain the literal word `verify` and the `{nonce}` placeholder in every language — the portal always tells the user to *send* a code to their agent, never that a code was *sent to* them. Every code in `runner/errors.py` needs a `portal_error_<code>` key: the runner stores codes, the portal renders words.
+Any key whose name contains `verify_instruction` must contain the literal word `verify` and the `{nonce}` placeholder in every language — the portal always tells the user to *send* a code to their agent, never that a code was *sent to* them. Every portal code in `hisab/errors.py` needs a `portal_error_<code>` key: the runner stores codes, the portal renders words.
 
 ## Theme and the signed-in hint
 

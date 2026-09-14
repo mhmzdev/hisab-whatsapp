@@ -4,8 +4,10 @@ import os
 import time
 from datetime import date
 import requests
+from . import errors
+from .errors import HisabError
 from .tools import SCHEMAS, Tools
-from .i18n import MODEL_LANG, s as i18n_s
+from .i18n import MODEL_LANG
 
 OPENROUTER = "https://openrouter.ai/api/v1"
 
@@ -69,7 +71,7 @@ class Agent:
                     args = {}
                 result = tools.call(name, args)
                 messages.append({"role": "tool", "tool_call_id": c["id"], "content": json.dumps(result, ensure_ascii=False)})
-        return i18n_s("too_many", self.ledger.language()), tools
+        return errors.reply("too_many_steps", self.ledger.language(), self.cfg.get("hosted")), tools
 
     def _chat(self, messages):
         body = {"model": self.cfg["model"]["id"], "messages": messages, "tools": SCHEMAS, "tool_choice": "auto", "temperature": 0.2}
@@ -82,12 +84,17 @@ class Agent:
             try:
                 r = requests.post(f"{self.base}/chat/completions", headers=headers, json=body, timeout=90)
                 if r.status_code // 100 == 2:
-                    choice = r.json()["choices"][0]["message"]
-                    return {k: v for k, v in choice.items() if k in ("role", "content", "tool_calls")}
-                last = f"HTTP {r.status_code} {r.text[:200]}"
-                if r.status_code not in (408, 409, 425, 429, 500, 502, 503, 504):
-                    break
+                    try:
+                        choice = r.json()["choices"][0]["message"]
+                        return {k: v for k, v in choice.items() if k in ("role", "content", "tool_calls")}
+                    except (ValueError, KeyError, IndexError, TypeError):
+                        pass  # a 2xx carrying an upstream error object instead of choices: transient, retry
+                last = f"HTTP {r.status_code} {r.text[:500]}"
+                if r.status_code in (401, 403):
+                    raise HisabError("model_auth", last)  # a rejected key never becomes valid on retry
+                if r.status_code // 100 != 2 and r.status_code not in (408, 409, 425, 429, 500, 502, 503, 504):
+                    raise HisabError("model_rejected", last)
             except (requests.ConnectionError, requests.Timeout) as e:
-                last = f"{type(e).__name__}"
+                last = f"{type(e).__name__}: {e}"
             time.sleep(2 ** attempt)
-        raise RuntimeError(f"model call failed after retries: {last}")
+        raise HisabError("model_unavailable", f"after retries: {last}")
