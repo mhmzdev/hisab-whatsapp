@@ -94,6 +94,7 @@ The ledger folder is the product. Open it in Obsidian with hledger-dashboard and
 | Any failure a user is told about | a code from `hisab/errors.py`, rendered in the user's language with the next step (self-host and hosted can differ); the raw detail and the message id go to stderr, never to WhatsApp |
 | hledger rejects the block | file restored; the tool returns the cleaned reason (no banner, no path) and the model replies; outside a tool call the user gets `ledger_rejected` |
 | Transcription fails | `transcription_failed`: send it as text or try again; nothing posted |
+| `export-ledger` document send fails | the ZIP goes up as `application/octet-stream` (WhatsApp refuses `application/zip`); a 400/131053 refusal is `export_rejected` (no retry suggested), anything else `export_failed` |
 | Reply over 4,096 chars | split on paragraph boundaries under 3,500, numbered `(i/N)` |
 | Container restarts mid-batch | replay from the stored offset; already-seen ids skipped |
 | Laptop closed for a day | WhatsApp buffers 30 days; entries post on the next poll |

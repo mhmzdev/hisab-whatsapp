@@ -5,6 +5,8 @@ ledger:
   template: personal       # personal | shop — used only when the folder is empty and setup runs
   currency: PKR
 
+timezone: Asia/Karachi     # IANA name; export-ledger file names and captions use this clock
+
 model:
   id: openai/gpt-4o-mini   # any OpenRouter model id; decided by testing the setup chat and Roman Urdu entries
   base_url: null           # any OpenAI-compatible endpoint; null = OpenRouter. e.g. https://generativelanguage.googleapis.com/v1beta/openai

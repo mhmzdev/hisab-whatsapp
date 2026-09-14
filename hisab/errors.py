@@ -26,7 +26,8 @@ CODES = {
     "media_fetch_failed": Error("chat", None),
     "ledger_rejected": Error("chat", None),       # {reason}: the cleaned hledger sentence
     "too_many_steps": Error("chat", None),
-    "export_failed": Error("chat", None),
+    "export_failed": Error("chat", None),         # transient: retry can succeed
+    "export_rejected": Error("chat", None),       # WhatsApp refused the file (400/131053): a retry never helps
     "export_too_large": Error("chat", None),      # {mb}
     "internal": Error("chat", None),              # anything unclassified — the fallback, never a leak
     # portal
