@@ -12,6 +12,7 @@ Acceptance checklists written by /review, one per slug; /open-pr seeds the PR Te
 
 | Checklist | Slug | Proven / manual / failing | Date |
 |---|---|---|---|
+| [GH-37-portal-pk-phone-normalise](GH-37-portal-pk-phone-normalise.md) | GH-37-portal-pk-phone-normalise | 5 / 0 / 0 | 2026-09-14 |
 | [GH-36-export-ledger-delivery](GH-36-export-ledger-delivery.md) | GH-36-export-ledger-delivery | 6 / 0 / 0 | 2026-09-14 |
 | [GH-27-failure-replies-error-codes](GH-27-failure-replies-error-codes.md) | GH-27-failure-replies-error-codes | 20 / 2 / 0 | 2026-09-14 |
 | [GH-23-theme-toggle-signed-in-landing](GH-23-theme-toggle-signed-in-landing.md) | GH-23-theme-toggle-signed-in-landing | 11 / 1 / 0 | 2026-09-14 |
