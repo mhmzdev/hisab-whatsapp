@@ -1,6 +1,5 @@
 """The agent's whole surface: six tools over the ledger. No shell, no file access."""
 import json
-from datetime import date
 from .ledger import Ledger, LedgerError
 
 SCHEMAS = [
@@ -61,7 +60,7 @@ class Tools:
             return {"error": f"bad arguments: {e}"}
 
     def t_append_entry(self, date=None, description="", postings=None, tags=None):
-        d = date or __import__("datetime").date.today().isoformat()
+        d = date or self.ledger.today().isoformat()
         p = [(x["account"], x.get("amount"), x.get("currency")) for x in (postings or [])]
         n, block = self.ledger.append(d, description, p, tags)
         self.last_entry = n

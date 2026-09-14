@@ -13,8 +13,9 @@ Reads are gated on file mtimes through `cache`, so an idle tenant costs four sta
 import json
 import re
 import time
-from datetime import date
 from pathlib import Path
+
+from hisab import clock
 
 ENTRY_RE = re.compile(r"^(\d{4}-\d{2})-\d{2} .*; n:\d+\b")
 
@@ -63,7 +64,7 @@ def _quarter_file(vault, d):
 
 def snapshot(uid, runner_cfg, cache, today=None):
     """The five activity fields for one tenant. A missing state dir or vault yields 0/None, never an error."""
-    today = today or date.today()
+    today = today or clock.today(runner_cfg.get("timezone"))
     ym = today.strftime("%Y-%m")
     state = Path(runner_cfg["data_root"]) / uid
     vault = Path(runner_cfg["vault_root"]) / uid

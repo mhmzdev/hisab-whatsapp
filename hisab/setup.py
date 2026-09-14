@@ -1,7 +1,6 @@
 """Setup as a conversation: at most eight questions, then the ledger files exist. State lives in the store."""
 import json
 import re
-from datetime import date
 from pathlib import Path
 from .i18n import q, s, detect_lang, norm_lang
 
@@ -133,13 +132,13 @@ class Setup:
                 acct = "expenses:rent" if "rent" in what or "kiraya" in what else "expenses:salaries" if "salar" in what or "tankh" in what else f"expenses:{slug(what)}"
                 if acct not in text:
                     text += f"account {acct}\n"
-                rules_txt.append(f"~ monthly from {date.today().strftime('%Y-%m')}  {what}  ; budget:\n    {acct:<40}{cur} {float(amt):,.2f}\n    {first}\n")
+                rules_txt.append(f"~ monthly from {self.ledger.today().strftime('%Y-%m')}  {what}  ; budget:\n    {acct:<40}{cur} {float(amt):,.2f}\n    {first}\n")
             text += "\n".join(rules_txt)
         (d / "accounts.md").write_text(text, encoding="utf-8")
         (d / "rules.md").write_text(rules_src.read_text(encoding="utf-8"), encoding="utf-8")
         (d / "hisab.md").write_text(f"# Hisab — master file\n\ncommodity {cur} 1,000.00\ncommodity USD 1,000.00\n\ninclude accounts.md\n", encoding="utf-8")
         self.ledger.set_settings({"language": norm_lang(a.get("language", "en")), "mode": mode, "currency": cur})
-        self.ledger.quarter_file(date.today())
+        self.ledger.quarter_file(self.ledger.today())
         self.ledger.check()
 
 

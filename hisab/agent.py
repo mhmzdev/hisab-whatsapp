@@ -3,7 +3,6 @@ import json
 import os
 import re
 import time
-from datetime import date
 import requests
 from . import errors
 from .errors import HisabError
@@ -48,7 +47,7 @@ class Agent:
         names = self.ledger.account_names()
         money = [a for a in names if a.startswith("assets:") and not a.startswith(("assets:receivable", "assets:staff"))]
         return SYSTEM.format(currency=self.ledger.currency, default_money=(money[0] if money else "assets:cash"),
-                             today=date.today().isoformat(), accounts="\n".join(names), language=MODEL_LANG.get(self.ledger.language(), MODEL_LANG["en"]))
+                             today=self.ledger.today().isoformat(), accounts="\n".join(names), language=MODEL_LANG.get(self.ledger.language(), MODEL_LANG["en"]))
 
     def run(self, history, user_content, hint=None, max_rounds=6):
         """history: prior turns [{role, content}]. user_content: str or multimodal list. Returns (reply, tools)."""

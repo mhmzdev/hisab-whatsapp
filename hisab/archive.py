@@ -3,7 +3,9 @@ state, message history, downloaded media) lives outside the ledger directory and
 """
 import re
 import zipfile
+from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 INCLUDE_RE = re.compile(r"^include\s+(\S+)\s*$", re.M)
 
@@ -26,6 +28,10 @@ def build_export_zip(ledger, dest_path):
     dest_path = Path(dest_path)
     dest_path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(dest_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        tz = ZoneInfo(ledger.tz)
         for f in files:
-            zf.write(f, arcname=f.name)
+            # stamped in the ledger's timezone: zf.write would use the container's UTC-local mtime (#40)
+            info = zipfile.ZipInfo(f.name, datetime.fromtimestamp(f.stat().st_mtime, timezone.utc).astimezone(tz).timetuple()[:6])
+            info.compress_type = zipfile.ZIP_DEFLATED
+            zf.writestr(info, f.read_bytes())
     return dest_path
