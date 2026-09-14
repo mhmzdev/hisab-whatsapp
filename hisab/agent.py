@@ -1,6 +1,7 @@
 """Raw tool-calling loop on OpenRouter chat completions. One key, any model."""
 import json
 import os
+import re
 import time
 from datetime import date
 import requests
@@ -10,6 +11,7 @@ from .tools import SCHEMAS, Tools
 from .i18n import MODEL_LANG
 
 OPENROUTER = "https://openrouter.ai/api/v1"
+API_KEY_RE = re.compile(r"api[ _-]?key", re.IGNORECASE)  # a 400 that is really a bad key (Gemini: "API_KEY_INVALID")
 
 SYSTEM = """You are Hisab, a ledger that lives in WhatsApp. The user texts money moments; you post them to a double-entry hledger ledger through your tools and reply in ONE short line.
 
@@ -90,8 +92,9 @@ class Agent:
                     except (ValueError, KeyError, IndexError, TypeError):
                         pass  # a 2xx carrying an upstream error object instead of choices: transient, retry
                 last = f"HTTP {r.status_code} {r.text[:500]}"
-                if r.status_code in (401, 403):
-                    raise HisabError("model_auth", last)  # a rejected key never becomes valid on retry
+                if r.status_code in (401, 403) or (r.status_code == 400 and API_KEY_RE.search(r.text)):
+                    # a rejected key never becomes valid on retry; Gemini says it as 400 "Please pass a valid API key"
+                    raise HisabError("model_auth", last)
                 if r.status_code // 100 != 2 and r.status_code not in (408, 409, 425, 429, 500, 502, 503, 504):
                     raise HisabError("model_rejected", last)
             except (requests.ConnectionError, requests.Timeout) as e:

@@ -331,13 +331,20 @@ try:
     try:
         for status, want, tries in ((401, "model_auth", 1), (403, "model_auth", 1), (400, "model_rejected", 1), (503, "model_unavailable", 4)):
             seen = []
-            agent_mod.requests.post = lambda *a, _s=status, **k: (seen.append(1), FakeResponse(_s, {"error": {"message": "API key expired."}}))[1]
+            agent_mod.requests.post = lambda *a, _s=status, **k: (seen.append(1), FakeResponse(_s, {"error": {"message": "API key expired." if _s != 400 else "Invalid model id."}}))[1]
             try:
                 real_agent._chat([{"role": "user", "content": "hi"}]); raise AssertionError("no error raised")
             except HisabError as e:
                 assert e.code == want and len(seen) == tries, (status, e.code, len(seen))
         def conn_err(*a, **k):
             raise agent_mod.requests.ConnectionError("no route to host")
+        # Gemini rejects a bad key as 400 INVALID_ARGUMENT, not 401: still model_auth, still no retry
+        seen = []
+        agent_mod.requests.post = lambda *a, **k: (seen.append(1), FakeResponse(400, [{"error": {"code": 400, "message": "Please pass a valid API key", "status": "INVALID_ARGUMENT"}}]))[1]
+        try:
+            real_agent._chat([]); raise AssertionError("no error raised")
+        except HisabError as e:
+            assert e.code == "model_auth" and len(seen) == 1, (e.code, len(seen))
         # a 2xx carrying an error object instead of choices is retried, then model_unavailable — not internal
         seen = []
         agent_mod.requests.post = lambda *a, **k: (seen.append(1), FakeResponse(200, {"error": {"message": "upstream overloaded"}}))[1]
