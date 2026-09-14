@@ -3,6 +3,7 @@
   --brand-strong: #075E54;
   --accent: #25D366;
   --bubble: #D9FDD3;
+  --bubble-ink: #0B141A;
   --bubble-in: #FFFFFF;
   --bubble-in2: #F0F2EF;
   --bubble-line: rgba(11, 20, 26, 0.07);
@@ -22,6 +23,11 @@
   --wave: rgba(11, 20, 26, 0.4);
   --slot-a: rgba(11, 20, 26, 0.1);
   --slot-b: rgba(11, 20, 26, 0.035);
+  --rule: rgba(11, 20, 26, 0.05);
+  --quote: rgba(11, 20, 26, 0.05);
+  --radio: #C3CBD0;
+  --font-body: var(--font-sans), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-code: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color-scheme: light;
 }
 
@@ -31,6 +37,7 @@
   --brand: #25D366;
   --brand-strong: #075E54;
   --bubble: #005C4B;
+  --bubble-ink: #E9EDEF;
   --bubble-in: #202C33;
   --bubble-in2: #202C33;
   --bubble-line: rgba(233, 237, 239, 0.08);
@@ -50,6 +57,9 @@
   --wave: rgba(233, 237, 239, 0.55);
   --slot-a: rgba(233, 237, 239, 0.13);
   --slot-b: rgba(233, 237, 239, 0.04);
+  --rule: rgba(233, 237, 239, 0.055);
+  --quote: rgba(233, 237, 239, 0.08);
+  --radio: #546670;
   color-scheme: dark;
 }
 
@@ -61,11 +71,12 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
 }
 
 .urdu {
-  font-family: "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-urdu), "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 img {
@@ -73,13 +84,39 @@ img {
 }
 
 code, pre, .mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--font-code);
+}
+
+/* the mark ships in both colours; show the one for the resolved theme (BrandMark.jsx) */
+.brand-logo {
+  display: block;
+  flex: none;
+  overflow: hidden;
+}
+
+.brand-logo img {
+  display: block;
+}
+
+.brand-logo-dark,
+:root[data-theme="dark"] .brand-logo-light {
+  display: none !important;
+}
+
+:root[data-theme="dark"] .brand-logo-dark {
+  display: block !important;
 }
 
 .page {
   max-width: 1160px;
   margin: 0 auto;
-  padding-inline: 24px;
+  padding-inline: 40px;
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding-inline: 20px;
+  }
 }
 
 .site-header {
@@ -93,7 +130,7 @@ code, pre, .mono {
 
 .brand-mark {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
   text-decoration: none;
   border-radius: 6px;
@@ -104,6 +141,18 @@ code, pre, .mono {
   outline-offset: 4px;
 }
 
+.header-tagline {
+  margin-inline-start: auto;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+@media (max-width: 860px) {
+  .header-tagline {
+    display: none;
+  }
+}
+
 .header-controls {
   display: flex;
   align-items: center;
@@ -112,7 +161,7 @@ code, pre, .mono {
 }
 
 .brand-word {
-  font-size: 20px;
+  font-size: 21px;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text);
@@ -120,5 +169,6 @@ code, pre, .mono {
 
 .brand-urdu {
   font-size: 15px;
+  line-height: 1.6;
   color: var(--brand);
 }

@@ -8,6 +8,7 @@
   "dependencies": {
     "firebase": "^12.19.0",
     "libsodium-wrappers": "^0.8.4",
+    "lucide-react": "^1.45.0",
     "next": "^15",
     "react": "^19",
     "react-dom": "^19"

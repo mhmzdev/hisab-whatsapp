@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { onAuthStateChanged, RecaptchaVerifier, signInWithPhoneNumber, signOut } from 'firebase/auth'
 import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore'
+import { Check } from 'lucide-react'
 import { useLanguage } from '../LanguageProvider'
 import { PLAN } from '@/content/mock.js'
 import { firebase, RUNNER_PUBLIC_KEY } from './firebase'
@@ -270,7 +271,9 @@ function CheckState({ t, user, tenant, setError }) {
       <p>{t('portal_verify_instruction').replace('{nonce}', nonce)}</p>
       <div className={styles.code} dir="ltr">{command}</div>
       <div className={styles.copyRow}>
-        <button type="button" onClick={copy}>{copied ? '✓' : t('portal_verify_copy')}</button>
+        <button type="button" onClick={copy} aria-label={t('portal_verify_copy')}>
+          {copied ? <Check size={16} strokeWidth={2.5} aria-hidden="true" style={{ verticalAlign: 'middle' }} /> : t('portal_verify_copy')}
+        </button>
         <button type="button" onClick={newCode}>{t('portal_verify_new_code')}</button>
       </div>
       {expired ? (

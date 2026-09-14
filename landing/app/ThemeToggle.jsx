@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Monitor, Moon, Sun } from 'lucide-react'
 import { useLanguage } from './LanguageProvider'
 import { applyTheme, readTheme, THEME_KEY, THEMES } from './theme'
 
-const ICON = { system: '◐', light: '☀', dark: '☾' }
+const ICON = { system: Monitor, light: Sun, dark: Moon }
 
 export default function ThemeToggle() {
   const { t } = useLanguage()
@@ -33,6 +34,7 @@ export default function ThemeToggle() {
   }
 
   const label = t(`theme_${choice}`)
+  const Icon = ICON[choice]
   return (
     <button
       type="button"
@@ -47,9 +49,13 @@ export default function ThemeToggle() {
         color: 'var(--text)',
         cursor: 'pointer',
         fontSize: 14,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
       }}
     >
-      <span aria-hidden="true">{ICON[choice]}</span> {label}
+      <Icon size={15} strokeWidth={2} aria-hidden="true" />
+      {label}
     </button>
   )
 }

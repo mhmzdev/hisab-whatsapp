@@ -12,6 +12,7 @@ Acceptance checklists written by /review, one per slug; /open-pr seeds the PR Te
 
 | Checklist | Slug | Proven / manual / failing | Date |
 |---|---|---|---|
+| [GH-47-landing-redesign](GH-47-landing-redesign.md) | GH-47-landing-redesign | 5 / 3 / 0 (3 findings fixed) | 2026-09-14 |
 | [GH-38-quota-refund-model-failures](GH-38-quota-refund-model-failures.md) | GH-38-quota-refund-model-failures | 5 / 0 / 0 | 2026-09-14 |
 | [GH-28-hosted-setup-done](GH-28-hosted-setup-done.md) | GH-28-hosted-setup-done | 5 / 0 / 0 | 2026-09-14 |
 | [GH-33-media-delete-after-processing](GH-33-media-delete-after-processing.md) | GH-33-media-delete-after-processing | 6 / 0 / 0 | 2026-09-14 |
