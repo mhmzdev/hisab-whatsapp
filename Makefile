@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help selfhost selfhost-dev selfhost-down selfhost-down-v selfhost-logs selfhost-restart selfhost-shell up dev down down-v check sample demo stdin check-endpoint bakeoff landing landing-pages landing-pages-sync landing-check landing-serve landing-up landing-down rules-test emulators emulators-up emulators-down runner-up runner-logs runner-down runner-down-v
+.PHONY: help selfhost selfhost-dev selfhost-down selfhost-down-v selfhost-logs selfhost-restart selfhost-shell up dev down down-v check sample demo stdin check-endpoint bakeoff landing landing-pages landing-pages-sync landing-pages-deploy landing-check landing-serve landing-up landing-down rules-test emulators emulators-up emulators-down runner-up runner-logs runner-down runner-down-v
 
 # 3030 self-host landing server, 3031 Firebase Hosting emulator (firebase.json). 5000 is macOS AirPlay.
 LANDING_PORT ?= 3030
@@ -70,6 +70,19 @@ landing-pages-sync: landing-pages ## Copy that build into PAGES_DIR (../mhmzdev.
 	rsync -a --delete landing/out-pages/ $(PAGES_DIR)$(PAGES_BASE_PATH)/
 	touch $(PAGES_DIR)/.nojekyll   # Jekyll would drop _next/, which holds every script and stylesheet
 	@echo "synced → $(PAGES_DIR)$(PAGES_BASE_PATH)/  (git -C $(PAGES_DIR) status)"
+
+# Publishing is deliberate: only from a clean, pushed main (the commit names what went live), only the hisab/ folder
+# and .nojekyll are staged (the other sites in that repo are never swept in), and nothing is pushed when nothing changed.
+landing-pages-deploy: ## Build, sync, commit and push the GitHub Pages landing (from a clean main that matches origin)
+	@test "`git branch --show-current`" = main || { echo "deploy from main — you are on `git branch --show-current`"; exit 1; }
+	@test -z "`git status --porcelain --untracked-files=no`" || { echo "commit or stash your changes first: the deploy names a commit"; exit 1; }
+	@git fetch -q origin main && test "`git rev-parse HEAD`" = "`git rev-parse origin/main`" || { echo "local main differs from origin/main — pull or push first"; exit 1; }
+	@test -z "`git -C $(PAGES_DIR) status --porcelain -- $(PAGES_BASE_PATH:/%=%) .nojekyll`" || { echo "$(PAGES_DIR) has uncommitted changes under $(PAGES_BASE_PATH) — look before deploying over them"; exit 1; }
+	$(MAKE) landing-pages-sync
+	git -C $(PAGES_DIR) add -- $(PAGES_BASE_PATH:/%=%) .nojekyll
+	@if git -C $(PAGES_DIR) diff --cached --quiet; then echo "nothing changed on the page; not committing"; else \
+		git -C $(PAGES_DIR) commit -q -m "hisab: deploy `git rev-parse --short HEAD`" -- $(PAGES_BASE_PATH:/%=%) .nojekyll && \
+		git -C $(PAGES_DIR) push -q && echo "pushed → https://mhmzdev.github.io$(PAGES_BASE_PATH)/ (live in a minute or two)"; fi
 
 landing-check: ## Run the landing static checks (en and ur, verification direction, no payment collection)
 	python3 tests/check_landing.py
