@@ -4,7 +4,8 @@ import './globals.css'
 import { LanguageProvider } from './LanguageProvider'
 import SiteNav from './SiteNav'
 import { THEME_SCRIPT } from './theme'
-import markLight from '@/assets/hisab_light.png'
+import favicon from '@/assets/hisab_light_64.png'
+import touchIcon from '@/assets/hisab_light_180.png'
 
 // self-hosted at build time by next/font: the exported page makes no request to Google
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-sans' })
@@ -23,8 +24,9 @@ const noori = localFont({
 
 export const metadata = {
   title: 'Hosted Hisab',
-  // the light mark, the same file the header shows; an imported image carries the base path (/hisab on GitHub Pages)
-  icons: { icon: { url: markLight.src, type: 'image/png' }, apple: markLight.src },
+  // the light mark, downscaled from assets/hisab_light.png (512 px, 148 KB): 64 px for the tab, 180 px for iOS home
+  // screens. An imported image carries the base path (/hisab on GitHub Pages).
+  icons: { icon: { url: favicon.src, type: 'image/png', sizes: '64x64' }, apple: { url: touchIcon.src, sizes: '180x180' } },
 }
 
 export default function RootLayout({ children }) {
