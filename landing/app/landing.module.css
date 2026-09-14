@@ -4,6 +4,7 @@
 .section {
   border-top: 1px solid var(--line);
   background: var(--bg);
+  scroll-margin-top: 56px;
 }
 
 .band {
@@ -709,14 +710,6 @@
   font-size: 16.5px;
   font-weight: 600;
   color: var(--text);
-}
-
-.hostedNote {
-  margin: 28px 0 0;
-  font-size: 14.5px;
-  line-height: 1.6;
-  color: var(--muted);
-  max-width: 58em;
 }
 
 .custody {

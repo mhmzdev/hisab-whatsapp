@@ -1,11 +1,8 @@
 import { IBM_Plex_Mono, Inter, Noto_Nastaliq_Urdu } from 'next/font/google'
 import localFont from 'next/font/local'
 import './globals.css'
-import BrandMark from './BrandMark'
-import HeaderTagline from './HeaderTagline'
 import { LanguageProvider } from './LanguageProvider'
-import LanguageSwitcher from './LanguageSwitcher'
-import ThemeToggle from './ThemeToggle'
+import SiteNav from './SiteNav'
 import { THEME_SCRIPT } from './theme'
 
 // self-hosted at build time by next/font: the exported page makes no request to Google
@@ -36,18 +33,7 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <LanguageProvider>
-          <header className="page site-header">
-            <a className="brand-mark" href="/">
-              <BrandMark size={30} radius={8} />
-              <span className="brand-word">Hisab</span>
-              <span className="brand-urdu urdu" dir="rtl">حساب</span>
-            </a>
-            <HeaderTagline />
-            <div className="header-controls">
-              <LanguageSwitcher />
-              <ThemeToggle />
-            </div>
-          </header>
+          <SiteNav />
           {children}
         </LanguageProvider>
       </body>

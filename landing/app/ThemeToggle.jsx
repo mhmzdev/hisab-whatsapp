@@ -41,21 +41,9 @@ export default function ThemeToggle() {
       onClick={cycle}
       aria-label={`${t('theme_toggle_label')}: ${label}`}
       title={`${t('theme_toggle_label')}: ${label}`}
-      style={{
-        padding: '6px 12px',
-        borderRadius: 999,
-        border: `1px solid var(--line)`,
-        background: 'var(--surface)',
-        color: 'var(--text)',
-        cursor: 'pointer',
-        fontSize: 14,
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-      }}
+      className="theme-toggle"
     >
       <Icon size={15} strokeWidth={2} aria-hidden="true" />
-      {label}
     </button>
   )
 }
