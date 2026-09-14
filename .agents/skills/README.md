@@ -1,6 +1,6 @@
 # Skills — the Hisab lifecycle
 
-Agent-agnostic skills. Canonical location: `.agents/skills/` (read by Codex and any agent that honours it); `.claude/skills` is a symlink to it, so Claude Code sees the same files. Repo facts live in `AGENTS.md` (which `CLAUDE.md` imports). **Every skill here honours this file.**
+Agent-agnostic skills. Canonical location: `.agents/skills/` (read by Codex and any agent that honours it); `.claude/skills` is a symlink to it, so Claude Code sees the same files. Conventions for the code itself live beside the skills in `.agents/rules/`, linked the same way through `.claude/rules`. Repo facts live in `AGENTS.md` (which `CLAUDE.md` imports). **Every skill here honours this file.**
 
 ## The lifecycle
 

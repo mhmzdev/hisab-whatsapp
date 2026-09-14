@@ -32,7 +32,8 @@ class Ledger:
     def hledger(self, *args, check=True):
         r = subprocess.run(["hledger", "-f", str(self.master), *args], capture_output=True, text=True)
         if check and r.returncode != 0:
-            raise LedgerError(r.stderr.strip() or f"hledger failed: {' '.join(args)}")
+            # cleaned like a rejected append: the error reaches the model through tools.call, and the raw banner carries the ledger's path
+            raise LedgerError(_clean_err(r.stderr) if r.stderr.strip() else f"hledger failed: {' '.join(args)}")
         return r
 
     def check(self):
@@ -109,7 +110,7 @@ class Ledger:
         r = self.hledger("check", "--strict", check=False)
         if r.returncode != 0:
             path.write_text(before, encoding="utf-8")
-            raise LedgerError("rejected, nothing written: " + _short_err(r.stderr))
+            raise LedgerError("rejected, nothing written: " + _clean_err(r.stderr))
         return n, block
 
     def undo(self, n=None):
@@ -294,6 +295,27 @@ def fmt(n):
     return f"{n:,.0f}"
 
 
-def _short_err(stderr):
-    lines = [l for l in stderr.strip().splitlines() if l.strip()]
-    return " ".join(lines[-3:])[:400]
+def _clean_err(stderr):
+    """hledger's strict-check stderr -> one short sentence the user and the model can act on. Drops the
+    `hledger: Error: <path>:<line>:` banner (the path is the operator's filesystem), the "Strict ... checking
+    is enabled, and" preamble and the "Consider adding ..." advice; keeps the reason and the line it points at."""
+    lines = stderr.strip().splitlines()
+    excerpt, prose = [], []
+    for l in lines:
+        if l.startswith("hledger: Error:") or l.startswith("hledger:"):
+            continue
+        (excerpt if re.match(r"\s*\d*\s*\|", l) else prose).append(l)
+    pointed = None
+    for i, l in enumerate(excerpt):
+        if re.match(r"\s*\|\s*\^+\s*$", l) and i > 0:
+            pointed = excerpt[i - 1]
+            break
+    text = " ".join(p.strip() for p in prose if p.strip())
+    text = re.sub(r"^Strict \w+ checking is enabled, and\s*", "", text)
+    text = text.split("Consider adding")[0].strip()
+    if pointed:
+        pointed = " ".join(pointed.split("|", 1)[1].split())
+        text = f"{text} ({pointed})" if text else pointed
+    if not text:
+        text = next((l.strip() for l in reversed(lines) if l.strip() and not l.startswith("hledger:")), "hledger check failed")
+    return text[:200]

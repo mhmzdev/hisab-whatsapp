@@ -25,7 +25,7 @@ function screenFor(user, tenant, phase) {
 }
 
 function errorKey(code) {
-  // every lastError code the runner can emit has a portal string — tests/check_landing.py enforces it
+  // every portal code in hisab/errors.py (the runner's lastError) has a portal string — tests/check_landing.py enforces it
   return code ? `portal_error_${code}` : null
 }
 

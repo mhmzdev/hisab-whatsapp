@@ -285,6 +285,186 @@ try:
     assert quota_app_restarted.store.usage() == {"month": time.strftime("%Y-%m"), "calls": 5}
     print("quota: usage persists across a restart — ok")
 
+    # failure replies (#27): every failure is a code in hisab/errors.py; the user gets what happened and what to
+    # do next in their language, the operator gets the raw detail on stderr — never the other way round
+    import re as _re
+    from hisab import errors, i18n
+    from hisab.errors import HisabError, CODES, PORTAL_CODES
+    placeholders = lambda txt: set(_re.findall(r"\{(\w+)\}", txt or ""))
+    chat_codes = [c for c, e in CODES.items() if e.surface == "chat"]
+    for code in chat_codes:
+        for key in (f"err_{code}", f"err_{code}_selfhost"):
+            if key == f"err_{code}" or key in i18n.S:
+                d = i18n.S.get(key) or {}
+                assert d.get("en") and d.get("ur"), f"{key}: needs en and ur"
+                assert placeholders(d["en"]) == placeholders(d["ur"]), f"{key}: en/ur placeholders differ"
+    for key in i18n.S:
+        if key.startswith("err_"):
+            assert key.removesuffix("_selfhost")[4:] in chat_codes, f"{key}: no chat code in hisab/errors.py"
+    assert not any("{err}" in (v or "") for d in i18n.S.values() for v in d.values()), "an exception placeholder is back in i18n"
+    hisab_src = Path(__file__).resolve().parent.parent / "hisab"
+    for f in hisab_src.glob("*.py"):
+        if f.name not in ("errors.py", "i18n.py"):
+            assert not _re.search(r"""\bs\(\s*f?["']err_""", f.read_text(encoding="utf-8")), f"{f.name}: render failures through errors.reply"
+    statuses = [e.exit_status for e in CODES.values() if e.exit_status is not None]
+    assert len(statuses) == len(set(statuses)) and all(CODES[c].exit_status is not None for c in PORTAL_CODES)
+    try:
+        HisabError("not_a_code"); raise AssertionError("unregistered code accepted")
+    except KeyError:
+        pass
+    FORBIDDEN = ("HTTP", '{"error"', "Traceback", "OpenRouter", "Gemini", "OpenAI", "Google")
+    def assert_clean(text):
+        assert not any(tok in text for tok in FORBIDDEN), text
+    for code in chat_codes:
+        for lang in ("en", "ur"):
+            for hosted in (True, False):
+                assert_clean(errors.reply(code, lang, hosted, reason="x", mb="17.0"))
+    assert errors.reply("model_auth", "en", True) != errors.reply("model_auth", "en", False)
+    assert ".env" in errors.reply("model_auth", "en", False) and ".env" not in errors.reply("model_auth", "en", True)
+    print(f"errors: {len(CODES)} codes registered, strings complete in en/ur, no raw detail renders")
+
+    # the model endpoint's statuses map to codes (no network: requests.post and sleep stubbed)
+    import hisab.agent as agent_mod
+    real_post, real_sleep = agent_mod.requests.post, agent_mod.time.sleep
+    agent_mod.time.sleep = lambda s: None
+    real_agent = agent_mod.Agent(quota_app.cfg, quota_app.ledger)
+    try:
+        for status, want, tries in ((401, "model_auth", 1), (403, "model_auth", 1), (400, "model_rejected", 1), (503, "model_unavailable", 4)):
+            seen = []
+            agent_mod.requests.post = lambda *a, _s=status, **k: (seen.append(1), FakeResponse(_s, {"error": {"message": "API key expired." if _s != 400 else "Invalid model id."}}))[1]
+            try:
+                real_agent._chat([{"role": "user", "content": "hi"}]); raise AssertionError("no error raised")
+            except HisabError as e:
+                assert e.code == want and len(seen) == tries, (status, e.code, len(seen))
+        def conn_err(*a, **k):
+            raise agent_mod.requests.ConnectionError("no route to host")
+        # Gemini rejects a bad key as 400 INVALID_ARGUMENT, not 401: still model_auth, still no retry
+        seen = []
+        agent_mod.requests.post = lambda *a, **k: (seen.append(1), FakeResponse(400, [{"error": {"code": 400, "message": "Please pass a valid API key", "status": "INVALID_ARGUMENT"}}]))[1]
+        try:
+            real_agent._chat([]); raise AssertionError("no error raised")
+        except HisabError as e:
+            assert e.code == "model_auth" and len(seen) == 1, (e.code, len(seen))
+        # a 2xx carrying an error object instead of choices is retried, then model_unavailable — not internal
+        seen = []
+        agent_mod.requests.post = lambda *a, **k: (seen.append(1), FakeResponse(200, {"error": {"message": "upstream overloaded"}}))[1]
+        try:
+            real_agent._chat([]); raise AssertionError("no error raised")
+        except HisabError as e:
+            assert e.code == "model_unavailable" and len(seen) == 4 and "upstream overloaded" in e.detail, (e, len(seen))
+        agent_mod.requests.post = conn_err
+        try:
+            real_agent._chat([]); raise AssertionError("no error raised")
+        except HisabError as e:
+            assert e.code == "model_unavailable" and "no route" in e.detail, e
+    finally:
+        agent_mod.requests.post, agent_mod.time.sleep = real_post, real_sleep
+    print("errors: model 401/403 -> model_auth, 400 -> model_rejected, 503/connection -> model_unavailable")
+
+    class RaisingAgent:
+        def __init__(self, exc):
+            self.exc = exc
+        def run(self, history, content, hint=None, max_rounds=6):
+            raise self.exc
+
+    leaked = 'HTTP 401 {"error":{"message":"API key expired.","code":401,"metadata":{"headers":{"WWW-Authenticate":"Bearer error=\\"invalid_token\\""}}}}'
+    for i, (exc, code, hosted, needle) in enumerate((
+            (HisabError("model_auth", leaked), "model_auth", False, "API key expired"),
+            (HisabError("model_auth", leaked), "model_auth", True, "API key expired"),
+            (HisabError("model_unavailable", "ConnectionError: timed out"), "model_unavailable", False, "timed out"),
+            (KeyError("boom"), "internal", False, "boom"))):
+        err_app = make_app(sample_vault, tmp / f"err-state-{i}")
+        err_app.cfg["hosted"] = hosted
+        err_app.agent = RaisingAgent(exc)
+        wa_e = ExportFakeWA(); buf = io.StringIO()
+        with contextlib.redirect_stderr(buf):
+            err_app._handle_wa(wa_e, {"from": frm, "type": "text", "id": f"wamid.err{i}", "text": {"body": "500 car fuel"}})
+        sent = wa_e.sent[-1][2]
+        assert_clean(sent)
+        assert sent == errors.reply(code, "en", hosted), (code, sent)
+        logged = buf.getvalue()
+        assert f"error {code} msg=wamid.err{i}" in logged and needle in logged, logged
+    print("errors: model/internal failures reply with the code's text; stderr has the code, message id and detail")
+
+    # a rejected block: the real strict check, cleaned — the reason and the line, no banner, path or advice
+    rej_vault = tmp / "rejected-vault"
+    shutil.copytree(sample_vault, rej_vault)
+    rej = Ledger(rej_vault)
+    rejections = []
+    for postings, must in (([("expenses:nope", 300, None), ("assets:cash", None, None)], "expenses:nope"),
+                           ([("expenses:food", 300, None), ("assets:cash", -200, None)], "unbalanced"),
+                           ([("expenses:food", 300, "XYZ"), ("assets:cash", None, None)], "XYZ")):
+        try:
+            rej.append("2026-09-10", "chai", postings); raise AssertionError("rejected block accepted")
+        except LedgerError as e:
+            msg = str(e)
+            assert must in msg and "hledger: Error" not in msg and str(rej_vault) not in msg and "Consider adding" not in msg, msg
+            assert len(msg) < 240, msg
+            rejections.append(e)
+    rej_app = make_app(sample_vault, tmp / "err-state-ledger")
+    rej_app.agent = RaisingAgent(rejections[0])
+    wa_r = ExportFakeWA()
+    with contextlib.redirect_stderr(io.StringIO()):
+        rej_app._handle_wa(wa_r, {"from": frm, "type": "text", "id": "wamid.rej", "text": {"body": "300 chai"}})
+    sent = wa_r.sent[-1][2]
+    assert sent.startswith("Not posted — ") and "expenses:nope" in sent and sent.endswith("Reply with the corrected entry."), sent
+    assert_clean(sent)
+    print("errors: rejected block ->", sent)
+
+    # voice note and export: the site's default code, whatever the provider raised
+    voice_app = make_app(sample_vault, tmp / "err-state-voice")
+    audio = tmp / "note.ogg"; audio.write_bytes(b"OggS")
+    class VoiceFakeWA(ExportFakeWA):
+        def download(self, media_id, dest_dir):
+            return audio, "audio/ogg"
+    real_transcribe = loop_mod.transcribe
+    def bad_transcribe(path, cfg):
+        raise RuntimeError('transcription failed: HTTP 500 {"error":{"message":"upstream down"}}')
+    loop_mod.transcribe = bad_transcribe
+    try:
+        wa_v = VoiceFakeWA(); buf = io.StringIO()
+        with contextlib.redirect_stderr(buf):
+            voice_app._handle_wa(wa_v, {"from": frm, "type": "audio", "id": "wamid.voice", "audio": {"id": "m1"}})
+    finally:
+        loop_mod.transcribe = real_transcribe
+    assert wa_v.sent[-1][2] == errors.reply("transcription_failed", "en"), wa_v.sent
+    assert "error transcription_failed msg=wamid.voice" in buf.getvalue() and "upstream down" in buf.getvalue(), buf.getvalue()
+
+    class FailingDocWA(ExportFakeWA):
+        def send_document(self, to, path, filename, caption=None):
+            raise RuntimeError('send failed: HTTP 500 {"error":{"message":"media upload broke"}}')
+    wa_d = FailingDocWA(); buf = io.StringIO()
+    with contextlib.redirect_stderr(buf):
+        connected_app._handle_wa(wa_d, {"from": frm, "type": "text", "id": "wamid.exportfail", "text": {"body": "export-ledger"}})
+    assert wa_d.sent[-1][2] == errors.reply("export_failed", "en"), wa_d.sent
+    assert "error export_failed msg=wamid.exportfail" in buf.getvalue() and "media upload broke" in buf.getvalue(), buf.getvalue()
+    print("errors: voice and export failures reply with their site's code; detail on stderr only")
+
+    # a media download miss and a runaway tool loop: their codes, not free text
+    class MissingMediaWA(ExportFakeWA):
+        def download(self, media_id, dest_dir):
+            return None, None
+    wa_m = MissingMediaWA(); buf = io.StringIO()
+    with contextlib.redirect_stderr(buf):
+        voice_app._handle_wa(wa_m, {"from": frm, "type": "image", "id": "wamid.nomedia", "image": {"id": "m2"}})
+    assert wa_m.sent[-1][2] == errors.reply("media_fetch_failed", "en"), wa_m.sent
+    assert "error media_fetch_failed msg=wamid.nomedia" in buf.getvalue(), buf.getvalue()
+    steps_agent = agent_mod.Agent(voice_app.cfg, voice_app.ledger)
+    steps_agent._chat = lambda messages: {"role": "assistant", "content": None,
+                                          "tool_calls": [{"id": "c1", "function": {"name": "read_accounts", "arguments": "{}"}}]}
+    steps_reply, _ = steps_agent.run([], "loop forever", max_rounds=2)
+    assert steps_reply == errors.reply("too_many_steps", "en"), steps_reply
+
+    # a ledger that is already invalid (a hand edit): tool errors reach the model cleaned — no banner, no path
+    broken_vault = tmp / "broken-vault"
+    shutil.copytree(sample_vault, broken_vault)
+    q3 = sorted(broken_vault.glob("2026-Q3.md"))[0]
+    q3.write_text(q3.read_text(encoding="utf-8") + "\n2026-09-11 hand edit\n    expenses:food   100 PKR\n    assets:cash    -50 PKR\n", encoding="utf-8")
+    from hisab.tools import Tools
+    tool_err = Tools(Ledger(broken_vault)).call("report", {"kind": "month"}).get("error", "")
+    assert "unbalanced" in tool_err and "hledger: Error" not in tool_err and str(broken_vault) not in tool_err, tool_err
+    print("errors: media miss, too many steps, and a broken ledger's tool error — all coded or cleaned")
+
     runner_dir = Path(__file__).resolve().parent.parent / "runner"
     if runner_dir.exists():
         from runner.crypto import CryptoError, decrypt, generate_keypair, seal
@@ -585,8 +765,8 @@ try:
             assert admission({**doc_err, "keyCiphertext": "garbage"}, runner_cfg) is None
             reconcile({"t-new": {**doc_err, "keyCiphertext": ciphertext2}}, runner_cfg, manager2, update=fake_update)
             assert manager2.running_uids() == {"t-new"} and writes[-1][1]["status"] == "pending", writes[-1]
-            from runner.errors import LAST_ERROR_CODES
-            assert set(LAST_ERROR_CODES) == {"auth"}, LAST_ERROR_CODES
+            assert PORTAL_CODES == ("auth",), PORTAL_CODES
+            assert errors.code_for_exit(3) == "auth" and errors.code_for_exit(1) is None and errors.code_for_exit(0) is None
         finally:
             del os.environ["RUNNER_PRIVATE_KEY"]
         print("runner: admission + lastError ok")

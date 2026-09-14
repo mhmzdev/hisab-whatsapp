@@ -90,9 +90,10 @@ The ledger folder is the product. Open it in Obsidian with hledger-dashboard and
 | A WhatsApp method nears its limit (`messages`/`statuses`/`updates`/`media` each 12–15/min, own rolling 60 s window, per agent) | the rate limiter blocks before the request is sent — the poll loop can never exceed 15/min even when every long-poll returns instantly |
 | WhatsApp returns 429 (`error.code 130429`) | the method's window is marked fully spent; the next call backs off until it can plausibly have reset, not a flat delay |
 | WhatsApp returns 409 on a poll (`error.code 1752041`) | logged as "another poller is using this agent" — the two-pollers-on-one-agent footgun, not a generic failure |
-| Model call fails (429, 5xx, timeout, connection) | 4 attempts, 0/2/4/8 s backoff; then a plain message in the user's language |
-| hledger rejects the block | file restored, tool returns the error, model replies "not posted: …" |
-| Transcription fails | plain message asking for text; nothing posted |
+| Model call fails (429, 5xx, timeout, connection) | 4 attempts, 0/2/4/8 s backoff; then code `model_unavailable`. A 401/403 is `model_auth` and a different 4xx is `model_rejected`, both without a retry |
+| Any failure a user is told about | a code from `hisab/errors.py`, rendered in the user's language with the next step (self-host and hosted can differ); the raw detail and the message id go to stderr, never to WhatsApp |
+| hledger rejects the block | file restored; the tool returns the cleaned reason (no banner, no path) and the model replies; outside a tool call the user gets `ledger_rejected` |
+| Transcription fails | `transcription_failed`: send it as text or try again; nothing posted |
 | Reply over 4,096 chars | split on paragraph boundaries under 3,500, numbered `(i/N)` |
 | Container restarts mid-batch | replay from the stored offset; already-seen ids skipped |
 | Laptop closed for a day | WhatsApp buffers 30 days; entries post on the next poll |

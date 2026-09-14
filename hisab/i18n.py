@@ -24,24 +24,48 @@ S = {
   "ur": "حساب: اندراج بھیجیں (*2500 chai*، وائس نوٹ، رسید کی تصویر)، سوال پوچھیں (*mahina*، *balance*، *kitna dena hai*)، *undo* لکھیں، یا پرانے پیغام پر ریپلائی کر کے *undo*۔ /setup سیٹ اپ دوبارہ، /lang زبان، /clear گفتگو بھول جاؤ، *export-ledger* سے ZIP بیک اپ۔"},
  "lang_set": {"en": "Language: English.", "ur": "زبان: اردو۔"},
  "lang_ask": {"en": "Send */lang English* or */lang اردو*.", "ur": "*/lang English* یا */lang اردو* بھیجیں۔"},
- "voice_fail": {
-  "en": "Couldn't transcribe that voice note ({err}). Send it as text.",
-  "ur": "وائس نوٹ سمجھ نہیں آیا ({err})۔ لکھ کر بھیجیں۔"},
- "fetch_fail": {"en": "Couldn't fetch that.", "ur": "یہ فائل نہیں مل سکی۔"},
  "unsupported": {
   "en": "Can't read {typ} yet — text, voice notes and photos only.",
   "ur": "{typ} ابھی نہیں پڑھ سکتا — صرف ٹیکسٹ، وائس نوٹ اور تصویر۔"},
- "not_posted": {"en": "Not posted: {err}", "ur": "درج نہیں ہوا: {err}"},
- "failed": {"en": "Something failed on my side: {err}", "ur": "میری طرف سے مسئلہ ہوا: {err}"},
- "too_many": {"en": "Too many steps for one message; try a shorter one.", "ur": "ایک پیغام کے لیے بہت زیادہ مراحل؛ چھوٹا پیغام بھیجیں۔"},
  "export_ready": {
   "en": "Here's your ledger — the canonical markdown files, nothing else.",
   "ur": "یہ آپ کا کھاتہ ہے — صرف اصل مارک ڈاؤن فائلیں، کچھ اور نہیں۔"},
- "export_too_large": {
+ # Failure replies (#27): one per chat code in hisab/errors.py, rendered only through errors.reply. Each says
+ # what happened and what to do next; no exception text ever. "_selfhost" overrides when the next step differs.
+ "err_model_auth": {
+  "en": "The AI service isn't accepting requests right now. Your message is saved; try again in a few minutes — if it keeps happening, the operator has been told.",
+  "ur": "AI سروس ابھی درخواستیں قبول نہیں کر رہی۔ آپ کا پیغام محفوظ ہے؛ چند منٹ بعد دوبارہ کوشش کریں — اگر یہ بار بار ہو تو آپریٹر کو اطلاع ہو چکی ہے۔"},
+ "err_model_auth_selfhost": {
+  "en": "The AI service rejected the model key. Check the model key in .env, then send your message again.",
+  "ur": "AI سروس نے ماڈل کی key قبول نہیں کی۔ .env میں ماڈل کی key چیک کریں، پھر پیغام دوبارہ بھیجیں۔"},
+ "err_model_unavailable": {
+  "en": "The AI service isn't reachable right now. Your message is saved; try again in a few minutes.",
+  "ur": "AI سروس سے ابھی رابطہ نہیں ہو رہا۔ آپ کا پیغام محفوظ ہے؛ چند منٹ بعد دوبارہ کوشش کریں۔"},
+ "err_model_rejected": {
+  "en": "The AI service isn't accepting requests right now. Your message is saved; try again in a few minutes — if it keeps happening, the operator has been told.",
+  "ur": "AI سروس ابھی درخواستیں قبول نہیں کر رہی۔ آپ کا پیغام محفوظ ہے؛ چند منٹ بعد دوبارہ کوشش کریں — اگر یہ بار بار ہو تو آپریٹر کو اطلاع ہو چکی ہے۔"},
+ "err_model_rejected_selfhost": {
+  "en": "The AI service refused the request. Check the model settings in config.yaml, then send your message again.",
+  "ur": "AI سروس نے درخواست رد کر دی۔ config.yaml میں ماڈل کی سیٹنگز چیک کریں، پھر پیغام دوبارہ بھیجیں۔"},
+ "err_transcription_failed": {
+  "en": "Couldn't understand that voice note. Send it as text, or try the voice note again.",
+  "ur": "وائس نوٹ سمجھ نہیں آیا۔ لکھ کر بھیجیں، یا وائس نوٹ دوبارہ بھیجیں۔"},
+ "err_media_fetch_failed": {
+  "en": "Couldn't download that file. Send it again in a moment.",
+  "ur": "یہ فائل ڈاؤن لوڈ نہیں ہو سکی۔ تھوڑی دیر بعد دوبارہ بھیجیں۔"},
+ "err_ledger_rejected": {
+  "en": "Not posted — {reason}. Reply with the corrected entry.",
+  "ur": "درج نہیں ہوا — {reason}۔ درست اندراج کے ساتھ جواب دیں۔"},
+ "err_too_many_steps": {"en": "Too many steps for one message; try a shorter one.", "ur": "ایک پیغام کے لیے بہت زیادہ مراحل؛ چھوٹا پیغام بھیجیں۔"},
+ "err_export_failed": {
+  "en": "Couldn't send the ledger export. Send *export-ledger* again in a bit.",
+  "ur": "کھاتہ بھیجا نہیں جا سکا۔ تھوڑی دیر میں *export-ledger* دوبارہ بھیجیں۔"},
+ "err_export_too_large": {
   "en": "Ledger export is {mb} MB, over WhatsApp's 16 MB document limit.",
   "ur": "کھاتے کی فائل {mb} MB ہے، WhatsApp کی 16 MB حد سے زیادہ۔"},
- "export_fail": {"en": "Couldn't send the ledger export ({err}). Try again in a bit.",
-  "ur": "کھاتہ بھیجا نہیں جا سکا ({err})۔ تھوڑی دیر میں دوبارہ کوشش کریں۔"},
+ "err_internal": {
+  "en": "Something went wrong on my side and nothing was posted. Try again in a moment.",
+  "ur": "میری طرف سے کچھ غلط ہو گیا اور کچھ درج نہیں ہوا۔ تھوڑی دیر بعد دوبارہ کوشش کریں۔"},
  "quota_warning": {
   "en": "Heads up: {used}/{limit} replies used this month.",
   "ur": "دھیان رہے: اس مہینے {used}/{limit} جوابات استعمال ہو چکے ہیں۔"},

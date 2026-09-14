@@ -8,9 +8,10 @@ import traceback
 from pathlib import Path
 
 from . import config as cfgmod
+from . import errors
 from .agent import Agent
 from .archive import build_export_zip
-from .ledger import Ledger, LedgerError
+from .ledger import Ledger
 from .setup import Setup
 from .store import Store
 from .transcribe import transcribe
@@ -66,7 +67,7 @@ class Hisab:
         if self.setup.active():
             reply, done, parked = self.setup.answer(t)
             if done and parked:
-                r2, entry = self._agent(parked, None)
+                r2, entry = self._agent(parked, None, msg_id=msg_id)
                 return reply + "\n\n" + r2, entry
             return reply, None
         if not self.ledger.exists():
@@ -75,9 +76,9 @@ class Hisab:
                 q = self.setup.start(parked=t)
                 return _both("no_ledger_parked") + "\n\n" + q, None
             return _both("no_ledger") + "\n\n" + self.setup.start(), None
-        return self._agent(t, quoted_id, image)
+        return self._agent(t, quoted_id, image, msg_id=msg_id)
 
-    def _agent(self, text, quoted_id, image=None):
+    def _agent(self, text, quoted_id, image=None, msg_id=None):
         lang = self.ledger.language()
         limit = (self.cfg.get("quota") or {}).get("monthly_limit")
         if limit and self.store.usage()["calls"] >= limit:
@@ -106,10 +107,11 @@ class Hisab:
             if limit and used >= limit * 0.8:
                 reply = f"{reply}\n{s('quota_warning', lang, used=used, limit=limit)}"
             return reply, tools.last_entry
-        except LedgerError as e:
-            return s("not_posted", lang, err=str(e)), None
-        except Exception as e:  # network / model
-            return s("failed", lang, err=str(e)[:200]), None
+        except Exception as e:  # model, network, ledger, or a bug: a code for the user, the detail for the log
+            code = errors.classify(e)
+            errors.log(code, e, msg_id)
+            kw = {"reason": str(e).removeprefix("rejected, nothing written: ").rstrip(". ")[:200]} if code == "ledger_rejected" else {}
+            return errors.reply(code, lang, self.cfg.get("hosted"), **kw), None
 
     def _export_ledger(self, lang):
         if not self.ledger.exists():
@@ -120,7 +122,7 @@ class Hisab:
         size = dest.stat().st_size
         if size > MAX_DOCUMENT_BYTES:
             dest.unlink(missing_ok=True)
-            return s("export_too_large", lang, mb=f"{size / (1024 * 1024):.1f}"), None
+            return errors.reply("export_too_large", lang, self.cfg.get("hosted"), mb=f"{size / (1024 * 1024):.1f}"), None
         self._pending_document = dest
         return s("export_ready", lang), None
 
@@ -197,16 +199,16 @@ class Hisab:
         elif typ == "audio":
             path, _ = wa.download(m["audio"]["id"], self.media_dir)
             if not path:
-                wa.send(frm, s("fetch_fail", self._lang())); return
+                self._fail(wa, frm, "media_fetch_failed", None, mid); return
             try:
                 text = transcribe(path, self.cfg)
             except Exception as e:
-                wa.send(frm, s("voice_fail", self._lang(), err=str(e)[:120])); return
+                self._fail(wa, frm, errors.classify(e, default="transcription_failed"), e, mid); return
             text = f"[Voice note]: {text}"
         elif typ == "image":
             path, _ = wa.download(m["image"]["id"], self.media_dir)
             if not path:
-                wa.send(frm, s("fetch_fail", self._lang())); return
+                self._fail(wa, frm, "media_fetch_failed", None, mid); return
             image = path
             text = (m["image"].get("caption") or "").strip()
         else:
@@ -220,7 +222,10 @@ class Hisab:
             try:
                 ids = [wa.send_document(frm, doc, filename=doc.name, caption=reply)]
             except Exception as e:
-                ids = wa.send(frm, s("export_fail", self._lang(), err=str(e)[:120]))
+                code = errors.classify(e, default="export_failed")
+                errors.log(code, e, mid)
+                reply = errors.reply(code, self._lang(), self.cfg.get("hosted"))
+                ids = wa.send(frm, reply)
             finally:
                 doc.unlink(missing_ok=True)
         else:
@@ -272,6 +277,10 @@ class Hisab:
         self.store.set_welcomed()
         for i in ids:
             self.store.add(i, "out", text)
+
+    def _fail(self, wa, frm, code, exc, mid):
+        errors.log(code, exc, mid)
+        wa.send(frm, errors.reply(code, self._lang(), self.cfg.get("hosted")))
 
     def _lang(self):
         return self.setup.lang() if self.setup.active() else (self.ledger.language() if self.ledger.exists() else "en")
