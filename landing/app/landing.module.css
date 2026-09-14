@@ -844,7 +844,7 @@
 
 .shopColUrdu .shopBubbleOut,
 .shopColUrdu .shopBubbleIn {
-  font-family: var(--font-urdu), "Noto Nastaliq Urdu", serif;
+  font-family: var(--urdu-face), serif;
   line-height: 2.1;
   padding: 10px 13px;
 }

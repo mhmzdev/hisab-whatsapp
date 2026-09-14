@@ -59,3 +59,6 @@ NOTES.md
 
 # hosted-mode background emulators (make up / make emulators-up)
 .emulators.pid
+
+# source font for landing/assets/noori-nastaleeq.woff2 (13 MB); only the subset is committed
+landing/assets/*.ttf
