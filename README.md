@@ -19,16 +19,37 @@ A ledger you text. Send **"2500 coffee"**, a voice note in Urdu, Roman Urdu or E
 
 No phone, no WhatsApp, one key. The same pipeline, against a committed sample ledger (a kiryana store, two weeks, fake numbers).
 
-```bash
-git clone https://github.com/mhmzdev/hisab-whatsapp && cd hisab-whatsapp
-pip install -r requirements.txt            # needs python3 and hledger on PATH (brew install hledger / apt install hledger)
-cp .env.example .env                       # put an OpenRouter key on the OPENROUTER_API_KEY line
-cp examples/config.openrouter.yaml config.yaml
-python3 tests/check_endpoint.py             # key valid, model has tools, transcription answers
-bash tests/demo_terminal.sh
+Paste this into Claude Code, Codex, Cursor or any coding agent that can run commands:
+
+```text
+Set up and run the Hisab terminal demo from https://github.com/mhmzdev/hisab-whatsapp. No phone or WhatsApp is needed.
+
+1. Clone the repo into the current folder, unless we are already inside it, and read README.md and AGENTS.md.
+2. Check for python3 (3.9 or newer) and hledger. If hledger is missing, tell me the install command for my OS (brew install hledger, or sudo apt install hledger) and ask before running it.
+3. Create a virtual environment in .venv, activate it, and install requirements.txt into it. Use that environment for every python3 command below.
+4. Copy .env.example to .env and config.example.yaml to config.yaml. Do not ask me to paste an API key into this chat. Tell me to open .env myself and fill in either OPENROUTER_API_KEY or GEMINI_API_KEY (one is enough; the config picks whichever is set), then wait until I say it is done.
+5. Run python3 tests/check_endpoint.py. If a step fails because of the key, tell me which key line to fix. Fix anything else yourself.
+6. Run the demo with its five sample messages piped in:
+   printf 'Metro ko kitna dena hai\nis mahine vs pichla\naaj ki sale 45000\nwhat can I afford\nundo\n' | bash tests/demo_terminal.sh
+7. Show me the replies, one line each on what happened: a supplier balance, this month against last, a posted entry with its number, what I can afford, and that entry undone.
+
+Stay inside this repo. Never print, commit or send the contents of .env. Do not edit sample-vault/; the demo works on a copy.
 ```
 
-Only have a Gemini key? Put it on the `GEMINI_API_KEY` line and copy `config.example.yaml` instead: its provider is `auto`, which uses OpenRouter when that key is set and Gemini otherwise.
+Every reply in that demo is the model calling one of six tools against `hledger`; nothing is scripted. Afterwards, `bash tests/demo_terminal.sh` lets you type your own messages.
+
+<details>
+<summary>Or run the steps yourself</summary>
+
+```bash
+git clone https://github.com/mhmzdev/hisab-whatsapp && cd hisab-whatsapp
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt            # needs hledger on PATH (brew install hledger / apt install hledger)
+cp .env.example .env                       # fill in OPENROUTER_API_KEY or GEMINI_API_KEY; one is enough
+cp config.example.yaml config.yaml         # provider auto: OpenRouter if that key is set, else Gemini
+python3 tests/check_endpoint.py            # key valid, model has tools, transcription answers
+bash tests/demo_terminal.sh
+```
 
 Then type, one per line:
 
@@ -40,7 +61,9 @@ what can I afford
 undo
 ```
 
-You will see the supplier balance, a two-column month table, a posted entry with its number, an affordability block, and the entry reversed. Every reply is the model calling one of six tools against `hledger`; nothing is scripted.
+You will see the supplier balance, a two-column month table, a posted entry with its number, an affordability block, and the entry reversed.
+
+</details>
 
 ## Why this is not a chatbot on WhatsApp
 
