@@ -1116,13 +1116,16 @@ try:
         assert any("[hero_title][ur]: missing or empty" in f for f in fake_check({"hero_title": {"en": "A ledger"}}))
         # the landing page never imports Firebase or portal code; the layout keeps its pre-paint theme script
         fake_app = fake_root / "landing" / "app"; fake_app.mkdir(parents=True, exist_ok=True)
-        (fake_app / "page.jsx").write_text("import { readSignedIn } from './signedIn'\n")
+        (fake_app / "hosted.js").write_text("export const HOSTED = process.env.NEXT_PUBLIC_HOSTED === '1'\n")
+        (fake_app / "page.jsx").write_text("import { readSignedIn } from './signedIn'\nimport { HOSTED } from './hosted'\n")
         (fake_app / "layout.jsx").write_text("<html><head>\n<script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />\n</head><body/></html>\n")
         assert fake_check({}) == [], fake_check({})
         for bad in ("import { firebase } from './portal/firebase'", "import { getAuth } from 'firebase/auth'", "const s = await import('libsodium-wrappers')"):
-            (fake_app / "page.jsx").write_text(bad + "\n")
+            (fake_app / "page.jsx").write_text(bad + "\nimport { HOSTED } from './hosted'\n")
             assert any("landing page must not load Firebase" in f for f in fake_check({})), bad
         (fake_app / "page.jsx").write_text("import { readSignedIn } from './signedIn'\n")
+        assert any("must gate hosted sign-up on HOSTED" in f for f in fake_check({})), fake_check({})  # a page that forgot the flag
+        (fake_app / "page.jsx").write_text("import { readSignedIn } from './signedIn'\nimport { HOSTED } from './hosted'\n")
         (fake_app / "layout.jsx").write_text("<html><head></head><body/></html>\n")
         assert any("no pre-paint THEME_SCRIPT" in f for f in fake_check({})), fake_check({})
         landing_failures = check_landing_run(Path(__file__).resolve().parent.parent)

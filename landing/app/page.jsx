@@ -5,10 +5,12 @@ import { AudioLines, Camera, Lock, MessageSquareText, Mic, ScrollText, Undo2 } f
 import { useLanguage } from './LanguageProvider'
 import { readSignedIn } from './signedIn'
 import BrandMark from './BrandMark'
+import { HOSTED } from './hosted'
 import { EXCHANGES, LEDGER_SAMPLE, SHOP_EXCHANGES } from '@/content/mock.js'
 import styles from './landing.module.css'
 
 const GITHUB_URL = 'https://github.com/mhmzdev/hisab-whatsapp'
+const SELFHOST_URL = `${GITHUB_URL}#run-it-for-real`
 const WAVE_HEIGHTS = [6, 12, 16, 9, 13, 7, 11, 5]
 
 // every GitHub link opens beside the landing page, never in place of it
@@ -83,7 +85,7 @@ export default function Home() {
   const [plan, setPlan] = useState('monthly')
   const [signedIn, setSignedIn] = useState(false)
   useEffect(() => setSignedIn(readSignedIn()), [])
-  const startLabel = signedIn ? t('cta_go_to_portal') : t('hero_cta')
+  const startLabel = signedIn ? t('cta_go_to_portal') : t('hero_cta')  // HOSTED builds only
 
   const plans = [
     { key: 'monthly', amount: t('price_amount'), billing: t('price_monthly_billing'), free: t('price_free') },
@@ -102,8 +104,14 @@ export default function Home() {
             </h1>
             <p className={styles.subline}>{t('hero_subline')}</p>
             <div className={styles.ctaRow}>
-              <a className={styles.cta} href="/portal/">{startLabel}</a>
-              <External className={styles.ctaSecondary}>{t('hero_cta_secondary')}</External>
+              {HOSTED ? (
+                <>
+                  <a className={styles.cta} href="/portal/">{startLabel}</a>
+                  <External className={styles.ctaSecondary}>{t('hero_cta_secondary')}</External>
+                </>
+              ) : (
+                <External href={SELFHOST_URL} className={styles.cta}>{t('hero_cta_secondary')}</External>
+              )}
             </div>
             <p className={styles.platforms}>{t('hero_platforms')}</p>
           </div>
@@ -191,6 +199,12 @@ export default function Home() {
       </Section>
 
       <Section n={5} title={t('how_title')} band id="how">
+        {!HOSTED && (
+          <p className={styles.soonNote}>
+            <span className={styles.soonBadge}>{t('hosted_soon_badge')}</span>
+            <span>{t('hosted_soon_how_note')}</span>
+          </p>
+        )}
         <div className={styles.cols3}>
           {[1, 2, 3].map((n) => (
             <div key={n} className={styles.howStep}>
@@ -256,14 +270,24 @@ export default function Home() {
             ))}
           </div>
           <div className={styles.priceDetails}>
+            {!HOSTED && <span className={styles.soonBadge}>{t('hosted_soon_badge')}</span>}
             <ul className={styles.priceFeatures}>
               {['agent', 'inputs', 'quota', 'export', 'revoke'].map((k) => (
                 <li key={k}><span className={styles.priceBullet} />{t(`price_feature_${k}`)}</li>
               ))}
             </ul>
             <div className={styles.priceActions}>
-              <a className={styles.cta} href="/portal/">{signedIn ? t('cta_go_to_portal') : t('price_cta')}</a>
-              <span className={styles.priceNote}>{t('price_payment_note')}</span>
+              {HOSTED ? (
+                <>
+                  <a className={styles.cta} href="/portal/">{signedIn ? t('cta_go_to_portal') : t('price_cta')}</a>
+                  <span className={styles.priceNote}>{t('price_payment_note')}</span>
+                </>
+              ) : (
+                <>
+                  <External href={SELFHOST_URL} className={styles.cta}>{t('hero_cta_secondary')}</External>
+                  <span className={styles.priceNote}>{t('hosted_soon_price_note')}</span>
+                </>
+              )}
             </div>
           </div>
         </div>

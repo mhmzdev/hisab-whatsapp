@@ -11,6 +11,7 @@ import { generateNonce, NONCE_TTL_MS, sealKey } from './crypto'
 import { normalizePkMobile } from './phone'
 import styles from './portal.module.css'
 import { SIGNED_IN_KEY } from '../signedIn'
+import { HOSTED } from '../hosted'
 
 // The screen is derived from two facts, never chosen by hand: is someone signed in, and what does
 // their own tenants/{uid} document say. The runner owns `status`; the browser can only write the
@@ -451,7 +452,33 @@ function SignOutDialog({ t, onConfirm, onCancel }) {
   )
 }
 
+// A build without NEXT_PUBLIC_HOSTED=1 never opens sign-in: firebase() is never called, nothing reaches Firebase
 export default function Portal() {
+  return HOSTED ? <HostedPortal /> : <PortalSoon />
+}
+
+function PortalSoon() {
+  const { t } = useLanguage()
+  return (
+    <main className={styles.wrap}>
+      <div className={styles.frame}>
+        <div className={styles.eyebrow}>
+          <span className={styles.eyebrowTag}>; portal</span>
+          <span className={styles.eyebrowLine} />
+        </div>
+        <div className={styles.card} data-screen="soon">
+          <h1>{t('portal_soon_title')}</h1>
+          <p>{t('portal_soon_body')}</p>
+          <a className={styles.button} href="https://github.com/mhmzdev/hisab-whatsapp#run-it-for-real" target="_blank" rel="noopener noreferrer">
+            {t('hero_cta_secondary')}
+          </a>
+        </div>
+      </div>
+    </main>
+  )
+}
+
+function HostedPortal() {
   const { t, lang } = useLanguage()
   const [user, setUser] = useState(undefined)       // undefined = auth not resolved yet
   const [tenant, setTenant] = useState(undefined)   // undefined = no subscription yet, null = no document
