@@ -110,6 +110,9 @@ Q = {
            "ur": "ماہانہ مقررہ اخراجات بجٹ کے لیے: کرایہ اور تنخواہیں، مثلاً *rent 40000, salaries 60000*۔ یا *skip*۔"},
  "done": {"en": "Setup done. The ledger is at {dir}/. Send an entry any time, e.g. *2500 coffee*, a voice note, or a receipt photo. *balance <account> <amount>* sets a starting balance.",
           "ur": "سیٹ اپ مکمل۔ کھاتہ {dir}/ میں ہے۔ کبھی بھی اندراج بھیجیں، مثلاً *2500 chai*، وائس نوٹ، یا رسید کی تصویر۔ *balance <account> <amount>* سے ابتدائی بیلنس سیٹ ہوتا ہے۔"},
+ # hosted mode (#28): no folder — it is vault/<uid>, an internal id, not something the user opens
+ "done_hosted": {"en": "Setup done. Send an entry any time, e.g. *2500 coffee*, a voice note, or a receipt photo. *balance <account> <amount>* sets a starting balance.",
+                 "ur": "سیٹ اپ مکمل۔ کبھی بھی اندراج بھیجیں، مثلاً *2500 chai*، وائس نوٹ، یا رسید کی تصویر۔ *balance <account> <amount>* سے ابتدائی بیلنس سیٹ ہوتا ہے۔"},
  "done_parked": {"en": " Now posting what you sent first.", "ur": " اب آپ کا پہلا پیغام درج کر رہا ہوں۔"},
  "mode_again": {"en": "Reply *personal* or *shop*.", "ur": "*ذاتی* یا *دکان* لکھیں۔"},
  "currency_again": {"en": "Reply with a currency code, e.g. *PKR*.", "ur": "کرنسی کوڈ لکھیں، مثلاً *PKR*۔"},

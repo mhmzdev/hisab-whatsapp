@@ -41,6 +41,24 @@ try:
         if mode == "shop":
             assert "~ monthly" in (led.dir / "accounts.md").read_text()
             print("[shop] periodic rules written; budget rows:", led.hledger("bal", "expenses", "--budget", "-p", "this month").stdout.count("["))
+    # #28: hosted setup never names the ledger folder (vault/<uid> — an internal id); self-host still does
+    from hisab.i18n import Q as _Q
+    assert _Q["done_hosted"]["en"] and _Q["done_hosted"]["ur"] and not any("{dir}" in v for v in _Q["done_hosted"].values())
+    personal = ["PKR", "cash", "none", "none", "no", "no"]
+    uid_like = "ZeMXFc4x4g9wGg4n5NMp79aXi7IN"
+    for first, hosted in (("personal", True), ("ذاتی", True), ("personal", False)):
+        hled = Ledger(tmp / f"h28-{first}-{hosted}" / uid_like); hst = Store(tmp / f"h28-state-{first}-{hosted}")
+        hsu = Setup(hled, hst, hosted=hosted); hsu.start(parked="500 chai")
+        for ans in [first] + personal:
+            reply, done, parked = hsu.answer(ans)
+        assert done and parked == "500 chai", (first, hosted, reply)
+        if hosted:
+            assert uid_like not in reply and "{dir}" not in reply, reply
+            assert reply.startswith("Setup done. Send an entry" if first == "personal" else "سیٹ اپ مکمل۔ کبھی بھی"), reply
+            assert reply.endswith(("Now posting what you sent first.", "اب آپ کا پہلا پیغام درج کر رہا ہوں۔")), reply
+        else:
+            assert f"The ledger is at {uid_like}/" in reply, reply
+    print("setup: hosted done message names no folder (en/ur, parked kept); self-host still names it")
     led = Ledger(tmp / "personal")
     n1, _ = led.append("2026-09-08", "coffee", [("expenses:food:snacks", 2500, None), ("assets:bank:alfalah", None, None)])
     n2, _ = led.append("2026-09-08", "atm", [("assets:cash", 5000, None), ("assets:bank:alfalah", -5000, None), ("equity:transfer", None, None)])
@@ -238,6 +256,10 @@ try:
     empty_app._handle_wa(wa3, {"from": frm, "type": "text", "id": "exp3", "text": {"body": "Export-Ledger"}})
     assert wa3.documents == [] and wa3.sent[-1][0] == "send", wa3.sent
     print("export: no-ledger reply ok")
+    wired = make_app(tmp / "h28-wired-vault", tmp / "h28-wired-state")
+    assert wired.setup.hosted is False
+    wired_hosted = make_app(tmp / "h28-wired-vault2", tmp / "h28-wired-state2"); wired_hosted.cfg["hosted"] = True
+    assert Hisab(dict(wired_hosted.cfg, hosted=True)).setup.hosted is True, "loop must pass cfg['hosted'] to Setup (#28)"
 
     # #36: the upload declares a generic binary (the platform refuses application/zip), a 131053 refusal is
     # its own permanent code, and the file name and caption read the configured clock (Asia/Karachi)
