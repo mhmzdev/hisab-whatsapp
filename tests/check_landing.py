@@ -1,4 +1,4 @@
-"""Static checks on landing/: no Firebase/libsodium on the landing page, the pre-paint theme script, two-language completeness (exactly en and ur; Roman Urdu is the agent's, not the page's), verification direction, no payment collection, no WhatsApp branding, the NEXT_PUBLIC_HOSTED gate, firebase.json shape, a portal string for every runner lastError code. Stdlib only, no node."""
+"""Static checks on landing/: no Firebase/libsodium on the landing page, the pre-paint theme script, two-language completeness (exactly en and ur; Roman Urdu is the agent's, not the page's), verification direction, no payment collection, no WhatsApp branding, the NEXT_PUBLIC_HOSTED gate, no root-relative href (base path), firebase.json shape, a portal string for every runner lastError code. Stdlib only, no node."""
 import json
 import re
 import sys
@@ -134,6 +134,12 @@ def run(root):
         path = landing / rel
         if path.exists() and not re.search(r"import\s*\{\s*HOSTED\s*\}\s*from\s*['\"]\.{1,2}/hosted['\"]", path.read_text()):
             failures.append(f"landing/{rel}: must gate hosted sign-up on HOSTED from hosted.js")
+
+    # a build under a base path (GitHub Pages: /hisab) only works if no <a> hard-codes the site root
+    if app_dir.exists():
+        for path in app_dir.rglob("*.jsx"):
+            for m in re.finditer(r"""href=(?:["']|\{\s*[`'"])/(?!/)""", path.read_text()):
+                failures.append(f"{path.relative_to(root)}: root-relative href — wrap it in withBase from app/paths.js")
 
     # sign-in sends only a normalised Pakistani mobile (+923XXXXXXXXX): never "+92" glued to raw input (#37)
     portal_page = landing / "app" / "portal" / "page.jsx"

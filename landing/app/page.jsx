@@ -6,6 +6,7 @@ import { useLanguage } from './LanguageProvider'
 import { readSignedIn } from './signedIn'
 import BrandMark from './BrandMark'
 import { HOSTED } from './hosted'
+import { withBase } from './paths'
 import { EXCHANGES, LEDGER_SAMPLE, SHOP_EXCHANGES } from '@/content/mock.js'
 import styles from './landing.module.css'
 
@@ -106,7 +107,7 @@ export default function Home() {
             <div className={styles.ctaRow}>
               {HOSTED ? (
                 <>
-                  <a className={styles.cta} href="/portal/">{startLabel}</a>
+                  <a className={styles.cta} href={withBase('/portal/')}>{startLabel}</a>
                   <External className={styles.ctaSecondary}>{t('hero_cta_secondary')}</External>
                 </>
               ) : (
@@ -279,7 +280,7 @@ export default function Home() {
             <div className={styles.priceActions}>
               {HOSTED ? (
                 <>
-                  <a className={styles.cta} href="/portal/">{signedIn ? t('cta_go_to_portal') : t('price_cta')}</a>
+                  <a className={styles.cta} href={withBase('/portal/')}>{signedIn ? t('cta_go_to_portal') : t('price_cta')}</a>
                   <span className={styles.priceNote}>{t('price_payment_note')}</span>
                 </>
               ) : (
