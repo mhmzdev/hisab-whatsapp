@@ -21,6 +21,7 @@ Up: [docs/INDEX.md](../INDEX.md). Written by `/create-plan` into `backlog/`; `/i
 ## Completed
 | Plan | Shipped | Summary |
 |---|---|---|
+| [GH-38-quota-refund-model-failures](completed/GH-38-quota-refund-model-failures.md) | 2026-09-14 | Option B: a turn failing with a `model_*` code refunds the monthly allowance (`Store.refund_model_call`, never below 0 or across months); `internal` and `ledger_rejected` still count |
 | [GH-28-hosted-setup-done](completed/GH-28-hosted-setup-done.md) | 2026-09-14 | Hosted setup's last reply no longer names the ledger folder (`vault/<uid>`): `Setup` takes `hosted` from `cfg["hosted"]` and uses the new en/ur `done_hosted`; self-host still names its folder |
 | [GH-33-media-delete-after-processing](completed/GH-33-media-delete-after-processing.md) | 2026-09-14 | Firebase Storage dropped after a grill: media is processed, never stored. A voice note is deleted once transcribed, a photo once the model call returns; a failed turn's file is swept after 24h (worker start + hourly from the poll loop); revoke deletes `data/<uid>/media/` |
 | [GH-40-local-clock](completed/GH-40-local-clock.md) | 2026-09-14 | `hisab/clock.py` is the one clock (configured `timezone`, default Asia/Karachi): Ledger/Store take it, `Ledger.hledger` passes `--today`, and the prompt date, dateless entries, quarter files, future guard, reports, quota month, runner activity month and export ZIP times all read it; smoke fixes the clock at 01:30 PKT on 1 Oct and greps for bare clock reads |

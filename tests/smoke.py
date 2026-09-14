@@ -412,6 +412,34 @@ try:
     assert quota_app_restarted.store.usage() == {"month": time.strftime("%Y-%m"), "calls": 5}
     print("quota: usage persists across a restart — ok")
 
+    # #38 (option B): a model-side failure refunds the allowance; our bugs and rejected entries still count
+    from hisab.errors import HisabError as _HE
+    from hisab.ledger import LedgerError as _LE
+    class _RaiseAgent:
+        def __init__(self, exc):
+            self.exc = exc
+        def run(self, history, content, hint=None, max_rounds=6):
+            raise self.exc
+    refund_app = make_app(sample_vault, tmp / "refund-state")
+    refund_app.cfg["quota"] = {"monthly_limit": 10}
+    calls = lambda: refund_app.store.usage()["calls"]
+    for i, (exc, delta) in enumerate(((_HE("model_auth", "401"), 0), (_HE("model_unavailable", "503"), 0), (_HE("model_rejected", "404"), 0),
+                                      (KeyError("bug"), 1), (_LE("rejected, nothing written: unbalanced"), 1))):
+        before = calls()
+        refund_app.agent = _RaiseAgent(exc)
+        with contextlib.redirect_stderr(io.StringIO()):
+            refund_app._handle_wa(ExportFakeWA(), {"from": frm, "type": "text", "id": f"refund{i}", "text": {"body": "500 chai"}})
+        assert calls() == before + delta, (type(exc).__name__, getattr(exc, "code", None), before, calls())
+    refund_app.agent = FakeAgent()
+    before = calls()
+    refund_app._handle_wa(ExportFakeWA(), {"from": frm, "type": "text", "id": "refund-ok", "text": {"body": "500 chai"}})
+    assert calls() == before + 1
+    rs = Store(tmp / "refund-unit")
+    assert rs.refund_model_call() == 0 and rs.usage()["calls"] == 0, "a refund never goes below zero"
+    (rs.dir / "usage.json").write_text(json.dumps({"month": "2000-01", "calls": 3}), encoding="utf-8")
+    assert rs.refund_model_call() == 0 and json.loads((rs.dir / "usage.json").read_text())["calls"] == 3, "a refund never touches another month"
+    print("quota: model_* failures refunded, internal/ledger_rejected still count, success counts once")
+
     # failure replies (#27): every failure is a code in hisab/errors.py; the user gets what happened and what to
     # do next in their language, the operator gets the raw detail on stderr — never the other way round
     import re as _re

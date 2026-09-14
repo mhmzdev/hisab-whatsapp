@@ -76,9 +76,21 @@ class Store:
 
     def record_model_call(self):
         """Increment and persist this month's counter. Call once per model dispatch — never on
-        retries within one dispatch, so a network blip inside one turn is not double-billed."""
+        retries within one dispatch, so a network blip inside one turn is not double-billed. A turn that
+        fails with a model_* code is given back by refund_model_call: nothing was served (#38)."""
         usage = self.usage()
         usage["calls"] += 1
+        self._put("usage.json", usage)
+        return usage["calls"]
+
+    def refund_model_call(self):
+        """Undo one record_model_call after a model-side failure. Never below zero, and never into a month the
+        call wasn't recorded in: a turn that crossed midnight on the 1st leaves the new month alone."""
+        data = self._json("usage.json", {})
+        usage = self.usage()
+        if data.get("month") != usage["month"] or usage["calls"] <= 0:
+            return usage["calls"]
+        usage["calls"] -= 1
         self._put("usage.json", usage)
         return usage["calls"]
 
