@@ -5,10 +5,9 @@ import re
 import sys
 import time
 import traceback
-from datetime import datetime
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
+from . import clock
 from . import config as cfgmod
 from . import errors
 from .agent import Agent
@@ -33,8 +32,9 @@ def _both(key):
 class Hisab:
     def __init__(self, cfg):
         self.cfg = cfg
-        self.store = Store(cfg["state"]["path"], cfg["memory"]["keep_days"])
-        self.ledger = Ledger(cfg["ledger"]["path"], cfg["ledger"]["currency"])
+        tz = cfg.get("timezone")
+        self.store = Store(cfg["state"]["path"], cfg["memory"]["keep_days"], tz)
+        self.ledger = Ledger(cfg["ledger"]["path"], cfg["ledger"]["currency"], tz)
         self.setup = Setup(self.ledger, self.store)
         self.agent = Agent(cfg, self.ledger)
         self.media_dir = Path(cfg["state"]["path"]) / "media"
@@ -120,7 +120,7 @@ class Hisab:
         if not self.ledger.exists():
             return s("no_ledger", lang), None
         export_dir = self.media_dir.parent / "exports"
-        now = datetime.now(ZoneInfo(self.cfg.get("timezone") or "Asia/Karachi"))
+        now = clock.now(self.cfg.get("timezone"))
         dest = export_dir / f"hisab-{now:%Y-%m-%d-%H%M}.zip"
         build_export_zip(self.ledger, dest)
         size = dest.stat().st_size

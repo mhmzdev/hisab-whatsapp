@@ -278,12 +278,9 @@ try:
     assert "again" not in _errors.reply("export_rejected", "en", True) and "again" in _errors.reply("export_failed", "en", True)
 
     from datetime import datetime as _dt, timezone as _tz
-    class FixedClock(_dt):
-        @classmethod
-        def now(cls, tz=None):
-            return _dt(2026, 9, 14, 6, 10, tzinfo=_tz.utc).astimezone(tz)
-    real_dt = loop_mod.datetime
-    loop_mod.datetime = FixedClock
+    import hisab.clock as clock_mod
+    real_utcnow = clock_mod._utcnow
+    clock_mod._utcnow = lambda: _dt(2026, 9, 14, 6, 10, tzinfo=_tz.utc)
     try:
         for lang, caption in (("en", "Ledger backup · 14 Sep 2026, 11:10"), ("ur", "کھاتے کا بیک اپ · 14 Sep 2026، 11:10")):
             connected_app.ledger.set_settings({"language": lang})
@@ -291,7 +288,7 @@ try:
             connected_app._handle_wa(wa_t, {"from": frm, "type": "text", "id": f"exp-clock-{lang}", "text": {"body": "export-ledger"}})
             assert wa_t.documents[0][2] == "hisab-2026-09-14-1110.zip" and wa_t.documents[0][3] == caption, wa_t.documents
     finally:
-        loop_mod.datetime = real_dt
+        clock_mod._utcnow = real_utcnow
         connected_app.ledger.set_settings({"language": "en"})
     assert cfgmod.load(tmp / "no-such-config.yaml")["timezone"] == "Asia/Karachi"
     tz_cfg = tmp / "tz.yaml"; tz_cfg.write_text("timezone: Europe/London\n", encoding="utf-8")
@@ -302,6 +299,49 @@ try:
     except SystemExit as e:
         assert "Mars/Olympus" in str(e), e
     print("export: octet-stream upload, 131053 -> export_rejected, hisab-2026-09-14-1110.zip + en/ur caption in Asia/Karachi")
+
+    # #40: every "today" is the configured timezone's. 2026-09-30T20:30Z is 01:30 on 1 Oct in Pakistan: the model,
+    # a dateless entry, the quarter file, the future-date guard, reports, hledger's own "this month", the quota
+    # month and the runner's activity month all say October — while the container's UTC clock still says September
+    clock_vault = tmp / "clock-vault"
+    shutil.copytree(Path(__file__).resolve().parent.parent / "sample-vault", clock_vault)
+    clock_mod._utcnow = lambda: _dt(2026, 9, 30, 20, 30, tzinfo=_tz.utc)
+    try:
+        cled = Ledger(clock_vault, "PKR", "Asia/Karachi")
+        assert cled.today().isoformat() == "2026-10-01", cled.today()
+        from hisab.tools import Tools as _Tools
+        import hisab.agent as _agent_mod
+        clock_agent = _agent_mod.Agent({"model": {"id": "x", "base_url": None, "api_key_env": None}, "secrets": {"openrouter_key": "fake"}}, cled)
+        assert "Today is 2026-10-01" in clock_agent.system()
+        res = _Tools(cled).call("append_entry", {"description": "midnight chai", "postings": [{"account": "expenses:utilities:gas", "amount": 300}, {"account": "assets:cash"}]})
+        assert "error" not in res, res
+        q4 = clock_vault / "2026-Q4.md"
+        assert q4.exists() and "2026-10-01 midnight chai" in q4.read_text(encoding="utf-8"), res
+        assert res["month"]["out"] == "300", res["month"]  # month_summary defaulted to 2026-10, not September's totals
+        reg = "\n".join(cled.report("register")["lines"])
+        assert "midnight chai" in reg and "2026-09" not in reg, reg  # hledger's "this month" is October via --today
+        assert Store(tmp / "clock-state", 30, "Asia/Karachi").usage()["month"] == "2026-10"
+        assert Store(tmp / "clock-state-utc", 30, "UTC").usage()["month"] == "2026-09"
+        if (Path(__file__).resolve().parent.parent / "runner").exists():
+            from runner.activity import snapshot as _snapshot
+            act_root = tmp / "clock-runner"
+            (act_root / "data" / "u1").mkdir(parents=True); (act_root / "vault").mkdir()
+            (act_root / "data" / "u1" / "usage.json").write_text('{"month": "2026-10", "calls": 7}')
+            snap = _snapshot("u1", {"data_root": str(act_root / "data"), "vault_root": str(act_root / "vault"), "quota": {"monthly_limit": 10}}, {})
+            assert snap["usedThisMonth"] == 7, snap
+        # export ZIP entries stamped in the ledger's timezone, not UTC
+        stamp = _dt(2026, 9, 14, 5, 59, tzinfo=_tz.utc).timestamp()
+        os.utime(cled.master, (stamp, stamp))
+        with zipfile.ZipFile(build_export_zip(cled, tmp / "clock-export.zip")) as zf:
+            assert zf.getinfo("hisab.md").date_time[:5] == (2026, 9, 14, 10, 59), zf.getinfo("hisab.md").date_time
+    finally:
+        clock_mod._utcnow = real_utcnow
+    root = Path(__file__).resolve().parent.parent
+    bare = _re_mod.compile(r"date\.today\(|datetime\.now\(|time\.localtime\(|time\.strftime\(['\"]%Y")
+    offenders = [f"{f.relative_to(root)}:{i}" for d in ("hisab", "runner") for f in sorted((root / d).glob("*.py")) if f.name != "clock.py"
+                 for i, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1) if bare.search(line)]
+    assert not offenders, f"bare clock reads (use hisab.clock): {offenders}"
+    print("clock: 01:30 PKT on 1 Oct is October everywhere — prompt, entry, Q4 file, reports, hledger, quota, activity, zip times")
 
     # /lang during setup switches the remaining questions and suppresses the detection note; /lang roman asks again
     lang_app = make_app(tmp / "lang-vault", tmp / "lang-state")

@@ -6,10 +6,13 @@ import json
 import time
 from pathlib import Path
 
+from . import clock
+
 
 class Store:
-    def __init__(self, path, keep_days=30):
+    def __init__(self, path, keep_days=30, timezone=clock.DEFAULT_TZ):
         self.dir = Path(path)
+        self.tz = timezone or clock.DEFAULT_TZ
         self.dir.mkdir(parents=True, exist_ok=True)
         self.messages = self.dir / "messages.jsonl"
         self.keep_days = keep_days
@@ -68,7 +71,7 @@ class Store:
         """This calendar month's model-call count. Rolls over to 0 on a new month without a write,
         so a month boundary needs no cron — the next call just persists the reset."""
         data = self._json("usage.json", {})
-        month = time.strftime("%Y-%m")
+        month = clock.today(self.tz).strftime("%Y-%m")  # the tenant's month, matching runner/activity.py
         return {"month": month, "calls": data.get("calls", 0) if data.get("month") == month else 0}
 
     def record_model_call(self):

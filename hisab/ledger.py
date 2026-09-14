@@ -10,6 +10,7 @@ from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
+from . import clock
 from .i18n import norm_lang
 
 
@@ -18,19 +19,25 @@ class LedgerError(Exception):
 
 
 class Ledger:
-    def __init__(self, path, currency="PKR"):
+    def __init__(self, path, currency="PKR", timezone=clock.DEFAULT_TZ):
         self.dir = Path(path)
+        self.tz = timezone or clock.DEFAULT_TZ
         self.master = self.dir / "hisab.md"
         self.accounts = self.dir / "accounts.md"
         self.rules = self.dir / "rules.md"
         self.currency = currency
+
+    def today(self):
+        """Today in the ledger's timezone — the only "today" an entry, a quarter file or a report period uses."""
+        return clock.today(self.tz)
 
     # ---------- state ----------
     def exists(self):
         return self.master.exists() and self.accounts.exists()
 
     def hledger(self, *args, check=True):
-        r = subprocess.run(["hledger", "-f", str(self.master), *args], capture_output=True, text=True)
+        # --today: hledger's own "this month"/"last month" would otherwise read the container's UTC clock (#40)
+        r = subprocess.run(["hledger", "-f", str(self.master), f"--today={self.today().isoformat()}", *args], capture_output=True, text=True)
         if check and r.returncode != 0:
             # cleaned like a rejected append: the error reaches the model through tools.call, and the raw banner carries the ledger's path
             raise LedgerError(_clean_err(r.stderr) if r.stderr.strip() else f"hledger failed: {' '.join(args)}")
@@ -59,7 +66,7 @@ class Ledger:
 
     # ---------- files ----------
     def quarter_file(self, d=None, create=True):
-        d = d or date.today()
+        d = d or self.today()
         q = (d.month - 1) // 3 + 1
         path = self.dir / f"{d.year}-Q{q}.md"
         if create and not path.exists():
@@ -94,7 +101,7 @@ class Ledger:
         """postings: list of (account, amount|None, currency|None). One posting may have amount None (balanced by hledger).
         Returns (entry_number, block)."""
         d = d if isinstance(d, date) else datetime.strptime(d, "%Y-%m-%d").date()
-        if d > date.today():
+        if d > self.today():
             raise LedgerError("future-dated entries are not accepted")
         n = self.next_entry_number()
         tag_str = f"n:{n}" + ("".join(f", {t}" for t in (tags or [])))
@@ -209,7 +216,7 @@ class Ledger:
 
     def afford(self, ym=None):
         """Liquid money − cards owed − this month's periodic items whose account has no posting yet this month."""
-        ym = ym or date.today().strftime("%Y-%m")
+        ym = ym or self.today().strftime("%Y-%m")
         liquid = {k: v for k, v in self._bal("assets").items()
                   if not k.startswith(("assets:receivable", "assets:staff", "assets:investments", "assets:plots"))}
         liquid_total = sum(liquid.values(), Decimal(0))
@@ -243,7 +250,7 @@ class Ledger:
         return sum(self._bal(*q, **kw).values(), Decimal(0))
 
     def month_summary(self, ym=None):
-        ym = ym or date.today().strftime("%Y-%m")
+        ym = ym or self.today().strftime("%Y-%m")
         income = -self._total("income", "not:tag:opening", period=ym)
         expenses = self._total("expenses", "not:tag:opening", period=ym)
         cats = sorted(self._bal("expenses", "not:tag:opening", period=ym, depth=2).items(), key=lambda kv: -kv[1])[:3]
