@@ -132,7 +132,7 @@ export default function Home() {
         </section>
       </div>
 
-      <Section n={2} title={t('section_ways_title')}>
+      <Section n={2} title={t('section_ways_title')} id="ways">
         <div className={styles.cols3}>
           {[
             { Icon: MessageSquareText, key: 'text' },
@@ -166,7 +166,7 @@ export default function Home() {
         </div>
       </Section>
 
-      <Section n={4} title={t('ledger_title')}>
+      <Section n={4} title={t('ledger_title')} id="books">
         <div className={styles.cols2}>
           <div className={styles.ledgerCol} dir="ltr">
             <div className={styles.connector}>
@@ -190,7 +190,7 @@ export default function Home() {
         </div>
       </Section>
 
-      <Section n={5} title={t('how_title')} band>
+      <Section n={5} title={t('how_title')} band id="how">
         <div className={styles.cols3}>
           {[1, 2, 3].map((n) => (
             <div key={n} className={styles.howStep}>
@@ -203,7 +203,6 @@ export default function Home() {
             </div>
           ))}
         </div>
-        <p className={styles.hostedNote}>{t('how_hosted_note')}</p>
         <div className={styles.custody}>
           <h3>{t('custody_title')}</h3>
           <p>{t('custody_body')}</p>
@@ -211,7 +210,7 @@ export default function Home() {
         </div>
       </Section>
 
-      <Section n={6} title={t('shop_title')}>
+      <Section n={6} title={t('shop_title')} id="shop">
         <div className={styles.shopCard}>
           <div className={styles.cols2}>
             <div className={styles.shopCol} dir="ltr">

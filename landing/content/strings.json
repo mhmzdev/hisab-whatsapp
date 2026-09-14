@@ -7,6 +7,26 @@
     "en": "Get started",
     "ur": "شروع کریں"
   },
+  "nav_features": {
+    "en": "Features",
+    "ur": "طریقے"
+  },
+  "nav_ledger": {
+    "en": "Ledger",
+    "ur": "کھاتہ"
+  },
+  "nav_setup": {
+    "en": "Setup",
+    "ur": "سیٹ اپ"
+  },
+  "nav_shop": {
+    "en": "Shop",
+    "ur": "دکان"
+  },
+  "nav_pricing": {
+    "en": "Pricing",
+    "ur": "قیمت"
+  },
   "hero_title": {
     "en": "A ledger that texts back",
     "ur": "ایک کھاتہ جو جواب دیتا ہے"
@@ -24,8 +44,8 @@
     "ur": "خود چلائیں"
   },
   "section_ways_title": {
-    "en": "Three ways in",
-    "ur": "اندر آنے کے تین طریقے"
+    "en": "However it comes out",
+    "ur": "جیسے بھی بات نکلے"
   },
   "card_text_title": {
     "en": "Text.",
@@ -40,15 +60,15 @@
     "ur": "آواز۔"
   },
   "card_voice_body": {
-    "en": "A seven-second voice note at the till, in the language you think in.",
-    "ur": "کاؤنٹر پر سات سیکنڈ کا وائس نوٹ، اسی زبان میں جس میں آپ سوچتے ہیں۔"
+    "en": "Seven seconds at the till, in the language you think in.",
+    "ur": "کاؤنٹر پر سات سیکنڈ، اسی زبان میں جس میں آپ سوچتے ہیں۔"
   },
   "card_photo_title": {
     "en": "Photo.",
     "ur": "تصویر۔"
   },
   "card_photo_body": {
-    "en": "A receipt or a bank SMS screenshot. It reads the total and the payment method.",
+    "en": "A receipt or a bank SMS screenshot. It reads the total and how it was paid.",
     "ur": "رسید یا بینک SMS کا اسکرین شاٹ۔ یہ رقم اور ادائیگی کا طریقہ پڑھ لیتا ہے۔"
   },
   "custody_title": {
@@ -64,32 +84,32 @@
     "ur": "کچھ بھی آپ کے کمپیوٹر سے باہر نہ جائے؟ اس کے بجائے Hisab خود ہوسٹ کریں۔"
   },
   "why_title": {
-    "en": "Not a chatbot",
-    "ur": "چیٹ بوٹ نہیں"
+    "en": "Made to be corrected",
+    "ur": "درست کرنے کے لیے بنا"
   },
   "ledger_title": {
-    "en": "Real books, not a categoriser",
-    "ur": "اصلی حساب کتاب، محض درجہ بندی نہیں"
+    "en": "Double-entry underneath",
+    "ur": "نیچے ڈبل انٹری"
   },
   "ledger_body": {
-    "en": "Underneath is hledger, a real double-entry accounting engine. Every entry is checked before it lands; a bad one rolls back. Transfers are transfers, not spend, so the month total is honest. The ledger is a plain text file you can open anywhere, and a desk dashboard reads it as-is.",
+    "en": "Underneath is hledger, a real double-entry accounting engine. Every entry is checked before it lands, and a bad one rolls back. Transfers stay transfers rather than spend, so the month total is honest. The ledger is a plain text file you can open anywhere, and a desk dashboard reads it as-is.",
     "ur": "نیچے hledger ہے، ایک اصلی ڈبل انٹری اکاؤنٹنگ انجن۔ ہر اندراج درج ہونے سے پہلے جانچا جاتا ہے؛ غلط اندراج واپس ہو جاتا ہے۔ ٹرانسفر صرف ٹرانسفر ہوتا ہے، خرچ نہیں، اس لیے مہینے کا ٹوٹل درست رہتا ہے۔ کھاتہ ایک plain text فائل ہے جسے آپ کہیں بھی کھول سکتے ہیں، اور ڈیسک ڈیش بورڈ اسے جوں کا توں پڑھ لیتا ہے۔"
   },
   "shop_title": {
-    "en": "For the shop",
-    "ur": "دکان کے لیے"
+    "en": "Two languages, one ledger",
+    "ur": "دو زبانیں، ایک کھاتہ"
   },
   "shop_body": {
-    "en": "A kiryana, a committee, a rider with fuel receipts. Same engine, a different chart of accounts, chosen at setup.",
+    "en": "A kiryana, a committee, a rider with fuel receipts. Same engine, a different chart of accounts, picked at setup.",
     "ur": "ایک کریانہ سٹور، ایک کمیٹی، ایک رائیڈر جس کے پاس فیول کی رسیدیں ہیں۔ انجن وہی ہے، صرف اکاؤنٹس کا چارٹ مختلف ہے — سیٹ اپ کے وقت چنا جاتا ہے۔"
   },
   "how_title": {
-    "en": "How it works",
-    "ur": "یہ کیسے کام کرتا ہے"
+    "en": "Set up in three messages",
+    "ur": "تین پیغامات میں سیٹ اپ"
   },
   "price_title": {
-    "en": "Pricing",
-    "ur": "قیمت"
+    "en": "One agent, one price",
+    "ur": "ایک ایجنٹ، ایک قیمت"
   },
   "price_amount": {
     "en": "PKR 300 / month",
@@ -395,10 +415,6 @@
     "en": "Go to portal",
     "ur": "پورٹل پر جائیں"
   },
-  "header_tagline": {
-    "en": "a ledger that texts back",
-    "ur": "ایک کھاتہ جو جواب دیتا ہے"
-  },
   "hero_platforms": {
     "en": "Android · English · اردو",
     "ur": "Android · انگلش · اردو"
@@ -412,15 +428,15 @@
     "ur": "Undo بس ایک ریپلائی ہے۔"
   },
   "why_undo_body": {
-    "en": "Quote the old message, say undo, and that entry reverses.",
-    "ur": "پرانے پیغام کو کوٹ کریں، undo لکھیں، اور وہ اندراج واپس ہو جاتا ہے۔"
+    "en": "Quote the entry you got wrong, say undo, and it reverses.",
+    "ur": "غلط اندراج والے پیغام کو کوٹ کریں، undo لکھیں، اور وہ واپس ہو جاتا ہے۔"
   },
   "why_linked_title": {
     "en": "Every line remembers its message.",
     "ur": "ہر لائن کو اپنا پیغام یاد رہتا ہے۔"
   },
   "why_linked_body": {
-    "en": "The chat is the audit trail. Nothing is hidden in an app.",
+    "en": "The chat is the audit trail. Nothing hides in an app.",
     "ur": "چیٹ ہی آڈٹ ٹریل ہے۔ کچھ بھی کسی ایپ میں چھپا نہیں۔"
   },
   "why_private_title": {
@@ -428,8 +444,8 @@
     "ur": "صرف آپ اس سے بات کر سکتے ہیں۔"
   },
   "why_private_body": {
-    "en": "Your agent answers one person: you.",
-    "ur": "آپ کا ایجنٹ صرف ایک شخص کو جواب دیتا ہے: آپ کو۔"
+    "en": "Your agent answers one number: yours.",
+    "ur": "آپ کا ایجنٹ صرف ایک نمبر کو جواب دیتا ہے: آپ کے نمبر کو۔"
   },
   "ledger_dashboard_caption": {
     "en": "Desk dashboard — balance sheet and net worth",
@@ -458,10 +474,6 @@
   "how_step3_body": {
     "en": "That’s it. It greets you in your language and asks a few questions.",
     "ur": "بس۔ یہ آپ کی زبان میں خوش آمدید کہے گا اور چند سوال پوچھے گا۔"
-  },
-  "how_hosted_note": {
-    "en": "Hosted means your key and ledger live on our server, encrypted. You can take the ledger and revoke the key any time. Prefer to run it yourself? It’s open source.",
-    "ur": "Hosted کا مطلب ہے کہ آپ کی کلید اور کھاتہ ہمارے سرور پر انکرپٹ حالت میں رہتے ہیں۔ آپ جب چاہیں کھاتہ لے جا سکتے ہیں اور کلید منسوخ کر سکتے ہیں۔ خود چلانا چاہتے ہیں؟ یہ اوپن سورس ہے۔"
   },
   "price_monthly_billing": {
     "en": "per agent · billed monthly",
