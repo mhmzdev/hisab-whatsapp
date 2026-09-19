@@ -17,9 +17,10 @@ model:
 
 transcription:
   provider: auto           # auto (same key rule as the model) | openrouter | gemini
-  model: openai/whisper-1  # openrouter provider: via /audio/transcriptions
+  model: openai/whisper-1  # openrouter provider
   gemini_model: gemini-2.5-flash
-  language: null           # null = auto (English, Urdu, Roman Urdu); "ur" to force Urdu
+  # api_key_env: null      # env var holding the transcription key; null = the provider's own (OPENROUTER_API_KEY / GEMINI_API_KEY)
+  language: null           # null = auto; a code like 'ur' pins it (OpenRouter's language field, a hint to Gemini)
 
 memory:
   window_turns: 20         # rolling context from the message store
@@ -29,7 +30,7 @@ whatsapp:
   poll_timeout: 20         # seconds, max 25
   chunk_chars: 3500        # replies longer than this are split (WhatsApp caps at 4096)
   rate_limits:             # WhatsApp Agent Platform manual v1 §6 — each its own rolling 60s window, scoped per agent
-    window_seconds: 60     # fixed at 60 by wa-agent 0.1.0; any other value is logged and ignored
+    window_seconds: 60     # fixed at 60 by wa-agent; any other value is logged and ignored
     messages_per_min: 12   # POST /agent/v1/messages
     statuses_per_min: 12   # POST /agent/v1/statuses (read receipts, typing)
     updates_per_min: 15    # GET /agent/v1/updates (the poll loop)

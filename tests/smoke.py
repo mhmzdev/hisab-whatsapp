@@ -1,5 +1,5 @@
 """No-network smoke test: setup conversation → files, append/undo/report, store window, chunking. Needs hledger."""
-import io, json, os, sys, tempfile, shutil, time, zipfile
+import base64, io, json, os, sys, tempfile, shutil, time, zipfile
 import contextlib
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -42,6 +42,18 @@ try:
     assert spelled["model"]["provider"] == "gemini" and spelled["model"]["id"] == "gemini-3.8-flash" and spelled["transcription"]["provider"] == "gemini", spelled
     custom = _resolved({"base_url": "http://localhost:11434/v1", "id": "llama3"}, OPENROUTER_API_KEY="o")
     assert custom["model"]["provider"] == "custom" and custom["model"]["base_url"] == "http://localhost:11434/v1" and custom["transcription"]["provider"] == "openrouter", custom
+    # #61: transcription.api_key_env is kept (a named key keeps openrouter); transcription.base_url is refused at load
+    keyed = _resolved(transcription={"api_key_env": "MY_STT_KEY"}, GEMINI_API_KEY="g")
+    assert keyed["transcription"]["provider"] == "openrouter", keyed
+    assert "base_url" not in cfgmod.DEFAULTS["transcription"], cfgmod.DEFAULTS["transcription"]
+    stt_url_cfg = tmp / "stt-base-url.yaml"
+    stt_url_cfg.write_text("transcription:\n  base_url: https://example.test/v1\n", encoding="utf-8")
+    try:
+        cfgmod.load(stt_url_cfg)
+    except SystemExit as e:
+        assert "transcription.base_url" in str(e), e
+    else:
+        raise AssertionError("transcription.base_url accepted by the worker config")
     from hisab.agent import Agent as _NoKeyAgent
     try:
         _NoKeyAgent({"model": dict(none["model"]), "secrets": {"openrouter_key": ""}}, None)
@@ -199,7 +211,7 @@ try:
     assert "409" in logged and "1752041" in logged and "another poller" in logged, logged
     print("rate limit: 409/1752041 logged as another-poller conflict, not a generic failure")
 
-    # #57: wa-agent 0.1.0 fixes the window at 60s — a config that says otherwise is told so, never silently obeyed
+    # #57: wa-agent fixes the window at 60s — a config that says otherwise is told so, never silently obeyed
     for window, want in ((60, ""), (30, "fixed at 60")):
         buf = io.StringIO()
         with contextlib.redirect_stderr(buf):
@@ -234,6 +246,76 @@ try:
                         bad = [f for f in FORBIDDEN_WA + (wa_code,) if f in text]
                         assert not bad, (site, wa_code, lang, hosted, bad, text)
     print(f"wa-agent: all {len(wa_agent.CODES)} codes map to Hisab chat codes at download/send_document/send; no wa-agent text in any reply")
+
+    # #61: voice notes transcribe through wa-agent; the adapter passes provider, model, key variable and language explicitly
+    import wa_agent.transcribe as wa_stt
+    class RecordingSession:
+        """wa-agent's injectable session for transcription: records each request, answers from a queue, nothing to the network."""
+        transport_errors = (ConnectionError,)
+        def __init__(self, *answers):
+            self.answers, self.calls = list(answers), []
+        def request(self, verb, url, headers=None, **kw):
+            self.calls.append((verb, url, headers, kw))
+            answer = self.answers.pop(0)
+            if isinstance(answer, BaseException):
+                raise answer
+            return answer
+    os.environ["HISAB_SMOKE_STT_KEY"] = "k-smoke"
+    try:
+        or_cfg = {"transcription": {"provider": "openrouter", "model": "openai/whisper-1", "gemini_model": "gemini-2.5-flash",
+                                    "api_key_env": "HISAB_SMOKE_STT_KEY", "language": "ur"}}
+        gem_cfg = {"transcription": dict(or_cfg["transcription"], provider="gemini")}
+        stt_audio = tmp / "stt.ogg"; stt_audio.write_bytes(b"OggS-smoke")
+
+        rec = RecordingSession(FakeResponse(200, {"text": "500 chai"}))
+        assert wa_mod.transcribe(stt_audio, or_cfg, session=rec) == "500 chai"
+        assert len(rec.calls) == 1, rec.calls
+        verb, url, headers, kw = rec.calls[0]
+        assert verb == "POST" and url == wa_stt.OPENROUTER_URL and headers["Authorization"] == "Bearer k-smoke", rec.calls
+        assert kw["data"] == {"model": "openai/whisper-1", "language": "ur"} and kw["files"]["file"] == ("stt.ogg", b"OggS-smoke"), kw
+
+        rec = RecordingSession(FakeResponse(200, {"candidates": [{"content": {"parts": [{"text": "500 chai"}]}}]}))
+        assert wa_mod.transcribe(stt_audio, gem_cfg, session=rec) == "500 chai"
+        assert len(rec.calls) == 1, rec.calls
+        verb, url, headers, kw = rec.calls[0]
+        assert verb == "POST" and "models/gemini-2.5-flash:generateContent" in url and headers["x-goog-api-key"] == "k-smoke", rec.calls
+        inline = kw["json"]["contents"][0]["parts"][0]["inline_data"]
+        assert inline == {"mime_type": "audio/ogg", "data": base64.b64encode(b"OggS-smoke").decode()}, inline
+        print("transcription: request shape pinned for openrouter (multipart) and gemini (inline audio); model, key variable and language from config")
+
+        stt_bad_ext = tmp / "stt.xyz"; stt_bad_ext.write_bytes(b"x")
+        no_key_cfg = {"transcription": dict(or_cfg["transcription"], api_key_env="HISAB_SMOKE_MISSING_KEY")}
+        os.environ.pop("HISAB_SMOKE_MISSING_KEY", None)
+        stt_cases = (  # (wa-agent code or [inaudible], cfg, audio, session answers)
+            ("no_transcription_key", no_key_cfg, stt_audio, ()),
+            ("transcription_unavailable", or_cfg, stt_audio, (FakeResponse(503),)),
+            ("transcription_unavailable", gem_cfg, stt_audio, (ConnectionError("reset by peer"),)),
+            ("transcription_failed", or_cfg, stt_audio, (FakeResponse(400, {"error": {"message": "bad audio"}}),)),
+            ("transcription_failed", or_cfg, stt_audio, (FakeResponse(200, {"text": ""}),)),
+            ("bad_usage", or_cfg, stt_bad_ext, ()),
+            ("[inaudible]", or_cfg, stt_audio, (FakeResponse(200, {"text": "[inaudible]"}),)),
+            ("[inaudible]", or_cfg, stt_audio, (FakeResponse(200, {"text": " [Inaudible]. "}),)),
+        )
+        seen = set()
+        for stt_code, stt_cfg, stt_path, answers in stt_cases:
+            rec = RecordingSession(*answers)
+            try:
+                wa_mod.transcribe(stt_path, stt_cfg, session=rec); raise AssertionError(f"transcribe swallowed {stt_code}")
+            except _errs.HisabError as e:
+                assert e.code == "transcription_failed", (stt_code, e.code)
+                want = "[inaudible]" if stt_code == "[inaudible]" else f"wa-agent {stt_code}"
+                assert want in e.detail, (stt_code, e.detail)
+            assert not rec.answers, (stt_code, "session answers left unused")
+            seen.add(stt_code)
+            for lang in ("en", "ur"):
+                for hosted in (True, False):
+                    text = _errs.reply("transcription_failed", lang, hosted)
+                    bad = [f for f in FORBIDDEN_WA + (stt_code,) if f in text]
+                    assert not bad, (stt_code, lang, hosted, bad, text)
+        assert {"no_transcription_key", "transcription_unavailable", "transcription_failed", "bad_usage"} <= seen, seen
+        print("transcription: every wa-agent code and [inaudible] → transcription_failed; no wa-agent text in any reply")
+    finally:
+        os.environ.pop("HISAB_SMOKE_STT_KEY", None)
 
     # #57: an expired media url is media_fetch_failed with the detail kept, and leaves no half-file behind
     def fake_expired(verb, url, **kw):
@@ -300,7 +382,7 @@ try:
             "pending": False,
             "ledger": {"path": str(ledger_path), "template": "personal", "currency": "PKR"},
             "model": {"id": "openai/gpt-4o-mini", "base_url": None, "api_key_env": None, "provider_pin": None},
-            "transcription": {"provider": "openrouter", "model": "openai/whisper-1", "base_url": None, "api_key_env": None, "language": None, "gemini_model": "gemini-2.5-flash"},
+            "transcription": {"provider": "openrouter", "model": "openai/whisper-1", "api_key_env": None, "language": None, "gemini_model": "gemini-2.5-flash"},
             "memory": {"window_turns": 20, "keep_days": 30},
             "whatsapp": {"poll_timeout": 20, "chunk_chars": 3500},
             "state": {"path": str(state_path)},
@@ -657,6 +739,27 @@ try:
     assert wa_v.sent[-1][2] == errors.reply("transcription_failed", "en"), wa_v.sent
     assert "error transcription_failed msg=wamid.voice" in buf.getvalue() and "upstream down" in buf.getvalue(), buf.getvalue()
 
+    # #61: an [inaudible] transcript, through the real adapter, is a failed transcription — never "[Voice note]: [inaudible]"
+    inaudible = voice_app.media_dir / "inaudible.ogg"; inaudible.write_bytes(b"OggS")
+    class InaudibleWA(ExportFakeWA):
+        def download(self, media_id, dest_dir):
+            return inaudible, "audio/ogg"
+    real_stt, real_agent = wa_mod._transcribe, voice_app.agent
+    wa_mod._transcribe = lambda path, **kw: "[inaudible]"
+    voice_app.agent = RaisingAgent(AssertionError("model must not be called"))
+    try:
+        wa_i = InaudibleWA(); buf = io.StringIO()
+        with contextlib.redirect_stderr(buf):
+            voice_app._handle_wa(wa_i, {"from": frm, "type": "audio", "id": "wamid.inaudible", "audio": {"id": "m3"}})
+    finally:
+        wa_mod._transcribe, voice_app.agent = real_stt, real_agent
+    assert wa_i.sent[-1][2] == errors.reply("transcription_failed", "en"), wa_i.sent
+    assert "error transcription_failed msg=wamid.inaudible" in buf.getvalue(), buf.getvalue()
+    stored = voice_app.store.messages.read_text(encoding="utf-8") if voice_app.store.messages.exists() else ""
+    assert "[inaudible]" not in stored, stored
+    assert inaudible.exists(), "a voice note whose transcription failed is kept for the sweep"
+    print("errors: an [inaudible] voice note replies transcription_failed and never reaches the model")
+
     class FailingDocWA(ExportFakeWA):
         def send_document(self, to, path, filename, caption=None):
             raise RuntimeError('send failed: HTTP 500 {"error":{"message":"media upload broke"}}')
@@ -779,6 +882,13 @@ try:
         else:
             raise AssertionError("bad runner transcription provider accepted")
         print("runner config: rejects unknown transcription provider")
+        try:
+            runner_cfgmod.load(stt_url_cfg)
+        except SystemExit as e:
+            assert "transcription.base_url" in str(e), e
+        else:
+            raise AssertionError("transcription.base_url accepted by the runner config")
+        print("config: transcription.base_url refused at load (worker and runner); api_key_env kept")
 
         uid = "abc123uid"
         runner_cfg = {
@@ -820,7 +930,7 @@ try:
             "pending": True,
             "ledger": {"path": str(tmp / "pending-vault"), "template": "personal", "currency": "PKR"},
             "model": {"id": "openai/gpt-4o-mini", "base_url": None, "api_key_env": None, "provider_pin": None},
-            "transcription": {"provider": "openrouter", "model": "openai/whisper-1", "base_url": None, "api_key_env": None, "language": None, "gemini_model": "gemini-2.5-flash"},
+            "transcription": {"provider": "openrouter", "model": "openai/whisper-1", "api_key_env": None, "language": None, "gemini_model": "gemini-2.5-flash"},
             "memory": {"window_turns": 20, "keep_days": 30},
             "whatsapp": {"poll_timeout": 20, "chunk_chars": 3500},
             "state": {"path": str(tmp / "pending-state")},

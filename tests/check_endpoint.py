@@ -3,14 +3,14 @@
   python3 tests/check_endpoint.py [--audio path.ogg] [--config config.yaml]
 
 Checks: key present → model id exists and supports tools (OpenRouter) → one tool-call probe → one transcription
-probe (the given audio, else a short clip synthesised with macOS `say` when available). Prints PASS/FAIL per step.
+probe through wa-agent (the given audio, else a short clip synthesised with macOS `say` when available). Prints PASS/FAIL per step.
 """
 import argparse, json, os, subprocess, sys, tempfile
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import requests
 from hisab import config as cfgmod
-from hisab.transcribe import transcribe
+from hisab.wa import transcribe
 
 ap = argparse.ArgumentParser(); ap.add_argument("--audio"); ap.add_argument("--config", default=None); a = ap.parse_args()
 cfgmod.load_dotenv(); cfg = cfgmod.load(a.config)
