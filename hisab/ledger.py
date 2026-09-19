@@ -13,6 +13,8 @@ from pathlib import Path
 from . import clock
 from .i18n import norm_lang
 
+CURRENCY_RE = re.compile(r"[A-Z]{3,4}")  # the shape setup accepts (hisab/setup.py:74-76)
+
 
 class LedgerError(Exception):
     pass
@@ -25,7 +27,7 @@ class Ledger:
         self.master = self.dir / "hisab.md"
         self.accounts = self.dir / "accounts.md"
         self.rules = self.dir / "rules.md"
-        self.currency = currency
+        self.default_currency = currency  # config.yaml's; used until setup writes settings.json (#65)
 
     def today(self):
         """Today in the ledger's timezone — the only "today" an entry, a quarter file or a report period uses."""
@@ -51,9 +53,10 @@ class Ledger:
     def settings(self):
         f = self.dir / "settings.json"
         try:
-            return json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
-        except json.JSONDecodeError:
+            s = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+        except ValueError:  # malformed JSON or not UTF-8
             return {}
+        return s if isinstance(s, dict) else {}
 
     def set_settings(self, updates):
         cur = self.settings(); cur.update(updates)
@@ -63,6 +66,12 @@ class Ledger:
 
     def language(self):
         return norm_lang(self.settings().get("language", "en"))
+
+    @property
+    def currency(self):
+        """Setup's answer from settings.json once written; config.yaml's default before setup, or if it is missing or malformed (#65)."""
+        cur = self.settings().get("currency")
+        return cur if isinstance(cur, str) and CURRENCY_RE.fullmatch(cur) else self.default_currency
 
     # ---------- files ----------
     def quarter_file(self, d=None, create=True):

@@ -98,6 +98,45 @@ try:
         else:
             assert f"The ledger is at {uid_like}/" in reply, reply
     print("setup: hosted done message names no folder (en/ur, parked kept); self-host still names it")
+    # #65: the currency answered in setup survives a restart; config's is only the pre-setup default
+    from hisab.loop import Hisab
+
+    def _currency_restart(cfg):
+        """Setup answers usd on a PKR config; a new Hisab on the same folders is USD. Returns that new app."""
+        app = Hisab(cfg)
+        assert app.ledger.currency == "PKR" and not app.ledger.exists(), app.ledger.currency
+        app.setup.start()
+        for ans in ["personal", "usd", "cash", "none", "none", "no", "no"]:
+            _, done, _ = app.setup.answer(ans)
+        assert done and app.ledger.currency == "USD", app.ledger.currency
+        app2 = Hisab(cfg)
+        assert app2.ledger.currency == "USD" and "Default currency USD" in app2.agent.system(), app2.ledger.currency
+        return app2
+
+    cur_cfg = {
+        "pending": False,
+        "ledger": {"path": str(tmp / "cur-vault"), "template": "personal", "currency": "PKR"},
+        "model": {"id": "openai/gpt-4o-mini", "base_url": None, "api_key_env": None, "provider_pin": None},
+        "memory": {"window_turns": 20, "keep_days": 30},
+        "state": {"path": str(tmp / "cur-state")},
+        "secrets": {"whatsapp_token": "", "openrouter_key": "fake-not-used"},
+    }
+    cur_app = _currency_restart(cur_cfg)
+    x_args = []
+    _real_hledger = cur_app.ledger.hledger
+    cur_app.ledger.hledger = lambda *a, **kw: (x_args.append(a), _real_hledger(*a, **kw))[1]
+    cur_app.ledger._bal("^assets")
+    assert x_args and x_args[0][x_args[0].index("-X") + 1] == "USD", x_args
+    assert cur_app.handle("/lang ur")[0] and cur_app.ledger.language() == "ur"
+    assert cur_app.ledger.settings()["currency"] == "USD" and Hisab(cur_cfg).ledger.currency == "USD"
+    assert Ledger(tmp / "cur-eur", "EUR").currency == "EUR"
+    for i, body in enumerate(['{"language": "en"}', '{"currency": ""}', '{"currency": "usd"}', '{"currency": 42}',
+                              '{"currency": "US$"}', '{"currency": "USD", ', '[]', '"USD"']):
+        bad = tmp / f"cur-bad-{i}"; bad.mkdir(); (bad / "settings.json").write_text(body, encoding="utf-8")
+        assert Ledger(bad, "EUR").currency == "EUR" and Ledger(bad, "EUR").language() == "en", body
+    bad = tmp / "cur-bad-bytes"; bad.mkdir(); (bad / "settings.json").write_bytes(b'{"currency": "\xff"}')
+    assert Ledger(bad, "EUR").currency == "EUR" and Ledger(bad, "EUR").settings() == {}
+    print("currency: setup's answer survives a restart (prompt, -X, /lang); config's is the pre-setup and malformed-settings default")
     led = Ledger(tmp / "personal")
     n1, _ = led.append("2026-09-08", "coffee", [("expenses:food:snacks", 2500, None), ("assets:bank:alfalah", None, None)])
     n2, _ = led.append("2026-09-08", "atm", [("assets:cash", 5000, None), ("assets:bank:alfalah", -5000, None), ("equity:transfer", None, None)])
@@ -948,6 +987,11 @@ try:
         assert loaded["ledger"]["path"].startswith(vault_root_resolved) and uid in loaded["ledger"]["path"], loaded["ledger"]["path"]
         assert loaded["state"]["path"].startswith(data_root_resolved) and uid in loaded["state"]["path"], loaded["state"]["path"]
         print("runner: tenant_config ok")
+        # #65 hosted: the runner's per-tenant config passes its default currency; the tenant's setup answer still wins after a worker restart
+        cur_loaded = hisab_load(write_tenant_config("cur65uid", build_tenant_config("cur65uid", tenant_doc, runner_cfg), runner_cfg))
+        assert cur_loaded["ledger"]["currency"] == "PKR", cur_loaded["ledger"]
+        _currency_restart(dict(cur_loaded, pending=False, secrets=dict(cur_loaded["secrets"], openrouter_key="fake-not-used")))
+        print("runner: a tenant's setup currency survives a worker restart")
 
         from hisab.loop import Hisab
 
