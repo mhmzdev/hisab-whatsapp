@@ -104,6 +104,8 @@ You need a phone with WhatsApp, Docker, and an [OpenRouter](https://openrouter.a
 4. `docker compose up -d` (or `make selfhost`)
 5. Send your agent any message. It asks personal or shop (in English and Urdu, answer in either), then up to seven more questions in that language, writes your chart of accounts, and posts what you sent.
 
+**On a server instead of your own machine:** [`docs/self-host-vps.md`](docs/self-host-vps.md) is one prompt for a coding agent. It takes a VPS from nothing to a reply on WhatsApp, and asks you only for what it cannot know.
+
 Your ledger lives in `./vault/` on your machine. Nothing goes to anyone but your model provider.
 
 **Setting it up for someone else** (a shop): they create the agent on *their* phone and send you the key; you run the container. They text, they get replies. You only ever see the ledger file, and only if they show you.

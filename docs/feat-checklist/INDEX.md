@@ -12,6 +12,7 @@ Acceptance checklists written by /review, one per slug; /open-pr seeds the PR Te
 
 | Checklist | Slug | Proven / manual / failing | Date |
 |---|---|---|---|
+| [GH-63-self-host-vps](GH-63-self-host-vps.md) | GH-63-self-host-vps | 7 / 1 / 0 | 2026-09-20 |
 | [GH-64-platform-neutral](GH-64-platform-neutral.md) | GH-64-platform-neutral | 7 / 2 / 0 | 2026-09-20 |
 | [GH-61-wa-agent-transcription](GH-61-wa-agent-transcription.md) | GH-61-wa-agent-transcription | 10 / 4 / 0 | 2026-09-19 |
 | [GH-57-wa-agent-transport](GH-57-wa-agent-transport.md) | GH-57-wa-agent-transport | 11 / 3 / 0 (1 finding fixed) | 2026-09-19 |
