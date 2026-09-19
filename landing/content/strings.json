@@ -516,8 +516,8 @@
     "ur": "جلد آ رہا ہے"
   },
   "hosted_soon_price_note": {
-    "en": "Planned price for Hosted Hisab. Nothing to pay today: self-hosting is free and open source.",
-    "ur": "Hosted Hisab کی متوقع قیمت۔ آج کچھ ادا نہیں کرنا: خود چلانا مفت اور اوپن سورس ہے۔"
+    "en": "Nothing to pay today: self-hosting is free and open source.",
+    "ur": "آج کچھ ادا نہیں کرنا: خود چلانا مفت اور اوپن سورس ہے۔"
   },
   "hosted_soon_how_note": {
     "en": "Hosted Hisab is coming soon. Today you run it yourself; the steps are on GitHub.",
@@ -530,5 +530,17 @@
   "portal_soon_body": {
     "en": "Sign-in is not open yet. You can run Hisab yourself today with your own WhatsApp agent and a model key.",
     "ur": "سائن اِن ابھی کھلا نہیں۔ آپ آج ہی اپنے WhatsApp ایجنٹ اور ماڈل کی کلید کے ساتھ حساب خود چلا سکتے ہیں۔"
+  },
+  "price_soon_title": {
+    "en": "The price isn’t posted yet",
+    "ur": "قیمت ابھی درج نہیں ہوئی"
+  },
+  "price_pending_caption": {
+    "en": "A pending entry — hledger marks anything not yet cleared with a “!”. This one posts the day Hosted Hisab opens.",
+    "ur": "یہ زیرِ التوا اندراج ہے — جو اندراج ابھی کلیئر نہ ہوا ہو، hledger اس پر “!” لگاتا ہے۔ یہ اُس دن درج ہو گا جس دن Hosted Hisab کھلے گا۔"
+  },
+  "price_pending_label": {
+    "en": "Hosted Hisab’s price, not posted yet",
+    "ur": "Hosted Hisab کی قیمت، جو ابھی درج نہیں ہوئی"
   }
 }

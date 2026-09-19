@@ -24,6 +24,16 @@ export const SHOP_EXCHANGES = {
 // The ledger block the "Real books" section shows for the chai message.
 export const LEDGER_SAMPLE = { in: '300 ki chai easypaisa se', entry: '2026-09-12 chai  ; n:2\n    expenses:food:snacks        PKR 300.00\n    assets:wallet:easypaisa' }
 
+// The public build's pricing: Hosted Hisab's price as an hledger *pending* entry. `!` is hledger's
+// real status mark for a transaction that has not cleared, which is exactly what the price is.
+// No amount appears anywhere — the dots are the one thing that is not ledger syntax.
+export const PENDING_PRICE = {
+  head: '2026-??-??  ! Hosted Hisab  ; pending',
+  posting: '    expenses:hisab          ',
+  currency: 'PKR ',
+  balance: '    assets:bank',
+}
+
 // The Connected screen's plan row. Presentation only — spec 001 takes no payment and has no plan
 // tiers; every other row on that screen is live from the tenant document (runner/activity.py).
 export const PLAN = 'PKR 300 / month · first month free'

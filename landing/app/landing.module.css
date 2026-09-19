@@ -876,7 +876,9 @@
 
 @media (max-width: 860px) {
   .priceCard {
-    grid-template-columns: 1fr;
+    /* minmax(0, …), as on desktop: a plain 1fr lets the widest line (a ledger entry)
+       set the column's minimum and push the whole card past its border on a phone */
+    grid-template-columns: minmax(0, 1fr);
     gap: 20px;
   }
 }
@@ -1120,4 +1122,53 @@
   margin: 0 0 28px;
   font-size: 15px;
   color: var(--muted);
+}
+
+/* The public build's pricing: the price as an hledger pending entry. The torn edges are cut in
+   --bg, and this receipt sits on the card's surface, so the card's colour is lent to --bg here. */
+.pendingPrice {
+  --bg: var(--surface);
+  min-width: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-self: center;
+}
+.pendingAmount {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  vertical-align: middle;
+}
+/* three dots taking turns, drawn the way a chat shows someone still typing */
+.pendingDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: transparent;
+  animation: pendingPulse 1.4s ease-in-out infinite;
+}
+.pendingDot:nth-child(2) { animation-delay: 0.2s; }
+.pendingDot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pendingPulse {
+  0%, 60%, 100% { opacity: 0.35; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-2px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pendingDot { animation: none; opacity: 0.8; }
+}
+.pendingCaption {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+@media (max-width: 720px) {
+  /* small enough that "; not posted yet" — the point of the entry — fits without scrolling */
+  .pendingPrice pre {
+    font-size: 11px;
+    padding: 18px 12px;
+  }
 }

@@ -37,7 +37,7 @@ local Emulator Suite. Rebuild after changing any of them.
 |---|---|---|
 | Hero and header CTA | Get started → `/portal/` (Go to portal when signed in) | Run it yourself → the README's self-host steps on GitHub |
 | Setup section | as written | a Coming soon note above the three steps |
-| Pricing | Get started, and the JazzCash/Easypaisa note | a Coming soon badge, Run it yourself, and "planned price, nothing to pay today" |
+| Pricing | the monthly and yearly plans, Get started, and the JazzCash/Easypaisa note | no amount and no tiers: the price is an hledger *pending* entry (`!`, amount `PKR ●●●` pulsing like a typing indicator, `PENDING_PRICE` in `content/mock.js`), titled "The price isn't posted yet", beside the Coming soon badge, the feature list and Run it yourself |
 | `/portal/` | sign-in and the tenant screens | a coming-soon card; `firebase()` is never called |
 
 `make up` and `make dev` build with it on; `make landing` and `make selfhost` build it off. A command-line value wins over `landing/.env.local`. `tests/check_landing.py` fails if a page stops importing the gate.
