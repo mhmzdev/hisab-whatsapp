@@ -68,7 +68,7 @@ def transcribe(path, cfg, session=None):
 - [ ] A voice note whose transcript is `[inaudible]` gets the `transcription_failed` reply through the loop. The agent is never called, the store holds no `[Voice note]: [inaudible]`, and the voice file is kept for the sweep — `verify: python3 tests/smoke.py` (prints `errors: an [inaudible] voice note replies transcription_failed and never reaches the model`)
 - [ ] `tests/check_endpoint.py` transcribes through the adapter and still parses — `verify: grep -q "from hisab.wa import transcribe" tests/check_endpoint.py && python3 -m py_compile tests/check_endpoint.py`
 - [ ] Docs no longer describe `hisab/transcribe.py` or google-genai as live — `verify: ! grep -n "transcribe\.py\|google-genai" AGENTS.md ARCHITECTURE.md README.md config.example.yaml examples/*.yaml runner/config.example.yaml`
-- [ ] The image builds with the new requirements — `verify: docker build -q -t hisab-whatsapp-gh61 .` (build only, no `compose up`, no container started)
+- [ ] The worker image and the runner image build with the new requirements, without google-genai — `verify: docker build -q -t hisab-whatsapp-gh61 . && docker build -q -f runner/Dockerfile -t hisab-runner-gh61 .` (build only, no `compose up`, no container started; every `docker-compose.runner*.yml` builds from `runner/Dockerfile`; if the Docker daemon is down, report it as not run)
 - [ ] Repo check passes — `verify: python3 tests/smoke.py`
 - [ ] **Post-merge, owner + lead (left unticked by the lane):** (1) on the OpenRouter config, a voice note "five hundred chai cash" round-trips on the demo agent to a one-line "posted #N"; (2) the same on the Gemini config; (3) a voice note with nothing intelligible said (silence or noise) replies with `transcription_failed` and posts nothing — `verify: manual` on the demo agent
 
@@ -132,7 +132,14 @@ def transcribe(path, cfg, session=None):
   - `config.example.yaml:18-22`: `model:` comment → "openrouter provider"; add `# api_key_env: null  # env var holding the transcription key; null = the provider's own (OPENROUTER_API_KEY / GEMINI_API_KEY)` (commented out, as it is optional); `language:` comment → "null = auto; a code like 'ur' pins it (OpenRouter's language field, a hint to Gemini)". There is no `base_url` line to remove.
   - `examples/config.gemini.yaml:1`: "with google-genai for voice notes" → "voice notes through the same key". Check `examples/config.openrouter.yaml:16-18`, `examples/runner-config.openrouter.yaml:21-` and `runner/config.example.yaml:29-` for any transcription `base_url` (the scoping found none) and leave them otherwise.
   - `docs/exec-plans/INDEX.md`: `/implement` moves the row.
-- Verify: `python3 tests/smoke.py`; the docs grep in Success criteria; `docker build -q -t hisab-whatsapp-gh61 .` (build only; `docker image rm hisab-whatsapp-gh61` afterwards).
+- Verify: `python3 tests/smoke.py`; the docs grep in Success criteria; both `docker build` lines from Success criteria (build only; `docker image rm hisab-whatsapp-gh61 hisab-runner-gh61` afterwards).
+
+## Major Impact (for /open-pr)
+
+- Gemini voice notes move from the google-genai SDK to wa-agent's plain HTTP, and use wa-agent's prompt. That prompt adds "no preamble" and the `[inaudible]` instruction, and Hisab now turns an `[inaudible]` transcript into `transcription_failed`.
+- `transcription.language` now reaches Gemini as a prompt hint. Before, only OpenRouter received it. It defaults to null, so nothing changes unless a config sets it.
+- `transcription.api_key_env` now applies to both providers. `transcription.base_url` is refused at load by the worker and by the runner.
+- `google-genai` leaves the worker and runner images.
 
 ## Risks
 
