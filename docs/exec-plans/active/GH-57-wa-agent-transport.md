@@ -102,7 +102,7 @@ Six tools, the strict check and entry numbers are not touched. **Offset after ba
 - Verify: `python3 tests/smoke.py`
 
 ### Phase 2 — Loop wiring through `inbound()` and the download failure path
-**Status:** Not started
+**Status:** Done — `loop.py` reads the message only through `inbound()` (no `m[...]`/`m.get` left on the platform dict); audio/image downloads share one `try` that replies `media_fetch_failed` (or the raised code) with the detail on stderr; poll failure/exit lines log the wa-agent code + detail. Smoke: an expired-url `HisabError` and a bare `ConnectionError` both reply `media_fetch_failed`.
 - Files: `hisab/loop.py:19, 166-199, 201-233`, `tests/smoke.py:626-633`.
 - Change:
   - `run_whatsapp` `:190` reads the id as `inbound(m).id`.

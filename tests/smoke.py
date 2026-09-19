@@ -670,12 +670,16 @@ try:
     # a media download miss and a runaway tool loop: their codes, not free text
     class MissingMediaWA(ExportFakeWA):
         def download(self, media_id, dest_dir):
-            return None, None
-    wa_m = MissingMediaWA(); buf = io.StringIO()
-    with contextlib.redirect_stderr(buf):
-        voice_app._handle_wa(wa_m, {"from": frm, "type": "image", "id": "wamid.nomedia", "image": {"id": "m2"}})
-    assert wa_m.sent[-1][2] == errors.reply("media_fetch_failed", "en"), wa_m.sent
-    assert "error media_fetch_failed msg=wamid.nomedia" in buf.getvalue(), buf.getvalue()
+            raise errors.HisabError("media_fetch_failed", "wa-agent media_url_expired: media m2: HTTP 404 on the download url")
+    class BrokenMediaWA(ExportFakeWA):
+        def download(self, media_id, dest_dir):
+            raise ConnectionError("reset by peer")
+    for fake, typ, detail in ((MissingMediaWA(), "image", "media_url_expired"), (BrokenMediaWA(), "audio", "reset by peer")):
+        buf = io.StringIO()
+        with contextlib.redirect_stderr(buf):
+            voice_app._handle_wa(fake, {"from": frm, "type": typ, "id": f"wamid.nomedia-{typ}", typ: {"id": "m2"}})
+        assert fake.sent[-1][2] == errors.reply("media_fetch_failed", "en"), fake.sent
+        assert f"error media_fetch_failed msg=wamid.nomedia-{typ}" in buf.getvalue() and detail in buf.getvalue(), buf.getvalue()
     steps_agent = agent_mod.Agent(voice_app.cfg, voice_app.ledger)
     steps_agent._chat = lambda messages: {"role": "assistant", "content": None,
                                           "tool_calls": [{"id": "c1", "function": {"name": "read_accounts", "arguments": "{}"}}]}

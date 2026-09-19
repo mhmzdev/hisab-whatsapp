@@ -16,7 +16,7 @@ from .ledger import Ledger
 from .setup import Setup
 from .store import Store
 from .transcribe import transcribe
-from .wa import MAX_DOCUMENT_BYTES, AUTH_EXIT_CODE, AuthError
+from .wa import MAX_DOCUMENT_BYTES, AUTH_EXIT_CODE, AuthError, inbound
 from .i18n import s, parse_lang
 
 MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")  # not strftime %b: locale-free
@@ -179,15 +179,16 @@ class Hisab:
                 msgs, nxt = wa.poll(offset)
             except AuthError as e:
                 # permanent: a rejected token never becomes valid, so exit and let the runner surface it
-                print(f"poll: {e}; exiting", file=sys.stderr)
+                print(f"poll: {getattr(e, 'detail', '') or e}; exiting", file=sys.stderr)
                 sys.exit(AUTH_EXIT_CODE)
             except Exception as e:
-                print(f"poll failed: {e}; retrying in 5s", file=sys.stderr)
+                print(f"poll failed: {getattr(e, 'code', type(e).__name__)}: {getattr(e, 'detail', '') or e}; retrying in 5s", file=sys.stderr)
                 time.sleep(5)
                 continue
             for m in msgs:
                 # idempotent by WhatsApp message id: a replayed batch (crash, restart, backlog drain) never posts twice
-                if m.get("id") and self.store.lookup(m["id"]):
+                mid = inbound(m).id
+                if mid and self.store.lookup(mid):
                     continue
                 try:
                     self._handle_wa(wa, m)
@@ -199,24 +200,26 @@ class Hisab:
                 self.store.set_offset(offset)
 
     def _handle_wa(self, wa, m):
-        frm, typ, mid = m.get("from"), m.get("type"), m.get("id")
-        quoted = (m.get("context") or {}).get("id")
+        msg = inbound(m)
+        frm, typ, mid, quoted = msg.frm, msg.type, msg.id, msg.quoted
         self.store.set_creator(frm)
         if self.cfg.get("pending"):
             # hosted mode, unverified tenant: record the inbound (the runner's verify poll reads it, see
             # runner/verify.py) and at most nudge — never typing/download, no ledger, no model call.
-            text = m.get("text", {}).get("body") if typ == "text" else f"[{typ}]"
+            text = msg.text if typ == "text" else f"[{typ}]"
             self.store.add(mid, "in", text)
             self._pending_reminder(wa, frm, text)
             return
         wa.typing(mid)
         text, image = None, None
+        if typ in ("audio", "image"):
+            try:
+                path, _ = wa.download(msg.media_id, self.media_dir)
+            except Exception as e:
+                self._fail(wa, frm, errors.classify(e, default="media_fetch_failed"), e, mid); return
         if typ == "text":
-            text = m["text"]["body"]
+            text = msg.text
         elif typ == "audio":
-            path, _ = wa.download(m["audio"]["id"], self.media_dir)
-            if not path:
-                self._fail(wa, frm, "media_fetch_failed", None, mid); return
             try:
                 text = transcribe(path, self.cfg)
             except Exception as e:
@@ -224,11 +227,8 @@ class Hisab:
             Path(path).unlink(missing_ok=True)  # transcribed: the text is what's kept, never the voice (#33)
             text = f"[Voice note]: {text}"
         elif typ == "image":
-            path, _ = wa.download(m["image"]["id"], self.media_dir)
-            if not path:
-                self._fail(wa, frm, "media_fetch_failed", None, mid); return
             image = path
-            text = (m["image"].get("caption") or "").strip()
+            text = msg.caption
         else:
             wa.send(frm, s("unsupported", self._lang(), typ=typ)); return
         self.store.add(mid, "in", text or "[image]")
