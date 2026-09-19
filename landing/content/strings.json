@@ -135,10 +135,6 @@
     "en": "Get started",
     "ur": "شروع کریں"
   },
-  "footer_note": {
-    "en": "Android only for now.",
-    "ur": "ابھی صرف Android کے لیے۔"
-  },
   "footer_origin": {
     "en": "Built in Islamabad",
     "ur": "اسلام آباد میں بنایا گیا"
@@ -416,8 +412,8 @@
     "ur": "پورٹل پر جائیں"
   },
   "hero_platforms": {
-    "en": "Android · English · اردو",
-    "ur": "Android · انگلش · اردو"
+    "en": "WhatsApp · English · اردو",
+    "ur": "WhatsApp · انگلش · اردو"
   },
   "phone_agent_label": {
     "en": "your agent",
