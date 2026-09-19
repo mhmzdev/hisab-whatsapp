@@ -13,11 +13,11 @@ Up: [docs/INDEX.md](../INDEX.md). Written by `/create-plan` into `backlog/`; `/i
 ## Backlog
 | Plan | Problem it solves | Depends on |
 |---|---|---|
-| [GH-57-wa-agent-transport](backlog/GH-57-wa-agent-transport.md) | `hisab/wa.py` is a drifting second copy of the transport published as `wa-agent`; reduce it to a thin adapter over `wa-agent==0.1.0` (Option 1: transcription stays), every wa-agent failure mapped to an existing Hisab code | `wa-agent` 0.1.0 on PyPI (done) |
 
 ## Active
 | Plan | Started | Issue |
 |---|---|---|
+| [GH-57-wa-agent-transport](active/GH-57-wa-agent-transport.md) | 2026-09-19 | [#57](https://github.com/mhmzdev/hisab-whatsapp/issues/57) |
 
 ## Completed
 | Plan | Shipped | Summary |

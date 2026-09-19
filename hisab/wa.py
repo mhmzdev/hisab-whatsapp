@@ -1,239 +1,122 @@
-"""WhatsApp Agent Platform client. Long-poll only; an agent may message only its creator."""
-import json
+"""WhatsApp transport: a thin adapter over the `wa-agent` package (#57). Long-poll only; an agent may message only its creator.
+
+wa-agent owns the HTTP client, the per-method rate limiter (#17), chunking, markdown → WhatsApp, media and the
+document send (#36). This file owns only what is Hisab's: config → client, wa-agent failure codes → Hisab codes at
+the boundary (no wa-agent message ever reaches a chat, .agents/rules/errors.md), Obsidian wikilink flattening, and
+`inbound()` — the one place that reads the platform's message dict, so wa-agent#31's typed models are a small diff.
+"""
 import re
 import sys
 import time
-from pathlib import Path
-import requests
+from collections import namedtuple
+
+from wa_agent import AuthError, WhatsAppError
+from wa_agent import WhatsApp as _Client
 
 from . import errors
 
-BASE = "https://api.whatsapp.com/agent/v1"
 MAX_DOCUMENT_BYTES = 16 * 1024 * 1024  # WhatsApp's platform cap for outbound documents
-
-# Platform manual v1 §6 "Rate limits": each is its own rolling 60s counter, scoped per agent.
-# media is per HTTP method (POST/GET/DELETE each get their own 12/min budget); only POST (upload)
-# and GET (download) are exercised today. HTTP 429 carries error.code 130429.
-DEFAULT_RATE_LIMITS = {
-    "window_seconds": 60,
-    "messages_per_min": 12,
-    "statuses_per_min": 12,
-    "updates_per_min": 15,
-    "media_per_min": 12,
-}
-# HTTP 409 on /updates: another poller replaced this one's cursor — the two-pollers-on-one-agent
-# footgun AGENTS.md warns about, named by the platform as error.code 1752041.
+# The platform accepts only its listed document types plus application/octet-stream "for a generic binary file"
+# (manual, POST /agent/v1/media → Accepted media types); application/zip is refused with 400/131053 (#36).
+DOCUMENT_MIME = "application/octet-stream"
 
 AUTH_EXIT_CODE = errors.exit_status("auth")  # hisab.loop's exit status on AuthError; the runner maps it back through hisab/errors.py
 
+# config whatsapp.rate_limits → wa-agent's per-method limits. media is per HTTP method on the platform, so one
+# budget feeds both upload (POST) and download (GET). The window is wa-agent's fixed 60s — the platform manual's.
+_LIMIT_KEYS = {"messages_per_min": ("messages",), "statuses_per_min": ("statuses",), "updates_per_min": ("updates",),
+               "media_per_min": ("media_post", "media_get")}
 
-class AuthError(Exception):
-    """The platform rejected the token itself — HTTP 401 (error.code 190) or an invalid-token 400
-    (error.code 100). Unlike a 429, 503 or a dropped connection this never becomes valid on retry, so
-    the poll loop lets it escape and exits with AUTH_EXIT_CODE instead of burning 12 polls a minute."""
+# wa-agent code → Hisab chat code for the export's upload + send. Refused is permanent (a retry never helps);
+# anything else, unreachable included, is export_failed, which invites a retry. media_too_large can't happen here —
+# the loop checks MAX_DOCUMENT_BYTES first — and must not be export_too_large, whose reply needs {mb}.
+EXPORT_CODES = {"platform_rejected": "export_rejected", "media_too_large": "export_rejected"}
+# An AuthError raised by download or send_document maps like any other code there (media_fetch_failed,
+# export_failed): the user still gets a reply for this message, and the next poll raises AuthError and the
+# loop exits AUTH_EXIT_CODE. Deliberate — do not special-case auth at these two sites.
+
+Inbound = namedtuple("Inbound", "id frm type text media_id caption quoted")
 
 
-class RateLimiter:
-    """One rolling window per method, scoped exactly like the platform's own counters. `acquire`
-    blocks (via the injected `sleep`) until a call would not exceed the limit; `penalize` marks a
-    method's window as fully spent right now, so the next `acquire` backs off until it can
-    plausibly have reset instead of guessing a flat delay."""
+def inbound(m):
+    """The platform's message dict → the fields Hisab reads. The only reader of the dict (wa-agent#31)."""
+    typ = m.get("type")
+    body = m.get(typ) if isinstance(m.get(typ), dict) else {}
+    return Inbound(
+        id=m.get("id"),
+        frm=m.get("from"),
+        type=typ,
+        text=body.get("body") if typ == "text" else None,
+        media_id=body.get("id") if typ in ("audio", "image") else None,
+        caption=(body.get("caption") or "").strip() if typ == "image" else None,
+        quoted=(m.get("context") or {}).get("id"),
+    )
 
-    def __init__(self, limits, window=60, now=time.time, sleep=time.sleep):
-        self._limits = dict(limits)
-        self._window = window
-        self._now = now
-        self._sleep = sleep
-        self._calls = {method: [] for method in self._limits}
 
-    def _drop_expired(self, method, t):
-        q = self._calls[method]
-        cutoff = t - self._window
-        while q and q[0] <= cutoff:
-            q.pop(0)
+def _unlink(text):
+    """Obsidian wikilinks → their label: Hisab's vault is Obsidian, the transport knows nothing of it."""
+    text = re.sub(r"\[\[[^\]|]*\|([^\]]*)\]\]", r"\1", text)
+    return re.sub(r"\[\[([^\]#|]*)(#[^\]|]*)?\]\]", r"\1", text)
 
-    def acquire(self, method):
-        limit = self._limits.get(method)
-        if not limit:
-            return
-        q = self._calls[method]
-        while True:
-            t = self._now()
-            self._drop_expired(method, t)
-            if len(q) < limit:
-                q.append(t)
-                return
-            self._sleep(q[0] + self._window - t)
 
-    def penalize(self, method):
-        limit = self._limits.get(method)
-        if not limit:
-            return
-        self._calls[method] = [self._now()] * limit
+def _detail(e):
+    """The log detail for a wa-agent failure: its code and raw detail. str(e) is only the generic message."""
+    return f"wa-agent {e.code}: {e.detail}"
 
 
 class WhatsApp:
-    def __init__(self, token, poll_timeout=20, chunk_chars=3500, rate_limits=None, now=time.time, sleep=time.sleep):
-        self.h = {"Authorization": f"Bearer {token}"}
-        self.poll_timeout = min(int(poll_timeout), 25)
-        self.chunk = int(chunk_chars)
-        rl = {**DEFAULT_RATE_LIMITS, **(rate_limits or {})}
-        self.limits = RateLimiter({
-            "messages": rl["messages_per_min"],
-            "statuses": rl["statuses_per_min"],
-            "updates": rl["updates_per_min"],
-            "media_post": rl["media_per_min"],
-            "media_get": rl["media_per_min"],
-        }, window=rl["window_seconds"], now=now, sleep=sleep)
-
-    def _request(self, method, verb, url, **kwargs):
-        """One rate-limited HTTP call. Retries once past a 429 — `acquire` on the retry backs off
-        until the window can plausibly have reset, since `penalize` marked it fully spent."""
-        for attempt in (1, 2):
-            self.limits.acquire(method)
-            r = requests.request(verb, url, **kwargs)
-            if r.status_code == 429 and attempt == 1:
-                self.limits.penalize(method)
-                continue
-            return r
-        return r
+    def __init__(self, token, poll_timeout=20, chunk_chars=3500, rate_limits=None, session=None,
+                 now=time.time, sleep=time.sleep):
+        rl = rate_limits or {}
+        window = rl.get("window_seconds", 60)
+        if window != 60:
+            print(f"rate_limits.window_seconds is fixed at 60 by wa-agent 0.1.0; ignoring {window}", file=sys.stderr)
+        limits = {method: rl[key] for key, methods in _LIMIT_KEYS.items() if key in rl for method in methods}
+        self.poll_timeout = int(poll_timeout)
+        self._client = _Client(token, session=session, limits=limits, chunk_chars=chunk_chars, now=now, sleep=sleep)
 
     def poll(self, offset=""):
-        """Returns (messages, next_offset). Raises requests exceptions on network failure."""
-        params = {"limit": 50, "timeout": self.poll_timeout}
-        if offset:
-            params["offset"] = offset
-        r = self._request("updates", "GET", f"{BASE}/updates", headers=self.h, params=params,
-                           timeout=self.poll_timeout + 10)
-        if r.status_code == 204:
-            return [], offset
-        if r.status_code == 429:
-            return [], offset  # still throttled after backing off; try again next turn rather than crash the loop
-        if r.status_code == 409:
-            code = _error_code(r)
+        """Returns (messages, next_offset). AuthError propagates (the loop exits); so does any other failure (the loop
+        retries). A 409 — another poller replaced this one's cursor, the two-pollers-on-one-agent footgun AGENTS.md
+        warns about — is logged and returns an empty batch with the offset kept."""
+        try:
+            return self._client.poll(offset or None, timeout=self.poll_timeout)
+        except AuthError:
+            raise
+        except WhatsAppError as e:
+            if e.code != "another_poller":
+                raise
+            code = re.search(r"error\.code (\d+)", e.detail)
             print(f"[{time.strftime('%H:%M:%S')}] poll: another poller is using this agent "
-                  f"(HTTP 409{f', error.code {code}' if code else ''})", file=sys.stderr)
+                  f"(HTTP 409{f', error.code {code.group(1)}' if code else ''})", file=sys.stderr)
             return [], offset
-        if r.status_code == 401 or (r.status_code == 400 and _error_code(r) == 100):
-            raise AuthError(f"WhatsApp rejected the token (HTTP {r.status_code}, error.code {_error_code(r)})")
-        r.raise_for_status()
-        data = r.json()
-        msgs = []
-        for entry in data.get("entry", []):
-            for ch in entry.get("changes", []):
-                msgs.extend(ch.get("value", {}).get("messages", []) or [])
-        return msgs, data.get("next_offset", offset)
-
-    def download(self, media_id, dest_dir):
-        meta = self._request("media_get", "GET", f"{BASE}/media/{media_id}", headers=self.h, timeout=30).json()
-        url = meta.get("url")
-        if not url:
-            return None, None
-        mime = meta.get("mime_type", "")
-        ext = _ext(mime)
-        path = Path(dest_dir) / f"{media_id}{ext}"
-        with requests.get(url, headers=self.h, timeout=60, stream=True) as r:
-            r.raise_for_status()
-            path.write_bytes(r.content)
-        return path, mime
 
     def typing(self, message_id):
+        self._client.typing(message_id)  # never raises: a receipt is cosmetic
+
+    def download(self, media_id, dest_dir):
+        """Returns (path, mime). Any failure is media_fetch_failed — "send it again" is the right advice for each."""
         try:
-            self._request("statuses", "POST", f"{BASE}/statuses", headers=self.h, json={
-                "messaging_product": "whatsapp", "status": "read", "message_id": message_id,
-                "typing_indicator": {"type": "text"}}, timeout=10)
-        except requests.RequestException:
-            pass
+            return self._client.download(media_id, dest_dir)
+        except WhatsAppError as e:
+            raise errors.HisabError("media_fetch_failed", _detail(e)) from e
 
     def send(self, to, text):
-        """Send text, split under the 4096 cap on paragraph boundaries. Returns list of message ids."""
-        body = to_whatsapp(text)
-        parts = _chunks(body, self.chunk)
-        ids = []
-        for i, p in enumerate(parts, 1):
-            if len(parts) > 1:
-                p = f"{p}\n\n({i}/{len(parts)})"
-            r = self._request("messages", "POST", f"{BASE}/messages", headers=self.h, json={
-                "messaging_product": "whatsapp", "to": to, "type": "text", "text": {"body": p}}, timeout=30)
-            if r.status_code // 100 != 2:
-                raise RuntimeError(f"send failed: HTTP {r.status_code} {r.text[:300]}")
-            d = r.json()
-            ids.append((d.get("messages") or [{}])[0].get("id") or d.get("id") or f"out:{int(time.time()*1000)}")
-            if i < len(parts):
-                time.sleep(1)
-        return ids
+        """Send text, split under chunk_chars on paragraph boundaries. Returns the list of message ids. A failure has
+        no chat to reply in; it raises `internal` so the log line carries wa-agent's code and detail."""
+        try:
+            return [sent.id for sent in self._client.send(to, _unlink(text))]
+        except WhatsAppError as e:
+            raise errors.HisabError("internal", _detail(e)) from e
 
-    def send_document(self, to, path, filename, caption=None, mime="application/octet-stream"):
-        """Upload a local file and send it as a WhatsApp document. Returns the sent message id.
+    def send_document(self, to, path, filename, caption=None):
+        """Upload a local file as a generic binary and send it as a WhatsApp document. Returns the sent message id."""
+        try:
+            media_id = self._client.upload(path, DOCUMENT_MIME)
+            return self._client.send_media(to, media_id, caption=caption, filename=filename, mime=DOCUMENT_MIME).id
+        except WhatsAppError as e:
+            raise errors.HisabError(EXPORT_CODES.get(e.code, "export_failed"), _detail(e)) from e
 
-        The platform accepts only its listed document types plus application/octet-stream "for a generic
-        binary file" (manual, POST /agent/v1/media → Accepted media types); application/zip is refused with
-        400/131053. The type goes in the `type` form field and on the file part. A 131053 is permanent
-        (type or size), so it raises the export_rejected code instead of inviting a retry (#36)."""
-        path = Path(path)
-        with path.open("rb") as f:
-            r = self._request("media_post", "POST", f"{BASE}/media", headers=self.h,
-                               files={"file": (filename, f, mime)},
-                               data={"messaging_product": "whatsapp", "type": mime}, timeout=60)
-        if r.status_code == 400 and _error_code(r) == 131053:
-            raise errors.HisabError("export_rejected", f"media upload refused: HTTP 400 {r.text[:300]}")
-        if r.status_code // 100 != 2:
-            raise RuntimeError(f"media upload failed: HTTP {r.status_code} {r.text[:300]}")
-        media_id = r.json().get("id")
-        doc = {"id": media_id, "filename": filename}
-        if caption:
-            doc["caption"] = caption
-        r = self._request("messages", "POST", f"{BASE}/messages", headers=self.h, json={
-            "messaging_product": "whatsapp", "to": to, "type": "document", "document": doc}, timeout=30)
-        if r.status_code // 100 != 2:
-            raise RuntimeError(f"send failed: HTTP {r.status_code} {r.text[:300]}")
-        d = r.json()
-        return (d.get("messages") or [{}])[0].get("id") or d.get("id") or f"out:{int(time.time()*1000)}"
-
-
-def _error_code(r):
-    try:
-        return (r.json() or {}).get("error", {}).get("code")
-    except ValueError:
-        return None
-
-
-def _ext(mime):
-    m = (mime or "").lower()
-    for k, v in (("image/jpeg", ".jpg"), ("image/png", ".png"), ("audio/ogg", ".ogg"), ("audio/mp4", ".m4a"),
-                 ("audio/aac", ".aac"), ("audio/mpeg", ".mp3"), ("audio/amr", ".amr"), ("application/pdf", ".pdf")):
-        if m.startswith(k):
-            return v
-    return ""
-
-
-def to_whatsapp(text):
-    """Markdown → WhatsApp formatting. Code fences are kept (WhatsApp renders ``` as monospace)."""
-    out = []
-    for line in text.splitlines():
-        line = re.sub(r"\[\[[^\]|]*\|([^\]]*)\]\]", r"\1", line)
-        line = re.sub(r"\[\[([^\]#|]*)(#[^\]|]*)?\]\]", r"\1", line)
-        line = re.sub(r"\*\*([^*]+)\*\*", r"*\1*", line)
-        line = re.sub(r"^#{1,6} +(.*)$", r"*\1*", line)
-        line = re.sub(r"^\s*[-*] ", "• ", line)
-        out.append(line.rstrip())
-    return "\n".join(out).strip()
-
-
-def _chunks(text, max_len):
-    paras = text.split("\n\n")
-    parts, buf = [], ""
-    for p in paras:
-        while len(p) > max_len:
-            if buf:
-                parts.append(buf); buf = ""
-            parts.append(p[:max_len]); p = p[max_len:]
-        if not buf:
-            buf = p
-        elif len(buf) + 2 + len(p) <= max_len:
-            buf = buf + "\n\n" + p
-        else:
-            parts.append(buf); buf = p
-    if buf:
-        parts.append(buf)
-    return parts or [""]
+    def parts_for(self, text):
+        """What `send` puts on the wire: wikilinks flattened, markdown converted, split, numbered."""
+        return self._client.parts_for(_unlink(text))

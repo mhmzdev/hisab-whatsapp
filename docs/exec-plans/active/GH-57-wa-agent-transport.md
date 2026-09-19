@@ -1,11 +1,11 @@
 ---
 slug: GH-57-wa-agent-transport
 issue: 57
-status: backlog
+status: active
 open_questions: none
 ---
 
-# refactor: Move the WhatsApp transport onto the wa-agent package          ⬜ BACKLOG
+# refactor: Move the WhatsApp transport onto the wa-agent package          🚧 ACTIVE — started 2026-09-19
 
 ## Problem
 
@@ -69,7 +69,7 @@ Six tools, the strict check and entry numbers are not touched. **Offset after ba
 ## Phases
 
 ### Phase 1 — The adapter, the pin and its transport tests
-**Status:** Not started
+**Status:** Done — `hisab/wa.py` is a 122-line adapter (no HTTP of its own); `wa-agent==0.1.0` pinned; smoke drives a `FakeSession`, adds the window line, the all-codes × all-sites × en/ur × hosted leak check (14 codes), and the expired-url/no-`.part` check. `AuthError` at download/send_document mapping comment added per the lead.
 - Prerequisite: install the pin into the environment that runs smoke (`python3 -m pip install -r requirements.txt`).
 - Files: `requirements.txt`, `hisab/wa.py` (rewrite of all 239 lines), `tests/smoke.py:11-13, 127-198, 290-318, 815-832`.
 - Change:
