@@ -13,6 +13,7 @@ import json
 import os
 
 from hisab import errors
+from hisab.config import LEGACY_TOKEN_ENV, NO_DOTENV_ENV, TOKEN_ENV
 
 from .crypto import CryptoError, decrypt
 from .tenant_config import build_tenant_config, write_tenant_config
@@ -22,17 +23,21 @@ RUNNING_STATUSES = ("pending", "connected")
 # The runner's own secret(s) — never handed to a tenant subprocess, which has no use for them and
 # should not carry the key that decrypts every other tenant's WhatsApp token in its environment.
 RUNNER_ONLY_ENV_KEYS = {"RUNNER_PRIVATE_KEY"}
+# The operator's own WhatsApp token, under either name. The worker reads TOKEN_ENV first, so one left in the runner's
+# environment would make every tenant poll with the operator's token; each tenant gets only its own, as TOKEN_ENV (#68).
+OPERATOR_TOKEN_ENV_KEYS = {TOKEN_ENV, LEGACY_TOKEN_ENV}
 
 
 def _tenant_env(token):
-    env = {k: v for k, v in os.environ.items() if k not in RUNNER_ONLY_ENV_KEYS}
-    env["WHATSAPP_TOKEN"] = token
+    env = {k: v for k, v in os.environ.items() if k not in RUNNER_ONLY_ENV_KEYS | OPERATOR_TOKEN_ENV_KEYS}
+    env[TOKEN_ENV] = token
+    env[NO_DOTENV_ENV] = "1"  # and the worker must not read a .env back in (hisab/loop.py load_env)
     return env
 
 
 def state_hash(env, cfg):
     payload = {
-        "token": env.get("WHATSAPP_TOKEN"),
+        "token": env.get(TOKEN_ENV),  # key kept as "token": the rename restarts no running tenant
         "pending": cfg["pending"],
         "model": cfg["model"],
         "transcription": cfg["transcription"],

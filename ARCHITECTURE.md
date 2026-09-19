@@ -134,7 +134,7 @@ The ledger folder is the product. Open it in Obsidian with hledger-dashboard and
         └── lifecycle.py: revoke (stop, move to inactive/, delete ciphertext), sweep after 30 days
 ```
 
-The worker is the self-host code with three runner-set flags: `pending` (muted until verified), `hosted` (welcome once, hosted error wording) and `quota.monthly_limit`. It never learns what Firebase is; the runner never talks to WhatsApp. `firestore.rules` lets a client write five fields and never `status` or `creatorId`, so "Connected" always means the runner matched the code. The whole story, tenant state by tenant state: [`runner/README.md`](runner/README.md); the portal's screens: [`landing/README.md`](landing/README.md).
+The worker is the self-host code with three runner-set flags: `pending` (muted until verified), `hosted` (welcome once, hosted error wording) and `quota.monthly_limit`. Its environment comes only from the runner: that tenant's token as `WHATSAPP_AGENT_TOKEN`, never the operator's (either name) or `RUNNER_PRIVATE_KEY`, and `HISAB_NO_DOTENV=1` so it never reads a `.env`. It never learns what Firebase is; the runner never talks to WhatsApp. `firestore.rules` lets a client write five fields and never `status` or `creatorId`, so "Connected" always means the runner matched the code. The whole story, tenant state by tenant state: [`runner/README.md`](runner/README.md); the portal's screens: [`landing/README.md`](landing/README.md).
 
 ## Not here, on purpose
 

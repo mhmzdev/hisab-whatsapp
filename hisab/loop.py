@@ -1,6 +1,7 @@
 """Main loop: poll WhatsApp → setup or agent → reply. `--stdin` runs the same pipeline from the terminal."""
 import argparse
 import base64
+import os
 import re
 import sys
 import time
@@ -165,7 +166,7 @@ class Hisab:
         from .wa import WhatsApp
         tok = self.cfg["secrets"]["whatsapp_token"]
         if not tok:
-            sys.exit("WHATSAPP_TOKEN is empty; put it in .env")
+            sys.exit(f"{cfgmod.TOKEN_ENV} is empty; put it in .env")
         wa = WhatsApp(tok, self.cfg["whatsapp"]["poll_timeout"], self.cfg["whatsapp"]["chunk_chars"],
                       self.cfg["whatsapp"].get("rate_limits"))
         offset = self.store.offset()
@@ -322,12 +323,19 @@ class Hisab:
         self.store.add(mid, "note", "", entry=entry, extra={"block": getattr(self, "_last_block", None)})
 
 
+def load_env():
+    """Self-host reads .env from the cwd. A hosted tenant worker never does: the runner builds its whole environment,
+    and a runner started from the repo root would otherwise hand every tenant the operator's .env (#68)."""
+    if not os.environ.get(cfgmod.NO_DOTENV_ENV):
+        cfgmod.load_dotenv()
+
+
 def main():
     ap = argparse.ArgumentParser(prog="hisab")
     ap.add_argument("--config", default=None)
     ap.add_argument("--stdin", action="store_true", help="terminal mode, no WhatsApp")
     a = ap.parse_args()
-    cfgmod.load_dotenv()
+    load_env()
     cfg = cfgmod.load(a.config)
     app = Hisab(cfg)
     if a.stdin:

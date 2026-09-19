@@ -2,7 +2,7 @@
 
 The portal encrypts client-side with the runner's public key; only the runner holds the
 private key (docs/brainstorm/hosted-portal.md, "Submission/storage contract"). Keypair
-custody for this MVP: an environment-variable secret like WHATSAPP_TOKEN/OPENROUTER_API_KEY
+custody for this MVP: an environment-variable secret like WHATSAPP_AGENT_TOKEN/OPENROUTER_API_KEY
 (hisab/config.py), generated once by keygen.py, manual rotation, local/dev only.
 """
 import base64
