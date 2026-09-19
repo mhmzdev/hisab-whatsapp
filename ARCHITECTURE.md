@@ -139,4 +139,4 @@ The worker is the self-host code with three runner-set flags: `pending` (muted u
 
 ## Not here, on purpose
 
-Shared wallets (the platform has no groups) · chart images · a ledger UI on the phone (Obsidian is the viewer; the portal only connects and revokes) · payments (300 PKR/month is a presentation price) · the Claude Code relay this grew out of (`whatsapp-agent-relay`, separate repo).
+Shared wallets (the platform has no groups) · chart images · a ledger UI on the phone (Obsidian is the viewer; the portal only connects and revokes) · payments (300 PKR/month is a presentation price) · the Claude Code relay this grew out of (`wa-agent relay`, coming in [whatsapp-agent-cli](https://github.com/mhmzdev/whatsapp-agent-cli), which also holds the WhatsApp transport Hisab moves onto in #57).

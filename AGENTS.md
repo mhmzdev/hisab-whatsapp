@@ -143,4 +143,4 @@ Vocabulary: **entry** (one transaction, numbered `n:`), **posting** (one line of
 
 ## Origin
 
-Extracted from a personal system the author has run since September 2026 (a bash relay to Claude Code over a private vault). This repo is the public, API-level rewrite. The relay itself is a separate repo, `whatsapp-agent-relay`, published after the [hackathon](https://islamabad-rawalpindi.aitinkerers.org/p/agents-everywhere-beyond-the-chatbot-global-hackathon) it was built for.
+Extracted from a personal system the author has run since September 2026 (a bash relay to Claude Code over a private vault). This repo is the public, API-level rewrite. The transport now lives in a separate repo, [`whatsapp-agent-cli`](https://github.com/mhmzdev/whatsapp-agent-cli), published on PyPI as `wa-agent` (import `wa_agent`); Hisab is its first product and migrates onto it in #57. The relay, first planned as `whatsapp-agent-relay` for the [hackathon](https://islamabad-rawalpindi.aitinkerers.org/p/agents-everywhere-beyond-the-chatbot-global-hackathon), is that repo's next release, `wa-agent relay`.
