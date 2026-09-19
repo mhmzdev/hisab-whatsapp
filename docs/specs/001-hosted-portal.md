@@ -107,7 +107,7 @@ The initial demo implements the complete product flow except real subscription p
 - Ledger contents, charts, balances, or a ledger viewer in the browser.
 - Firebase Storage as the canonical ledger/media store.
 - CSV as the canonical ledger or an MVP CSV import path.
-- Shared wallets, mobile apps, iOS platform support, multi-currency per tenant, and anything required before the hackathon submission.
+- Shared wallets, mobile apps, multi-currency per tenant, and anything required before the hackathon submission.
 
 ## Further notes
 

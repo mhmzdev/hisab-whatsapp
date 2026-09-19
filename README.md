@@ -13,7 +13,7 @@ A ledger you text. Send **"2500 coffee"**, a voice note in Urdu, Roman Urdu or E
 </p>
 <p align="center"><sub>Left: connecting a real agent, then setup, in English and Urdu. Right: a voice note posts #2; a forwarded bank receipt gets one question, answered by quoting it, and posts #3.</sub></p>
 
-> Built for the [AI Tinkerers global hackathon *Agents, Everywhere*](https://islamabad-rawalpindi.aitinkerers.org/p/agents-everywhere-beyond-the-chatbot-global-hackathon) (2026-09-12). Landing page: [mhmzdev.github.io/hisab](https://mhmzdev.github.io/hisab/). Extracted from a personal system the author has run since early September 2026; this is the public, API-level rewrite. Android only for the WhatsApp path — the platform has not shipped agent creation on iOS — so the terminal path below is how anyone else verifies it.
+> Built for the [AI Tinkerers global hackathon *Agents, Everywhere*](https://islamabad-rawalpindi.aitinkerers.org/p/agents-everywhere-beyond-the-chatbot-global-hackathon) (2026-09-12). Landing page: [mhmzdev.github.io/hisab](https://mhmzdev.github.io/hisab/). Extracted from a personal system the author has run since early September 2026; this is the public, API-level rewrite. No WhatsApp agent at hand? The terminal path below verifies the same pipeline.
 
 ## Run it in your terminal, right now
 
@@ -96,7 +96,7 @@ Architecture in one page: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ## Run it for real
 
-You need an Android phone with WhatsApp, Docker, and an [OpenRouter](https://openrouter.ai) or [Gemini](https://aistudio.google.com/apikey) key.
+You need a phone with WhatsApp, Docker, and an [OpenRouter](https://openrouter.ai) or [Gemini](https://aistudio.google.com/apikey) key.
 
 1. In WhatsApp: Settings → Agents → Create an agent → Chat info → copy the API key. WhatsApp's own guide: [Introduction to Third-Party Agents on WhatsApp](https://faq.whatsapp.com/1050934623978152).
 2. `cp .env.example .env` and paste the WhatsApp key and your model key (OpenRouter or Gemini; one is enough).

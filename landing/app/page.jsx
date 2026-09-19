@@ -325,7 +325,6 @@ export default function Home() {
             <span>{t('hero_title')}</span>
             <External>{t('footer_github')}</External>
             <span>{t('footer_origin')}</span>
-            <span>{t('footer_note')}</span>
           </div>
           <p className={styles.footerNote}>{t('footer_privacy')}</p>
         </div>
