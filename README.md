@@ -1,6 +1,8 @@
 # Hisab on WhatsApp
 
-![Hisab — a ledger you text](showcase/hisab-cover.png)
+<p align="center">
+  <img src="showcase/demo.gif" alt="A one-minute walkthrough: setup asks the language first, &quot;2500 coffee&quot; posts #1, a voice note posts petrol, a transfer receipt is read for its total, a forwarded bank SMS gets one question, replies switch to Urdu with /lang, an entry is undone by replying to it, and the ledger underneath is plain hledger">
+</p>
 
 A ledger you text. Send **"2500 coffee"**, a voice note in Urdu, Roman Urdu or English, or a photo of a receipt to your own WhatsApp agent, and it posts a real double-entry transaction to a plain-text ledger you own. One line comes back: the entry number and where the month stands.
 
