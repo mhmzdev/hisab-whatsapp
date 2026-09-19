@@ -13,11 +13,11 @@ status: leaning
 
 ## Problem
 
-The shop owner cannot run Docker, and the relative who could is not always there. Today the only route to a non-technical user is a technical relative running the container. Every Pakistani kiryana, committee treasurer or rider with an Android phone is one paste away from a ledger — if someone else runs the process.
+The shop owner cannot run Docker, and the relative who could is not always there. Today the only route to a non-technical user is a technical relative running the container. Every Pakistani kiryana, committee treasurer or rider with a phone is one paste away from a ledger — if someone else runs the process.
 
 ## Goal
 
-A person with an Android phone signs up on a page, pastes the key from their WhatsApp agent, and within a minute their agent greets them in Urdu or English and setup begins. We run the worker. They never see a terminal.
+A person with a phone signs up on a page, pastes the key from their WhatsApp agent, and within a minute their agent greets them in Urdu or English and setup begins. We run the worker. They never see a terminal.
 
 ## What changes from the self-host claim, said plainly
 
@@ -113,7 +113,7 @@ landing/ (new) · a `runner/` on the VPS (new, small) · `hisab/` unchanged exce
 
 ## Out of scope (YAGNI)
 
-Shared wallets · a ledger viewer in the browser · charts · a mobile app · iOS (platform) · multi-currency per tenant · anything before the hackathon submission.
+Shared wallets · a ledger viewer in the browser · charts · a mobile app · multi-currency per tenant · anything before the hackathon submission.
 
 ## Links
 

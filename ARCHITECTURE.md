@@ -53,7 +53,7 @@ Read in this order: [`AGENTS.md`](AGENTS.md) (how to work here) → this file (h
 
 Media is processed, never stored: a voice note is deleted once transcribed, a photo once the model call returns, and a failed turn's leftovers are swept after 24 h.
 
-The same pipeline runs without WhatsApp: `python -m hisab.loop --stdin` reads lines from a terminal. That is how a judge or a self-hoster without an Android agent verifies it.
+The same pipeline runs without WhatsApp: `python -m hisab.loop --stdin` reads lines from a terminal. That is how a judge or a self-hoster without a WhatsApp agent verifies it.
 
 ## Components
 
