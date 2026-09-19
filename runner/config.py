@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import yaml
 
-from hisab.config import DEFAULTS as WORKER_DEFAULTS, PROVIDERS
+from hisab.config import DEFAULTS as WORKER_DEFAULTS, PROVIDERS, check_transcription
 
 DEFAULTS = {
     "vault_root": "./runner-data/vault",
@@ -36,6 +36,7 @@ def load(path=None):
         provider = (cfg[section].get("provider") or "auto").lower()
         if provider not in PROVIDERS:
             raise SystemExit(f"{section}.provider must be 'auto', 'openrouter' or 'gemini', got {provider!r}")
+    check_transcription(cfg["transcription"])  # refused here, not by every tenant worker crash-looping at load
     root = path.resolve().parent
     for key in ("vault_root", "data_root", "tenants_dir"):
         cfg[key] = str((root / cfg[key]).resolve())

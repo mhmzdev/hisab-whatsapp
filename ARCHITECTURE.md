@@ -29,7 +29,7 @@ Read in this order: [`AGENTS.md`](AGENTS.md) (how to work here) → this file (h
                                      ▼                                             ▼
                           no ledger yet?  ──▶ setup.py  (language first, ≤8 Qs)  ──▶ templates/ → ledger folder
                                      │
-                          voice note ──▶ transcribe.py (OpenRouter endpoint | Gemini) ──▶ text
+                          voice note ──▶ wa.py → wa-agent (OpenRouter | Gemini) ──▶ text
                           photo      ──▶ base64 image in the model message
                                      │
                           hosted quota spent? ──▶ quota_exceeded reply; no model call
@@ -60,7 +60,7 @@ The same pipeline runs without WhatsApp: `python -m hisab.loop --stdin` reads li
 | Component | Responsibility | Talks to |
 |---|---|---|
 | [`hisab/loop.py`](hisab/loop.py) | Orchestration: poll, route (pending / command / setup / agent), reply, record; the hosted welcome, pending reminder, quota check and media sweep | everything below |
-| [`hisab/wa.py`](hisab/wa.py) | Thin adapter over the pinned [`wa-agent`](https://pypi.org/project/wa-agent/) package, which does the platform calls: `GET /updates` long-poll, media download, typing indicator, `POST /messages` with chunking, document send, a per-method rate limiter. The adapter maps config onto it, maps every wa-agent failure code to a Hisab code, flattens Obsidian wikilinks, and `inbound()` is the one reader of the message dict; a rejected token exits with status 3 | the platform (via wa-agent) |
+| [`hisab/wa.py`](hisab/wa.py) | Thin adapter over the pinned [`wa-agent`](https://pypi.org/project/wa-agent/) package, which does the platform calls: `GET /updates` long-poll, media download, typing indicator, `POST /messages` with chunking, document send, a per-method rate limiter, and voice → text (OpenRouter or Gemini). The adapter maps config onto it, maps every wa-agent failure code to a Hisab code, flattens Obsidian wikilinks, and `inbound()` is the one reader of the message dict; a rejected token exits with status 3 | the platform (via wa-agent) |
 | [`hisab/store.py`](hisab/store.py) | Runtime state on disk: `offset`, `messages.jsonl`, `setup.json`, `creator.json`, `usage.json`, `welcomed.json`, `reminder.json`; the rolling window; entry-number ↔ message-id map | loop |
 | [`hisab/errors.py`](hisab/errors.py) | The failure registry: every chat reply and portal `lastError` is a code; `classify` → `log` → `reply` | loop, agent, runner, landing check |
 | [`hisab/archive.py`](hisab/archive.py) | `export-ledger`'s ZIP: the canonical ledger files only, never state, keys or media | loop |
@@ -70,7 +70,6 @@ The same pipeline runs without WhatsApp: `python -m hisab.loop --stdin` reads li
 | [`hisab/agent.py`](hisab/agent.py) | The system prompt and the tool-calling loop; endpoint and key are config | the model API, tools |
 | [`hisab/tools.py`](hisab/tools.py) | The six tools: JSON schemas for the model and the Python that runs each | ledger |
 | [`hisab/ledger.py`](hisab/ledger.py) | hledger on markdown: files, append with strict check and rollback, undo by number, accounts, rules, periodic rules, reports, settings | `hledger` binary |
-| [`hisab/transcribe.py`](hisab/transcribe.py) | Voice → text, two providers | OpenRouter or Gemini |
 | [`hisab/config.py`](hisab/config.py) | `config.yaml` merged over defaults; secrets only from `.env` / environment; `provider: auto` picks OpenRouter if its key is set, else Gemini, unless a config pins one | everything |
 
 ## State on disk
@@ -110,7 +109,7 @@ The ledger folder is the product. Open it in Obsidian with hledger-dashboard and
 | Any failure a user is told about | a code from `hisab/errors.py`, rendered in the user's language with the next step (self-host and hosted can differ); the raw detail and the message id go to stderr, never to WhatsApp |
 | hledger rejects the block | file restored; the tool returns the cleaned reason (no banner, no path) and the model replies; outside a tool call the user gets `ledger_rejected` |
 | Voice note or photo download fails (any wa-agent code, including an expired media url) | `media_fetch_failed`; nothing posted |
-| Transcription fails | `transcription_failed`: send it as text or try again; nothing posted |
+| Transcription fails (also an `[inaudible]` transcript) | `transcription_failed`: send it as text or try again; nothing posted |
 | `export-ledger` document send fails | the ZIP goes up as `application/octet-stream` (WhatsApp refuses `application/zip`); any refusal (wa-agent `platform_rejected`, e.g. 400/131053) is `export_rejected` (no retry suggested), anything else `export_failed`; a ZIP over the document limit is `export_too_large` and never sent |
 | Reply over 4,096 chars | split on paragraph boundaries under 3,500, numbered `(i/N)` |
 | Container restarts mid-batch | replay from the stored offset; already-seen ids skipped |

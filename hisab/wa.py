@@ -1,9 +1,10 @@
 """WhatsApp transport: a thin adapter over the `wa-agent` package (#57). Long-poll only; an agent may message only its creator.
 
 wa-agent owns the HTTP client, the per-method rate limiter (#17), chunking, markdown → WhatsApp, media and the
-document send (#36). This file owns only what is Hisab's: config → client, wa-agent failure codes → Hisab codes at
-the boundary (no wa-agent message ever reaches a chat, .agents/rules/errors.md), Obsidian wikilink flattening, and
-`inbound()` — the one place that reads the platform's message dict, so wa-agent#31's typed models are a small diff.
+document send (#36), and transcription (#61). This file owns only what is Hisab's: config → client, config →
+transcription call, wa-agent failure codes → Hisab codes at the boundary (no wa-agent message ever reaches a chat,
+.agents/rules/errors.md), Obsidian wikilink flattening, and `inbound()` — the one place that reads the platform's
+message dict, so wa-agent#31's typed models are a small diff.
 """
 import re
 import sys
@@ -12,6 +13,7 @@ from collections import namedtuple
 
 from wa_agent import AuthError, WhatsAppError
 from wa_agent import WhatsApp as _Client
+from wa_agent.transcribe import transcribe as _transcribe
 
 from . import errors
 
@@ -64,13 +66,29 @@ def _detail(e):
     return f"wa-agent {e.code}: {e.detail}"
 
 
+def transcribe(path, cfg, session=None):
+    """Voice note → text through wa-agent (#61). Provider, model, key variable and language come from Hisab's config,
+    always explicitly; every wa-agent failure, and an [inaudible] transcript, is transcription_failed."""
+    tc = cfg["transcription"]
+    provider = tc["provider"]
+    model = tc.get("gemini_model") if provider == "gemini" else tc.get("model")
+    try:
+        text = _transcribe(path, provider=provider, model=model, key_env=tc.get("api_key_env") or None,
+                           language=tc.get("language") or None, session=session)
+    except WhatsAppError as e:
+        raise errors.HisabError("transcription_failed", _detail(e)) from e
+    if text.strip().rstrip(".").lower() == "[inaudible]":
+        raise errors.HisabError("transcription_failed", "wa-agent transcript: [inaudible]")
+    return text
+
+
 class WhatsApp:
     def __init__(self, token, poll_timeout=20, chunk_chars=3500, rate_limits=None, session=None,
                  now=time.time, sleep=time.sleep):
         rl = rate_limits or {}
         window = rl.get("window_seconds", 60)
         if window != 60:
-            print(f"rate_limits.window_seconds is fixed at 60 by wa-agent 0.1.0; ignoring {window}", file=sys.stderr)
+            print(f"rate_limits.window_seconds is fixed at 60 by wa-agent; ignoring {window}", file=sys.stderr)
         limits = {method: rl[key] for key, methods in _LIMIT_KEYS.items() if key in rl for method in methods}
         self.poll_timeout = int(poll_timeout)
         self._client = _Client(token, session=session, limits=limits, chunk_chars=chunk_chars, now=now, sleep=sleep)

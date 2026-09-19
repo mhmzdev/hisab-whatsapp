@@ -27,10 +27,11 @@ hisab/
   clock.py       the one clock: every "today", quota month and export name in config `timezone`, never the container's UTC
   store.py       runtime state: offset, messages.jsonl (keyed by WhatsApp id), entry-number map, setup state, rolling window
   wa.py          thin adapter over the pinned wa-agent package, which owns the transport (poll, download, typing, send with
-                 chunking, document send, the per-method rate limiter with its fixed 60s window, 429 backoff). The adapter maps
-                 config whatsapp.rate_limits onto wa-agent, maps every wa-agent failure code to a Hisab code, flattens Obsidian
-                 wikilinks, logs 409 as another-poller conflict, and inbound() is the one reader of the platform's message dict
-  transcribe.py  voice notes → text: OpenRouter endpoint or Gemini (google-genai)
+                 chunking, document send, the per-method rate limiter with its fixed 60s window, 429 backoff) and transcription
+                 (voice notes → text, OpenRouter or Gemini, provider/model/key/language from config). The adapter maps config
+                 whatsapp.rate_limits onto wa-agent, maps every wa-agent failure code to a Hisab code, maps transcription codes
+                 and an `[inaudible]` transcript to `transcription_failed`, flattens Obsidian wikilinks, logs 409 as
+                 another-poller conflict, and inbound() is the one reader of the platform's message dict
   archive.py     export-ledger's ZIP builder: canonical markdown only, never state/secrets/media
   config.py      config.yaml + .env (secrets only from the environment)
 templates/       personal.md, shop.md charts of accounts; rules.md, rules_shop.md keyword → account (English + Roman Urdu)

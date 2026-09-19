@@ -15,8 +15,7 @@ from .archive import build_export_zip
 from .ledger import Ledger
 from .setup import Setup
 from .store import Store
-from .transcribe import transcribe
-from .wa import MAX_DOCUMENT_BYTES, AUTH_EXIT_CODE, AuthError, inbound
+from .wa import MAX_DOCUMENT_BYTES, AUTH_EXIT_CODE, AuthError, inbound, transcribe
 from .i18n import s, parse_lang
 
 MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")  # not strftime %b: locale-free

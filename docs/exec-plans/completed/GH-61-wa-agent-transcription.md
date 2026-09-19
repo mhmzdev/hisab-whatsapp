@@ -1,11 +1,11 @@
 ---
 slug: GH-61-wa-agent-transcription
 issue: 61
-status: backlog
+status: completed
 open_questions: none
 ---
 
-# feat: Transcribe voice notes through wa-agent, and delete hisab/transcribe.py          ⬜ BACKLOG
+# feat: Transcribe voice notes through wa-agent, and delete hisab/transcribe.py          ✅ COMPLETED — 2026-09-19
 
 ## Problem
 
@@ -59,24 +59,24 @@ def transcribe(path, cfg, session=None):
 
 ## Success criteria
 
-- [ ] `hisab/transcribe.py` is deleted, and nothing imports `hisab.transcribe` — `verify: test ! -e hisab/transcribe.py && ! grep -rn "hisab.transcribe\|from .transcribe" --include='*.py' .`
-- [ ] `requirements.txt` pins `wa-agent==0.2.0` and no longer lists `google-genai`, and no Python file imports `genai` — `verify: grep -qx 'wa-agent==0.2.0' requirements.txt && ! grep -q genai requirements.txt && ! grep -rn genai --include='*.py' .`
-- [ ] The installed wa-agent is 0.2.0 on the system python — `verify: python3 -c "import wa_agent; assert wa_agent.__version__ == '0.2.0', wa_agent.__version__"`
-- [ ] `transcription.base_url` in a config fails at load with a message naming it, in both the worker and the runner config. `transcription.api_key_env` with `provider: auto` resolves to openrouter even when only `GEMINI_API_KEY` is set. `base_url` is gone from `DEFAULTS` — `verify: python3 tests/smoke.py` (prints `config: transcription.base_url refused at load (worker and runner); api_key_env kept`)
-- [ ] Every wa-agent transcription code (`no_transcription_key`, `transcription_unavailable` from a 503 and from a transport error, `transcription_failed` from a 400 and from an empty body, `bad_usage` from an unreadable file) and an `[inaudible]` transcript map to `transcription_failed`. The detail carries `wa-agent <code>`, and the reply in en/ur × hosted/self-host has none of `FORBIDDEN_WA` or the wa-agent code — `verify: python3 tests/smoke.py` (prints `transcription: every wa-agent code and [inaudible] → transcription_failed; no wa-agent text in any reply`)
-- [ ] The request shape for both providers is pinned by a fake session. OpenRouter: one `POST` to `https://openrouter.ai/api/v1/audio/transcriptions` with `Authorization: Bearer <key from api_key_env>`, multipart `data` `{"model": <transcription.model>, "language": "ur"}` and `files["file"] == (name, bytes)`. Gemini: one `POST` to a URL containing `models/<transcription.gemini_model>:generateContent` with `x-goog-api-key`, whose JSON part has `inline_data.mime_type == "audio/ogg"` and base64 of the file bytes — `verify: python3 tests/smoke.py` (prints `transcription: request shape pinned for openrouter (multipart) and gemini (inline audio); model, key variable and language from config`)
-- [ ] A voice note whose transcript is `[inaudible]` gets the `transcription_failed` reply through the loop. The agent is never called, the store holds no `[Voice note]: [inaudible]`, and the voice file is kept for the sweep — `verify: python3 tests/smoke.py` (prints `errors: an [inaudible] voice note replies transcription_failed and never reaches the model`)
-- [ ] `tests/check_endpoint.py` transcribes through the adapter and still parses — `verify: grep -q "from hisab.wa import transcribe" tests/check_endpoint.py && python3 -m py_compile tests/check_endpoint.py`
-- [ ] Docs no longer describe `hisab/transcribe.py` or google-genai as live — `verify: ! grep -n "transcribe\.py\|google-genai" AGENTS.md ARCHITECTURE.md README.md config.example.yaml examples/*.yaml runner/config.example.yaml`
-- [ ] The worker image and the runner image build with the new requirements, without google-genai — `verify: docker build -q -t hisab-whatsapp-gh61 . && docker build -q -f runner/Dockerfile -t hisab-runner-gh61 .` (build only, no `compose up`, no container started; every `docker-compose.runner*.yml` builds from `runner/Dockerfile`; if the Docker daemon is down, report it as not run)
-- [ ] Repo check passes — `verify: python3 tests/smoke.py`
+- [x] `hisab/transcribe.py` is deleted, and nothing imports `hisab.transcribe` — `verify: test ! -e hisab/transcribe.py && ! grep -rn "hisab.transcribe\|from .transcribe" --include='*.py' .`
+- [x] `requirements.txt` pins `wa-agent==0.2.0` and no longer lists `google-genai`, and no Python file imports `genai` — `verify: grep -qx 'wa-agent==0.2.0' requirements.txt && ! grep -q genai requirements.txt && ! grep -rn genai --include='*.py' .`
+- [x] The installed wa-agent is 0.2.0 on the system python — `verify: python3 -c "import wa_agent; assert wa_agent.__version__ == '0.2.0', wa_agent.__version__"`
+- [x] `transcription.base_url` in a config fails at load with a message naming it, in both the worker and the runner config. `transcription.api_key_env` with `provider: auto` resolves to openrouter even when only `GEMINI_API_KEY` is set. `base_url` is gone from `DEFAULTS` — `verify: python3 tests/smoke.py` (prints `config: transcription.base_url refused at load (worker and runner); api_key_env kept`)
+- [x] Every wa-agent transcription code (`no_transcription_key`, `transcription_unavailable` from a 503 and from a transport error, `transcription_failed` from a 400 and from an empty body, `bad_usage` from an unreadable file) and an `[inaudible]` transcript map to `transcription_failed`. The detail carries `wa-agent <code>`, and the reply in en/ur × hosted/self-host has none of `FORBIDDEN_WA` or the wa-agent code — `verify: python3 tests/smoke.py` (prints `transcription: every wa-agent code and [inaudible] → transcription_failed; no wa-agent text in any reply`)
+- [x] The request shape for both providers is pinned by a fake session. OpenRouter: one `POST` to `https://openrouter.ai/api/v1/audio/transcriptions` with `Authorization: Bearer <key from api_key_env>`, multipart `data` `{"model": <transcription.model>, "language": "ur"}` and `files["file"] == (name, bytes)`. Gemini: one `POST` to a URL containing `models/<transcription.gemini_model>:generateContent` with `x-goog-api-key`, whose JSON part has `inline_data.mime_type == "audio/ogg"` and base64 of the file bytes — `verify: python3 tests/smoke.py` (prints `transcription: request shape pinned for openrouter (multipart) and gemini (inline audio); model, key variable and language from config`)
+- [x] A voice note whose transcript is `[inaudible]` gets the `transcription_failed` reply through the loop. The agent is never called, the store holds no `[Voice note]: [inaudible]`, and the voice file is kept for the sweep — `verify: python3 tests/smoke.py` (prints `errors: an [inaudible] voice note replies transcription_failed and never reaches the model`)
+- [x] `tests/check_endpoint.py` transcribes through the adapter and still parses — `verify: grep -q "from hisab.wa import transcribe" tests/check_endpoint.py && python3 -m py_compile tests/check_endpoint.py`
+- [x] Docs no longer describe `hisab/transcribe.py` or google-genai as live — `verify: ! grep -n "transcribe\.py\|google-genai" AGENTS.md ARCHITECTURE.md README.md config.example.yaml examples/*.yaml runner/config.example.yaml`
+- [ ] The worker image and the runner image build with the new requirements, without google-genai — `verify: docker build -q -t hisab-whatsapp-gh61 . && docker build -q -f runner/Dockerfile -t hisab-runner-gh61 .` (build only, no `compose up`, no container started; every `docker-compose.runner*.yml` builds from `runner/Dockerfile`; if the Docker daemon is down, report it as not run) — **not run: Docker daemon down at implement time**
+- [x] Repo check passes — `verify: python3 tests/smoke.py`
 - [ ] **Post-merge, owner + lead (left unticked by the lane):** (1) on the OpenRouter config, a voice note "five hundred chai cash" round-trips on the demo agent to a one-line "posted #N"; (2) the same on the Gemini config; (3) a voice note with nothing intelligible said (silence or noise) replies with `transcription_failed` and posts nothing — `verify: manual` on the demo agent
 
 ## Phases
 
 ### Phase 1 — Pin 0.2.0; config drops `transcription.base_url`
 
-**Status:** Not started
+**Status:** Done — pin 0.2.0; `base_url` out of DEFAULTS; `check_transcription` refuses it in the worker and runner load; auto keeps openrouter when `api_key_env` is named; smoke covers all three
 
 - Precondition: the lead has confirmed wa-agent 0.2.0 is on PyPI. `python3 -m pip install --upgrade wa-agent==0.2.0` on the system python (3.11), with no `--break-system-packages`. If pip refuses without that flag, stop and ask the lead.
 - Files:
@@ -97,7 +97,7 @@ def transcribe(path, cfg, session=None):
 
 ### Phase 2 — The adapter transcribes; `hisab/transcribe.py` and google-genai go
 
-**Status:** Not started
+**Status:** Done — `hisab/wa.py` `transcribe()` calls wa-agent with provider/model/key_env/language explicit and maps every code and `[inaudible]` to `transcription_failed`; the loop and check_endpoint import it from `.wa`; `hisab/transcribe.py` and google-genai removed; smoke pins both request shapes, all four codes, and `[inaudible]` through the loop
 
 - Files:
   - `hisab/wa.py`: add `from wa_agent.transcribe import transcribe as _transcribe` and the `transcribe(path, cfg, session=None)` shown in Approach. Extend the module docstring (`:1-7`): the adapter also turns config into a transcription call and maps its codes.
@@ -124,7 +124,7 @@ def transcribe(path, cfg, session=None):
 
 ### Phase 3 — Docs and the image
 
-**Status:** Not started
+**Status:** Done — AGENTS.md, ARCHITECTURE.md, config.example.yaml and examples/config.gemini.yaml describe transcription through the wa.py adapter; the docs grep is empty. The two `docker build`s were not run: the Docker daemon was down
 
 - Files:
   - `AGENTS.md:33`: remove the `transcribe.py` row. In the `wa.py` row (`:34-38`), add "and transcription (voice notes → text, OpenRouter or Gemini, provider/model/key/language from config)" to what wa-agent owns, and "maps transcription codes and an `[inaudible]` transcript to `transcription_failed`" to what the adapter does.

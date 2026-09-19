@@ -17,13 +17,13 @@ DEFAULTS = {
     "quota": {"monthly_limit": None},  # hosted mode, runner-set: cap on model calls/month; None = unlimited (self-host)
     "ledger": {"path": "./vault", "template": "personal", "currency": "PKR"},
     # provider auto: OPENROUTER_API_KEY if set, else GEMINI_API_KEY (id → gemini_id). A pinned provider, or an explicit
-    # base_url/api_key_env, is never second-guessed by which keys happen to be in .env.
+    # model base_url/api_key_env, or transcription api_key_env, is never second-guessed by which keys happen to be in .env.
     "model": {"provider": "auto", "id": "openai/gpt-4o-mini", "gemini_id": "gemini-3.8-flash", "base_url": None, "api_key_env": None, "provider_pin": None},
-    "transcription": {"provider": "auto", "model": "openai/whisper-1", "base_url": None, "api_key_env": None, "language": None, "gemini_model": "gemini-2.5-flash"},
+    "transcription": {"provider": "auto", "model": "openai/whisper-1", "api_key_env": None, "language": None, "gemini_model": "gemini-2.5-flash"},
     "memory": {"window_turns": 20, "keep_days": 30},
     "whatsapp": {"poll_timeout": 20, "chunk_chars": 3500, "rate_limits": {
         # WhatsApp Agent Platform manual v1 §6: each its own rolling 60s counter, scoped per agent. The *_per_min keys
-        # feed wa-agent's limiter; window_seconds is fixed at 60 by wa-agent 0.1.0 (hisab/wa.py logs any other value).
+        # feed wa-agent's limiter; window_seconds is fixed at 60 by wa-agent (hisab/wa.py logs any other value).
         "window_seconds": 60, "messages_per_min": 12, "statuses_per_min": 12, "updates_per_min": 15, "media_per_min": 12,
     }},
     "state": {"path": "./data"},
@@ -47,6 +47,7 @@ def load(path=None):
         if provider not in PROVIDERS:
             raise SystemExit(f"{section}.provider must be 'auto', 'openrouter' or 'gemini', got {provider!r}")
         cfg[section]["provider"] = provider
+    check_transcription(cfg["transcription"])
     try:
         ZoneInfo(str(cfg["timezone"]))
     except (ZoneInfoNotFoundError, ValueError):
@@ -60,6 +61,13 @@ def load(path=None):
     }
     resolve_providers(cfg)
     return cfg
+
+
+def check_transcription(tc):
+    """Refuse a transcription key that no longer means anything, rather than quietly sending voice notes elsewhere (#61)."""
+    if tc.get("base_url"):
+        raise SystemExit("transcription.base_url is no longer supported: voice notes go to OpenRouter or Gemini only "
+                         "(transcription.provider). Remove it from the config.")
 
 
 def _auto(env):
@@ -84,8 +92,9 @@ def resolve_providers(cfg, env=os.environ):
             m.update(base_url=GEMINI_URL, api_key_env="GEMINI_API_KEY", id=model_id)
     tc = cfg["transcription"]
     if tc["provider"] == "auto":
-        # an explicit endpoint is OpenAI-compatible, the openrouter path; nothing set at all falls to it and fails there
-        tc["provider"] = "openrouter" if (tc.get("base_url") or tc.get("api_key_env")) else ("gemini" if _auto(env) == "gemini" else "openrouter")
+        # an explicitly named key variable is never second-guessed by which keys are present: it keeps the openrouter
+        # default; otherwise Gemini only when it is the one key present
+        tc["provider"] = "openrouter" if tc.get("api_key_env") else ("gemini" if _auto(env) == "gemini" else "openrouter")
     return cfg
 
 

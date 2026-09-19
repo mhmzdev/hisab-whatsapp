@@ -1,4 +1,4 @@
-# Alternative: Google Gemini through its OpenAI-compatible endpoint, with google-genai for voice notes.
+# Alternative: Google Gemini through its OpenAI-compatible endpoint, voice notes through the same key.
 # cp examples/config.gemini.yaml config.yaml   and put GEMINI_API_KEY in .env
 
 ledger:
