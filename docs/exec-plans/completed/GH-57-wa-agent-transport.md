@@ -1,11 +1,11 @@
 ---
 slug: GH-57-wa-agent-transport
 issue: 57
-status: active
+status: completed
 open_questions: none
 ---
 
-# refactor: Move the WhatsApp transport onto the wa-agent package          🚧 ACTIVE — started 2026-09-19
+# refactor: Move the WhatsApp transport onto the wa-agent package          ✅ COMPLETED — 2026-09-19
 
 ## Problem
 
@@ -52,19 +52,19 @@ Six tools, the strict check and entry numbers are not touched. **Offset after ba
 
 ## Success criteria
 
-- [ ] `requirements.txt` pins `wa-agent==0.1.0`, and a clean venv installs the file without conflict — `verify: python3 -m venv "$TMPDIR/gh57v" && "$TMPDIR/gh57v/bin/pip" install -q -r requirements.txt && "$TMPDIR/gh57v/bin/python" -c "import wa_agent; assert wa_agent.__version__ == '0.1.0'"`
-- [ ] `hisab/wa.py` is a thin adapter: no `requests` import, no HTTP, no limiter or chunker of its own — `verify: ! grep -nE "import requests|requests\.|class RateLimiter|def _chunks|api.whatsapp.com" hisab/wa.py`
-- [ ] Every code in `wa_agent.CODES` maps, at every adapter site that can raise it, to a chat code registered in `hisab/errors.py`, and the rendered en/ur reply contains none of smoke's `FORBIDDEN` markers or the wa-agent code name — `verify: python3 tests/smoke.py` (new block: "wa-agent: every code maps to a Hisab chat code, no leak")
-- [ ] The config's per-method limits pace the client (30 instant polls at `updates_per_min: 15` span ≥ 60s on a fake clock), a 429 backs off ≥ 55s and succeeds, a 409 logs `another poller` and keeps the offset, 401/190 and 400/100 raise `AuthError`, and 500/503 do not — `verify: python3 tests/smoke.py`
-- [ ] A `window_seconds` other than 60 prints the "fixed at 60" line and does not crash — `verify: python3 tests/smoke.py`
-- [ ] The export still uploads as `application/octet-stream`, sends as a `document` with the zip filename, maps 400/131053 → `export_rejected` and 500 → `export_failed`, and keeps the wa-agent detail in `HisabError.detail` (#36) — `verify: python3 tests/smoke.py`
-- [ ] Replies still flatten wikilinks and split under `chunk_chars` — `verify: python3 tests/smoke.py`
-- [ ] A download failure replies `media_fetch_failed` with the detail on stderr — `verify: python3 tests/smoke.py`
-- [ ] Transcription is byte-for-byte unchanged — `verify: git diff --exit-code main -- hisab/transcribe.py`
-- [ ] The image builds with the pinned dependency (a build, not a run: nothing polls) — `verify: docker build -q -t hisab-whatsapp-gh57 .`
-- [ ] Terminal mode still works end to end on a copy of the sample (it never touches the transport, so this proves the import graph) — `verify: manual` 1. `cp -r sample-vault "$TMPDIR/gh57-vault"` 2. `HISAB_VAULT` is not used by `--stdin`, so run `python3 -m hisab.loop --stdin --config <scratch config pointing ledger.path at the copy>` 3. type `chai 150 cash` → expect a one-line "posted #N" shape 4. type `quit`. Needs a model key in `.env`. If there is none, skip this and say so at /review.
+- [x] `requirements.txt` pins `wa-agent==0.1.0`, and a clean venv installs the file without conflict — `verify: python3 -m venv "$TMPDIR/gh57v" && "$TMPDIR/gh57v/bin/pip" install -q -r requirements.txt && "$TMPDIR/gh57v/bin/python" -c "import wa_agent; assert wa_agent.__version__ == '0.1.0'"`
+- [x] `hisab/wa.py` is a thin adapter: no `requests` import, no HTTP, no limiter or chunker of its own — `verify: ! grep -nE "import requests|requests\.|class RateLimiter|def _chunks|api.whatsapp.com" hisab/wa.py`
+- [x] Every code in `wa_agent.CODES` maps, at every adapter site that can raise it, to a chat code registered in `hisab/errors.py`, and the rendered en/ur reply contains none of smoke's `FORBIDDEN` markers or the wa-agent code name — `verify: python3 tests/smoke.py` (new block: "wa-agent: every code maps to a Hisab chat code, no leak")
+- [x] The config's per-method limits pace the client (30 instant polls at `updates_per_min: 15` span ≥ 60s on a fake clock), a 429 backs off ≥ 55s and succeeds, a 409 logs `another poller` and keeps the offset, 401/190 and 400/100 raise `AuthError`, and 500/503 do not — `verify: python3 tests/smoke.py`
+- [x] A `window_seconds` other than 60 prints the "fixed at 60" line and does not crash — `verify: python3 tests/smoke.py`
+- [x] The export still uploads as `application/octet-stream`, sends as a `document` with the zip filename, maps 400/131053 → `export_rejected` and 500 → `export_failed`, and keeps the wa-agent detail in `HisabError.detail` (#36) — `verify: python3 tests/smoke.py`
+- [x] Replies still flatten wikilinks and split under `chunk_chars` — `verify: python3 tests/smoke.py`
+- [x] A download failure replies `media_fetch_failed` with the detail on stderr — `verify: python3 tests/smoke.py`
+- [x] Transcription is byte-for-byte unchanged — `verify: git diff --exit-code main -- hisab/transcribe.py`
+- [ ] (not run: local Docker daemon down) The image builds with the pinned dependency (a build, not a run: nothing polls) — `verify: docker build -q -t hisab-whatsapp-gh57 .`
+- [ ] (not run: smoke already exercises the import graph; the worktree has no `.env`/`config.yaml` and no key goes into a scratch config, per the lead) Terminal mode still works end to end on a copy of the sample (it never touches the transport, so this proves the import graph) — `verify: manual` 1. `cp -r sample-vault "$TMPDIR/gh57-vault"` 2. `HISAB_VAULT` is not used by `--stdin`, so run `python3 -m hisab.loop --stdin --config <scratch config pointing ledger.path at the copy>` 3. type `chai 150 cash` → expect a one-line "posted #N" shape 4. type `quit`. Needs a model key in `.env`. If there is none, skip this and say so at /review.
 - [ ] **Post-merge, owner + lead only, left unticked by the lane:** `docker compose up -d --build` on the demo agent, then a text, a voice note (OpenRouter config), `export-ledger` (a ZIP arrives as a document), and a reply-to-undo all round-trip. Lanes never poll the demo agent. — `verify: manual (post-merge)`
-- [ ] Repo check passes — `verify: python3 tests/smoke.py`
+- [x] Repo check passes — `verify: python3 tests/smoke.py`
 
 ## Phases
 
@@ -114,7 +114,7 @@ Six tools, the strict check and entry numbers are not touched. **Offset after ba
 - Verify: `python3 tests/smoke.py` and `git diff --exit-code main -- hisab/transcribe.py`
 
 ### Phase 3 — Docs, config comment, image build
-**Status:** Not started
+**Status:** Done — AGENTS.md repo map + Origin, ARCHITECTURE.md (flow line, component row, failure table), runner/README.md, `config.example.yaml` and `hisab/config.py` comments describe the adapter. `docker build`: **not run** — the local Docker daemon was down (2026-09-19).
 - Files: `AGENTS.md:29-31` (repo-map `wa.py` lines), `ARCHITECTURE.md:49, 63`, `runner/README.md:33`, `config.example.yaml:31-32`, `hisab/config.py:24-26` (comment only).
 - Change:
   - `wa.py` is described as the adapter over `wa-agent==0.1.0`: config → client, wa-agent codes → Hisab codes, wikilink flattening, `inbound()`. The rate limiter, chunking, media and 429/409 handling are now credited to wa-agent.

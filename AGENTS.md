@@ -26,9 +26,10 @@ hisab/
   errors.py      THE error-code registry: every failure reply (chat) and runner lastError (portal) is a code; classify → log → reply
   clock.py       the one clock: every "today", quota month and export name in config `timezone`, never the container's UTC
   store.py       runtime state: offset, messages.jsonl (keyed by WhatsApp id), entry-number map, setup state, rolling window
-  wa.py          WhatsApp Agent Platform client: poll, download, typing, send with chunking, send_document, markdown → WhatsApp;
-                 per-method rate limiter (messages/statuses/updates/media, own rolling 60s window each, per agent — config
-                 whatsapp.rate_limits) paces requests proactively and backs off on 429; logs 409 as another-poller conflict
+  wa.py          thin adapter over the pinned wa-agent package, which owns the transport (poll, download, typing, send with
+                 chunking, document send, the per-method rate limiter with its fixed 60s window, 429 backoff). The adapter maps
+                 config whatsapp.rate_limits onto wa-agent, maps every wa-agent failure code to a Hisab code, flattens Obsidian
+                 wikilinks, logs 409 as another-poller conflict, and inbound() is the one reader of the platform's message dict
   transcribe.py  voice notes → text: OpenRouter endpoint or Gemini (google-genai)
   archive.py     export-ledger's ZIP builder: canonical markdown only, never state/secrets/media
   config.py      config.yaml + .env (secrets only from the environment)
@@ -143,4 +144,4 @@ Vocabulary: **entry** (one transaction, numbered `n:`), **posting** (one line of
 
 ## Origin
 
-Extracted from a personal system the author has run since September 2026 (a bash relay to Claude Code over a private vault). This repo is the public, API-level rewrite. The transport now lives in a separate repo, [`whatsapp-agent-cli`](https://github.com/mhmzdev/whatsapp-agent-cli), published on PyPI as `wa-agent` (import `wa_agent`); Hisab is its first product and migrates onto it in #57. The relay, first planned as `whatsapp-agent-relay` for the [hackathon](https://islamabad-rawalpindi.aitinkerers.org/p/agents-everywhere-beyond-the-chatbot-global-hackathon), is that repo's next release, `wa-agent relay`.
+Extracted from a personal system the author has run since September 2026 (a bash relay to Claude Code over a private vault). This repo is the public, API-level rewrite. The transport now lives in a separate repo, [`whatsapp-agent-cli`](https://github.com/mhmzdev/whatsapp-agent-cli), published on PyPI as `wa-agent` (import `wa_agent`); Hisab is its first product and runs on it since #57 (`hisab/wa.py` is the adapter). The relay, first planned as `whatsapp-agent-relay` for the [hackathon](https://islamabad-rawalpindi.aitinkerers.org/p/agents-everywhere-beyond-the-chatbot-global-hackathon), is that repo's next release, `wa-agent relay`.
