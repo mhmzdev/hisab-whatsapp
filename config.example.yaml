@@ -3,7 +3,7 @@
 ledger:
   path: ./vault            # folder holding hisab.md, accounts.md, rules.md, the quarter files
   template: personal       # personal | shop — used only when the folder is empty and setup runs
-  currency: PKR
+  currency: PKR            # the default until setup; the currency answered in setup wins after
 
 timezone: Asia/Karachi     # IANA name; export-ledger file names and captions use this clock
 

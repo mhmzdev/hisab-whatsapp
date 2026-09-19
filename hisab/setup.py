@@ -91,7 +91,6 @@ class Setup:
     def write(self, a):
         mode = a.get("mode", "personal")
         cur = a.get("currency", "PKR")
-        self.ledger.currency = cur
         d = self.ledger.dir
         d.mkdir(parents=True, exist_ok=True)
         base = (TEMPLATES / f"{mode}.md").read_text(encoding="utf-8")
