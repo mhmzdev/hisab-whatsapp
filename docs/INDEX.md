@@ -19,6 +19,14 @@ Format: every document here is markdown with a small YAML frontmatter (`type` re
 | [`exec-plans/`](exec-plans/INDEX.md) | HOW: phased, `file:line`-grounded plans with provable criteria, moving `backlog → active → completed` (or `superseded`) | `/create-plan`, moved by `/implement` | `/implement`, `/review`, `/open-pr` |
 | [`feat-checklist/`](feat-checklist/INDEX.md) | Acceptance checklists per slug: what was proven, what needs a human, what failed | `/review` | `/open-pr` (seeds the Test Plan) |
 
+## Guides
+
+Not lifecycle artifacts: how to run Hisab, written for a person or their coding agent.
+
+| File | Read it when |
+|---|---|
+| [`self-host-vps.md`](self-host-vps.md) | you want Hisab on a server: one prompt for a coding agent, from choosing a VPS to a reply on WhatsApp |
+
 ## Outside docs/
 
 Not lifecycle artifacts, but the next hop for a reader who needs them:

@@ -94,7 +94,7 @@ The container runs `python -m hisab.loop` and polls the WhatsApp agent whose tok
 | Watch messages and turn times | `docker compose logs -f` |
 | Restart after a code or config change | the same `up -d --build` line you started with |
 | Stop, keep state | `docker compose down` |
-| Stop and wipe the store (next message starts setup from zero, offset reset) | `docker compose down -v` |
+| Stop and wipe the store: the offset, the message ↔ entry map and the setup state, so reply-to-undo on older messages breaks and an unfinished setup starts over (setup restarts from zero only when the ledger folder has no `hisab.md` or `accounts.md`) | `docker compose down -v` |
 | Read files inside the container | `docker compose exec -T hisab sh -c 'ls /app/vault; cat /app/data/messages.jsonl'` |
 
 Rules for agents:

@@ -23,7 +23,7 @@ selfhost-dev: ## Self-host worker against the sample ledger with the OpenRouter 
 selfhost-down: landing-down ## Self-host Docker down and stop the landing page, keep state
 	docker compose down
 
-selfhost-down-v: ## Self-host Docker down and wipe the store (next message starts setup from zero)
+selfhost-down-v: ## Self-host Docker down and wipe the store: offset, message↔entry map, setup state (reply-to-undo on older messages breaks)
 	docker compose down -v
 
 selfhost-logs: ## Follow self-host container logs
