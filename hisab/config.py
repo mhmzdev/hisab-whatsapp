@@ -22,7 +22,8 @@ DEFAULTS = {
     "transcription": {"provider": "auto", "model": "openai/whisper-1", "base_url": None, "api_key_env": None, "language": None, "gemini_model": "gemini-2.5-flash"},
     "memory": {"window_turns": 20, "keep_days": 30},
     "whatsapp": {"poll_timeout": 20, "chunk_chars": 3500, "rate_limits": {
-        # WhatsApp Agent Platform manual v1 §6: each its own rolling 60s counter, scoped per agent.
+        # WhatsApp Agent Platform manual v1 §6: each its own rolling 60s counter, scoped per agent. The *_per_min keys
+        # feed wa-agent's limiter; window_seconds is fixed at 60 by wa-agent 0.1.0 (hisab/wa.py logs any other value).
         "window_seconds": 60, "messages_per_min": 12, "statuses_per_min": 12, "updates_per_min": 15, "media_per_min": 12,
     }},
     "state": {"path": "./data"},

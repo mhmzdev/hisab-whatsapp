@@ -30,7 +30,7 @@ marker, directly under `inactive_root`, is ever touched. The retained copy is fo
 hand back on request; nothing in the product reads it.
 
 The runner is the only thing that talks to Firestore; the worker never learns what Firebase is. The
-runner never talks to WhatsApp; every send goes through the worker's `hisab/wa.py` and its rate limiter.
+runner never talks to WhatsApp; every send goes through the worker's `hisab/wa.py` adapter and wa-agent's rate limiter.
 The monthly model-call allowance ([#6](https://github.com/mhmzdev/hisab-whatsapp/issues/6); a turn that fails on the model side — `model_*` codes — is refunded, #38) and
 `export-ledger` ([#8](https://github.com/mhmzdev/hisab-whatsapp/issues/8)) live in the worker.
 

@@ -8,9 +8,9 @@ from hisab.archive import build_export_zip
 from hisab.ledger import Ledger, LedgerError
 from hisab.store import Store
 from hisab.setup import Setup
-from hisab.wa import to_whatsapp, _chunks
 import hisab.wa as wa_mod
 from hisab.wa import WhatsApp
+import wa_agent
 
 tmp = Path(tempfile.mkdtemp())
 try:
@@ -124,8 +124,11 @@ try:
     st = Store(tmp / "s"); st.add("a", "in", "hi"); st.add("b", "out", "posted #1", entry=1); st.add("a", "note", "", entry=1)
     assert st.entry_for_message("a") == 1 and st.entry_for_message("b") == 1 and len(st.window(20)) == 2
     st.mark_clear(); st.add("c", "in", "after"); assert len(st.window(20)) == 1
-    assert to_whatsapp("**bold** and [[page|label]]\n# Head\n- item") == "*bold* and label\n*Head*\n• item"
-    assert len(_chunks("a" * 8000, 3500)) == 3 and _chunks("p1\n\np2", 3500) == ["p1\n\np2"]
+    fmt_wa = WhatsApp("tok", session=object())  # never called: parts_for is pure
+    assert fmt_wa.parts_for("**bold** and [[page|label]] [[page#h]]\n# Head\n- item") == ["*bold* and label page\n*Head*\n• item"]
+    long_parts = fmt_wa.parts_for("a" * 8000)
+    assert len(long_parts) == 3 and all(len(p) <= 3500 + len("\n\n(3/3)") for p in long_parts) and long_parts[0].endswith("(1/3)")
+    assert fmt_wa.parts_for("p1\n\np2") == ["p1\n\np2"]
 
     # rate limits: a fake clock proves pacing and backoff without any real waiting
     class FakeClock:
@@ -148,17 +151,21 @@ try:
             if self.status_code // 100 != 2:
                 raise RuntimeError(f"HTTP {self.status_code}")
 
-    real_request = wa_mod.requests.request
+    class FakeSession:
+        """wa-agent's injectable session: every HTTP call goes to `handler(verb, url, **kw)`, nothing to the network."""
+        transport_errors = (ConnectionError,)
+        def __init__(self, handler):
+            self.handler = handler
+        def request(self, verb, url, headers=None, **kw):
+            return self.handler(verb, url, **kw)
+
     clock = FakeClock()
     rl_wa = WhatsApp("tok", rate_limits={"updates_per_min": 15, "window_seconds": 60},
+                      session=FakeSession(lambda verb, url, **kw: FakeResponse(200, {"entry": [], "next_offset": "off"})),
                       now=clock.now, sleep=clock.sleep)
-    wa_mod.requests.request = lambda verb, url, **kw: FakeResponse(200, {"entry": [], "next_offset": "off"})
-    try:
-        offset = ""
-        for _ in range(30):  # a backlog drain: every long-poll returns instantly
-            _, offset = rl_wa.poll(offset)
-    finally:
-        wa_mod.requests.request = real_request
+    offset = ""
+    for _ in range(30):  # a backlog drain: every long-poll returns instantly
+        _, offset = rl_wa.poll(offset)
     elapsed = clock.t - 1_000_000.0
     assert 60 <= elapsed < 120, elapsed  # 30 instant polls at 15/min must span at least one full window
     print(f"rate limit: 30 instant polls paced to {elapsed:.0f}s (limit 15/min) — poll loop can't exceed the window")
@@ -171,15 +178,11 @@ try:
         return FakeResponse(200, {"entry": [], "next_offset": "off2"})
     clock2 = FakeClock()
     rl_wa2 = WhatsApp("tok", rate_limits={"updates_per_min": 15, "window_seconds": 60},
-                       now=clock2.now, sleep=clock2.sleep)
-    wa_mod.requests.request = fake_429_then_ok
-    try:
-        # a single poll() absorbs the 429 internally: acquire() on the retry backs off until the
-        # window can plausibly have reset, so the caller sees one slow success, not a fast failure
-        msgs2, off2 = rl_wa2.poll("start")
-        assert off2 == "off2", off2
-    finally:
-        wa_mod.requests.request = real_request
+                       session=FakeSession(fake_429_then_ok), now=clock2.now, sleep=clock2.sleep)
+    # a single poll() absorbs the 429 internally: acquire() on the retry backs off until the
+    # window can plausibly have reset, so the caller sees one slow success, not a fast failure
+    msgs2, off2 = rl_wa2.poll("start")
+    assert off2 == "off2", off2
     elapsed2 = clock2.t - 1_000_000.0
     assert elapsed2 >= 55, elapsed2  # backs off toward a full window reset, not a flat 10s
     print(f"rate limit: 429 backs off ~{elapsed2:.0f}s toward a window reset, retry succeeds without re-entering the limit")
@@ -187,18 +190,64 @@ try:
     def fake_409(verb, url, **kw):
         return FakeResponse(409, {"error": {"code": 1752041, "message": "conflict"}})
     clock3 = FakeClock()
-    rl_wa3 = WhatsApp("tok", now=clock3.now, sleep=clock3.sleep)
-    wa_mod.requests.request = fake_409
+    rl_wa3 = WhatsApp("tok", session=FakeSession(fake_409), now=clock3.now, sleep=clock3.sleep)
     buf = io.StringIO()
-    try:
-        with contextlib.redirect_stderr(buf):
-            msgs3, off3 = rl_wa3.poll("keep")
-    finally:
-        wa_mod.requests.request = real_request
+    with contextlib.redirect_stderr(buf):
+        msgs3, off3 = rl_wa3.poll("keep")
     assert msgs3 == [] and off3 == "keep", (msgs3, off3)
     logged = buf.getvalue()
     assert "409" in logged and "1752041" in logged and "another poller" in logged, logged
     print("rate limit: 409/1752041 logged as another-poller conflict, not a generic failure")
+
+    # #57: wa-agent 0.1.0 fixes the window at 60s — a config that says otherwise is told so, never silently obeyed
+    for window, want in ((60, ""), (30, "fixed at 60")):
+        buf = io.StringIO()
+        with contextlib.redirect_stderr(buf):
+            w_wa = WhatsApp("tok", rate_limits={"window_seconds": window, "media_per_min": 3}, session=object())
+        assert (want in buf.getvalue()) if want else buf.getvalue() == "", (window, buf.getvalue())
+    assert w_wa._client.limits._limits["media_post"] == w_wa._client.limits._limits["media_get"] == 3, "media_per_min feeds upload and download"
+    print("rate limit: per-method config limits reach wa-agent; a window other than 60 is logged, not obeyed")
+
+    # #57: every wa-agent code, at every adapter site, lands on a registered Hisab chat code — nothing of wa-agent reaches a reply
+    from hisab import errors as _errs
+    raw = 'GET /x: HTTP 500 {"error":{"message":"upstream down","code":131000}}'
+    class RaisingClient:
+        def __init__(self, code):
+            self.code = code
+        def _raise(self, *a, **kw):
+            raise wa_agent.AuthError(raw) if self.code == "auth" else wa_agent.WhatsAppError(self.code, raw)
+        download = upload = send_media = send = _raise
+    FORBIDDEN_WA = ("HTTP", '{"error"', "Traceback", "OpenRouter", "Gemini", "OpenAI", "Google", "wa-agent", "wa_agent")
+    for wa_code in wa_agent.CODES:
+        site_wa = WhatsApp("tok", session=object()); site_wa._client = RaisingClient(wa_code)
+        for site, call in (("download", lambda: site_wa.download("m1", tmp)),
+                           ("send_document", lambda: site_wa.send_document("923001234567", tmp, "x.zip", caption="c")),
+                           ("send", lambda: site_wa.send("923001234567", "hi"))):
+            try:
+                call(); raise AssertionError(f"{site} swallowed {wa_code}")
+            except _errs.HisabError as e:
+                assert _errs.CODES[e.code].surface == "chat", (site, wa_code, e.code)
+                assert f"wa-agent {wa_code}" in e.detail and "upstream down" in e.detail, (site, wa_code, e.detail)
+                for lang in ("en", "ur"):
+                    for hosted in (True, False):
+                        text = _errs.reply(e.code, lang, hosted, **({"mb": "17.0"} if e.code == "export_too_large" else {}))
+                        bad = [f for f in FORBIDDEN_WA + (wa_code,) if f in text]
+                        assert not bad, (site, wa_code, lang, hosted, bad, text)
+    print(f"wa-agent: all {len(wa_agent.CODES)} codes map to Hisab chat codes at download/send_document/send; no wa-agent text in any reply")
+
+    # #57: an expired media url is media_fetch_failed with the detail kept, and leaves no half-file behind
+    def fake_expired(verb, url, **kw):
+        if "/media/" in url:
+            return FakeResponse(200, {"url": "https://cdn.example/m9", "mime_type": "audio/ogg"})
+        return FakeResponse(404, {})
+    dl_dir = tmp / "dl"
+    try:
+        WhatsApp("tok", session=FakeSession(fake_expired), now=FakeClock().now, sleep=FakeClock().sleep).download("m9", dl_dir)
+        raise AssertionError("expired media url accepted")
+    except _errs.HisabError as e:
+        assert e.code == "media_fetch_failed" and "media_url_expired" in e.detail, e
+    assert not dl_dir.exists() or not any(dl_dir.iterdir()), list(dl_dir.iterdir())
+    print("wa-agent: expired media url → media_fetch_failed, no .part left")
     sample = Ledger(Path(__file__).resolve().parent.parent / "sample-vault")
     af = sample.afford("2026-09"); assert len(sample.periodic_rules()) == 2, sample.periodic_rules()
     assert [d for d, _ in af["not_yet_paid_this_month"]] == [], af  # rent and salaries both have September postings
@@ -297,25 +346,21 @@ try:
         if url.endswith("/media"):
             captured.update(files=kw.get("files"), data=kw.get("data"))
             return FakeResponse(200, {"id": "media-1"})
+        captured.update(message=kw.get("json"))
         return FakeResponse(200, {"messages": [{"id": "wamid.doc"}]})
     doc_file = tmp / "doc.zip"; doc_file.write_bytes(b"PK\x03\x04")
-    wa_mod.requests.request = fake_media
-    try:
-        assert WhatsApp("tok").send_document("923001234567", doc_file, "hisab-2026-09-14-1110.zip", caption="c") == "wamid.doc"
-    finally:
-        wa_mod.requests.request = real_request
+    assert WhatsApp("tok", session=FakeSession(fake_media)).send_document("923001234567", doc_file, "hisab-2026-09-14-1110.zip", caption="c") == "wamid.doc"
     assert captured["files"]["file"][2] == "application/octet-stream" and captured["data"]["type"] == "application/octet-stream", captured
+    assert captured["message"]["type"] == "document" and captured["message"]["document"] == {"id": "media-1", "caption": "c", "filename": "hisab-2026-09-14-1110.zip"}, captured
     for status, payload, want in ((400, {"error": {"code": 131053, "message": "application/zip is not a supported media type"}}, "export_rejected"),
-                                  (500, {"error": {"message": "boom"}}, None)):
-        wa_mod.requests.request = lambda verb, url, _s=status, _p=payload, **kw: FakeResponse(_s, _p)
+                                  (500, {"error": {"message": "boom"}}, "export_failed")):
+        refusing = FakeSession(lambda verb, url, _s=status, _p=payload, **kw: FakeResponse(_s, _p))
         try:
-            WhatsApp("tok").send_document("923001234567", doc_file, "x.zip"); raise AssertionError("upload refusal accepted")
+            WhatsApp("tok", session=refusing, now=FakeClock().now, sleep=FakeClock().sleep).send_document("923001234567", doc_file, "x.zip")
+            raise AssertionError("upload refusal accepted")
         except _HisabError as e:
-            assert want == e.code == "export_rejected" and "131053" in e.detail, e
-        except RuntimeError as e:
-            assert want is None and "HTTP 500" in str(e), e
-        finally:
-            wa_mod.requests.request = real_request
+            assert e.code == want and f"HTTP {status}" in e.detail, (want, e)
+            assert want != "export_rejected" or "131053" in e.detail, e
     for exc, code in ((_HisabError("export_rejected", "HTTP 400 131053"), "export_rejected"), (RuntimeError("media upload failed: HTTP 500"), "export_failed")):
         class RefusingWA(ExportFakeWA):
             def send_document(self, to, path, filename, caption=None, _e=exc):
@@ -625,12 +670,16 @@ try:
     # a media download miss and a runaway tool loop: their codes, not free text
     class MissingMediaWA(ExportFakeWA):
         def download(self, media_id, dest_dir):
-            return None, None
-    wa_m = MissingMediaWA(); buf = io.StringIO()
-    with contextlib.redirect_stderr(buf):
-        voice_app._handle_wa(wa_m, {"from": frm, "type": "image", "id": "wamid.nomedia", "image": {"id": "m2"}})
-    assert wa_m.sent[-1][2] == errors.reply("media_fetch_failed", "en"), wa_m.sent
-    assert "error media_fetch_failed msg=wamid.nomedia" in buf.getvalue(), buf.getvalue()
+            raise errors.HisabError("media_fetch_failed", "wa-agent media_url_expired: media m2: HTTP 404 on the download url")
+    class BrokenMediaWA(ExportFakeWA):
+        def download(self, media_id, dest_dir):
+            raise ConnectionError("reset by peer")
+    for fake, typ, detail in ((MissingMediaWA(), "image", "media_url_expired"), (BrokenMediaWA(), "audio", "reset by peer")):
+        buf = io.StringIO()
+        with contextlib.redirect_stderr(buf):
+            voice_app._handle_wa(fake, {"from": frm, "type": typ, "id": f"wamid.nomedia-{typ}", typ: {"id": "m2"}})
+        assert fake.sent[-1][2] == errors.reply("media_fetch_failed", "en"), fake.sent
+        assert f"error media_fetch_failed msg=wamid.nomedia-{typ}" in buf.getvalue() and detail in buf.getvalue(), buf.getvalue()
     steps_agent = agent_mod.Agent(voice_app.cfg, voice_app.ledger)
     steps_agent._chat = lambda messages: {"role": "assistant", "content": None,
                                           "tool_calls": [{"id": "c1", "function": {"name": "read_accounts", "arguments": "{}"}}]}
@@ -814,22 +863,22 @@ try:
 
         # auth failures stop the worker; everything else keeps the existing retry
         from hisab.wa import AuthError, AUTH_EXIT_CODE
-        auth_wa = WhatsApp("tok", now=clock.now, sleep=clock.sleep)
+        auth_resp = {}
+        auth_wa = WhatsApp("tok", session=FakeSession(lambda verb, url, **kw: FakeResponse(*auth_resp["r"])), now=clock.now, sleep=clock.sleep)
         for status, payload in ((401, {"error": {"code": 190}}), (400, {"error": {"code": 100}})):
-            wa_mod.requests.request = lambda verb, url, **kw: FakeResponse(status, payload)
+            auth_resp["r"] = (status, payload)
             try:
                 auth_wa.poll(""); raise SystemExit(f"HTTP {status} did not raise AuthError")
             except AuthError:
                 pass
         for status in (503, 500):
-            wa_mod.requests.request = lambda verb, url, **kw: FakeResponse(status, {})
+            auth_resp["r"] = (status, {})
             try:
                 auth_wa.poll(""); raise SystemExit(f"HTTP {status} did not raise")
             except AuthError:
                 raise SystemExit(f"HTTP {status} must not be an AuthError")
-            except RuntimeError:
-                pass
-        wa_mod.requests.request = real_request
+            except wa_agent.WhatsAppError as e:
+                assert e.code == "platform_unavailable", e.code
 
         class ExitingWA:
             def __init__(self, exc): self.exc = exc

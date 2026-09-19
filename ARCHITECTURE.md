@@ -46,7 +46,7 @@ Read in this order: [`AGENTS.md`](AGENTS.md) (how to work here) → this file (h
                           ledger.py  quarter file append ──▶ hledger check --strict ──▶ keep | roll back
                                      │
                                      ▼        (any exception ──▶ errors.py: code → log detail → fixed reply)
-                          one-line reply ──▶ wa.py (markdown→WhatsApp, chunk < 3,500) ──▶ phone
+                          one-line reply ──▶ wa.py → wa-agent (markdown→WhatsApp, chunk < 3,500) ──▶ phone
                                      │
                           store.py   reply + entry number recorded beside the inbound message id
 ```
@@ -60,7 +60,7 @@ The same pipeline runs without WhatsApp: `python -m hisab.loop --stdin` reads li
 | Component | Responsibility | Talks to |
 |---|---|---|
 | [`hisab/loop.py`](hisab/loop.py) | Orchestration: poll, route (pending / command / setup / agent), reply, record; the hosted welcome, pending reminder, quota check and media sweep | everything below |
-| [`hisab/wa.py`](hisab/wa.py) | WhatsApp Agent Platform: `GET /updates` long-poll, media download, typing indicator, `POST /messages` with chunking, document send, a per-method rate limiter; a rejected token exits with status 3 | the platform |
+| [`hisab/wa.py`](hisab/wa.py) | Thin adapter over the pinned [`wa-agent`](https://pypi.org/project/wa-agent/) package, which does the platform calls: `GET /updates` long-poll, media download, typing indicator, `POST /messages` with chunking, document send, a per-method rate limiter. The adapter maps config onto it, maps every wa-agent failure code to a Hisab code, flattens Obsidian wikilinks, and `inbound()` is the one reader of the message dict; a rejected token exits with status 3 | the platform (via wa-agent) |
 | [`hisab/store.py`](hisab/store.py) | Runtime state on disk: `offset`, `messages.jsonl`, `setup.json`, `creator.json`, `usage.json`, `welcomed.json`, `reminder.json`; the rolling window; entry-number ↔ message-id map | loop |
 | [`hisab/errors.py`](hisab/errors.py) | The failure registry: every chat reply and portal `lastError` is a code; `classify` → `log` → `reply` | loop, agent, runner, landing check |
 | [`hisab/archive.py`](hisab/archive.py) | `export-ledger`'s ZIP: the canonical ledger files only, never state, keys or media | loop |
@@ -100,7 +100,7 @@ The ledger folder is the product. Open it in Obsidian with hledger-dashboard and
 | Failure | Behaviour |
 |---|---|
 | Poll request fails (hotspot, 5xx) | log, sleep 5 s, retry; offset unchanged |
-| A WhatsApp method nears its limit (`messages`/`statuses`/`updates`/`media` each 12–15/min, own rolling 60 s window, per agent) | the rate limiter blocks before the request is sent — the poll loop can never exceed 15/min even when every long-poll returns instantly |
+| A WhatsApp method nears its limit (`messages`/`statuses`/`updates`/`media` each 12–15/min, own rolling 60 s window fixed by wa-agent, per agent) | wa-agent's rate limiter blocks before the request is sent — the poll loop can never exceed 15/min even when every long-poll returns instantly |
 | WhatsApp returns 429 (`error.code 130429`) | the method's window is marked fully spent; the next call backs off until it can plausibly have reset, not a flat delay |
 | WhatsApp returns 409 on a poll (`error.code 1752041`) | logged as "another poller is using this agent" — the two-pollers-on-one-agent footgun, not a generic failure |
 | WhatsApp rejects the token (401/190, 400/100) | the worker exits with status 3; hosted, the runner writes `lastError: "auth"` and does not restart it |
@@ -109,9 +109,9 @@ The ledger folder is the product. Open it in Obsidian with hledger-dashboard and
 | Hosted monthly allowance reached | `quota_exceeded`, no model call; a warning line is appended from 80% |
 | Any failure a user is told about | a code from `hisab/errors.py`, rendered in the user's language with the next step (self-host and hosted can differ); the raw detail and the message id go to stderr, never to WhatsApp |
 | hledger rejects the block | file restored; the tool returns the cleaned reason (no banner, no path) and the model replies; outside a tool call the user gets `ledger_rejected` |
-| Voice note or photo download fails | `media_fetch_failed`; nothing posted |
+| Voice note or photo download fails (any wa-agent code, including an expired media url) | `media_fetch_failed`; nothing posted |
 | Transcription fails | `transcription_failed`: send it as text or try again; nothing posted |
-| `export-ledger` document send fails | the ZIP goes up as `application/octet-stream` (WhatsApp refuses `application/zip`); a 400/131053 refusal is `export_rejected` (no retry suggested), anything else `export_failed`; a ZIP over the document limit is `export_too_large` and never sent |
+| `export-ledger` document send fails | the ZIP goes up as `application/octet-stream` (WhatsApp refuses `application/zip`); any refusal (wa-agent `platform_rejected`, e.g. 400/131053) is `export_rejected` (no retry suggested), anything else `export_failed`; a ZIP over the document limit is `export_too_large` and never sent |
 | Reply over 4,096 chars | split on paragraph boundaries under 3,500, numbered `(i/N)` |
 | Container restarts mid-batch | replay from the stored offset; already-seen ids skipped |
 | Laptop closed for a day | WhatsApp buffers 30 days; entries post on the next poll |
