@@ -13,6 +13,7 @@ Up: [docs/INDEX.md](../INDEX.md). Written by `/create-plan` into `backlog/`; `/i
 ## Backlog
 | Plan | Problem it solves | Depends on |
 |---|---|---|
+| [GH-61-wa-agent-transcription](backlog/GH-61-wa-agent-transcription.md) | Hisab keeps its own transcription (`hisab/transcribe.py`, google-genai) beside wa-agent's; move voice notes onto `wa_agent.transcribe` through the `hisab/wa.py` adapter, drop `transcription.base_url` (refused at load), map every wa-agent code and `[inaudible]` to `transcription_failed` | wa-agent 0.2.0 on PyPI (whatsapp-agent-cli #33) |
 
 ## Active
 | Plan | Started | Issue |
