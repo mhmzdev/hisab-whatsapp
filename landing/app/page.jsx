@@ -7,7 +7,7 @@ import { readSignedIn } from './signedIn'
 import BrandMark from './BrandMark'
 import { HOSTED } from './hosted'
 import { withBase } from './paths'
-import { EXCHANGES, LEDGER_SAMPLE, SHOP_EXCHANGES } from '@/content/mock.js'
+import { EXCHANGES, LEDGER_SAMPLE, PENDING_PRICE, SHOP_EXCHANGES } from '@/content/mock.js'
 import styles from './landing.module.css'
 
 const GITHUB_URL = 'https://github.com/mhmzdev/hisab-whatsapp'
@@ -249,8 +249,9 @@ export default function Home() {
         </div>
       </Section>
 
-      <Section n={7} title={t('price_title')} band id="pricing">
+      <Section n={7} title={HOSTED ? t('price_title') : t('price_soon_title')} band id="pricing">
         <div className={styles.priceCard}>
+          {HOSTED ? (
           <div className={styles.priceOptions} role="radiogroup" aria-label={t('price_title')}>
             {plans.map((p) => (
               <button
@@ -270,6 +271,27 @@ export default function Home() {
               </button>
             ))}
           </div>
+          ) : (
+          // The public build shows no amount and no tiers: the price is an hledger pending entry,
+          // marked ! the way hledger marks anything not yet cleared. HOSTED builds keep the plans.
+          <figure className={styles.pendingPrice}>
+            <div className={styles.receipt}>
+              <pre className={styles.ledgerCode} dir="ltr" aria-label={t('price_pending_label')}>
+                {PENDING_PRICE.head}{'\n'}
+                {PENDING_PRICE.posting}{PENDING_PRICE.currency}
+                <span className={styles.pendingAmount} aria-hidden="true">
+                  <span className={styles.pendingDot}>·</span>
+                  <span className={styles.pendingDot}>·</span>
+                  <span className={styles.pendingDot}>·</span>
+                </span>{'\n'}
+                {PENDING_PRICE.balance}
+              </pre>
+              <span className={`${styles.receiptEdge} ${styles.receiptTop}`} />
+              <span className={`${styles.receiptEdge} ${styles.receiptBottom}`} />
+            </div>
+            <figcaption className={styles.pendingCaption}>{t('price_pending_caption')}</figcaption>
+          </figure>
+          )}
           <div className={styles.priceDetails}>
             {!HOSTED && <span className={styles.soonBadge}>{t('hosted_soon_badge')}</span>}
             <ul className={styles.priceFeatures}>
