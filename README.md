@@ -99,7 +99,7 @@ Architecture in one page: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 You need a phone with WhatsApp, Docker, and an [OpenRouter](https://openrouter.ai) or [Gemini](https://aistudio.google.com/apikey) key.
 
 1. In WhatsApp: Settings → Agents → Create an agent → Chat info → copy the API key. WhatsApp's own guide: [Introduction to Third-Party Agents on WhatsApp](https://faq.whatsapp.com/1050934623978152).
-2. `cp .env.example .env` and paste the WhatsApp key and your model key (OpenRouter or Gemini; one is enough).
+2. `cp .env.example .env` and paste the WhatsApp key into `WHATSAPP_AGENT_TOKEN` and your model key (OpenRouter or Gemini; one is enough).
 3. `cp config.example.yaml config.yaml`. The defaults are fine; change the model if you like.
 4. `docker compose up -d` (or `make selfhost`)
 5. Send your agent any message. It asks personal or shop (in English and Urdu, answer in either), then up to seven more questions in that language, writes your chart of accounts, and posts what you sent.

@@ -15,7 +15,7 @@ services:
     build:
       context: .
       dockerfile: runner/Dockerfile
-    env_file: .env                     # RUNNER_PRIVATE_KEY + the model key(s); WHATSAPP_TOKEN there is ignored — each tenant's comes from Firestore
+    env_file: .env                     # RUNNER_PRIVATE_KEY + the model key(s); a WhatsApp token there (WHATSAPP_AGENT_TOKEN or WHATSAPP_TOKEN) never reaches a tenant — each tenant's comes from Firestore
     environment:
       - FIRESTORE_EMULATOR_HOST        # pass-through: set in the shell for the local profile, absent for dev
       - GCLOUD_PROJECT

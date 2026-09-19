@@ -1,6 +1,7 @@
 """Config: config.yaml (safe to commit) + .env (secrets). Paths resolve relative to the config file."""
 import copy
 import os
+import sys
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import yaml
@@ -10,6 +11,9 @@ from .clock import DEFAULT_TZ
 OPENROUTER_URL = "https://openrouter.ai/api/v1"
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
 PROVIDERS = ("auto", "openrouter", "gemini")  # model.provider and transcription.provider
+TOKEN_ENV = "WHATSAPP_AGENT_TOKEN"  # wa-agent's name for the WhatsApp token; wins when set (#68)
+LEGACY_TOKEN_ENV = "WHATSAPP_TOKEN"  # Hisab's old name: read only when TOKEN_ENV is unset or blank, with a note to rename
+NO_DOTENV_ENV = "HISAB_NO_DOTENV"  # runner-set on every tenant worker: its environment comes from the runner, never a .env
 
 DEFAULTS = {
     "pending": False,  # hosted mode, runner-set: mute all outbound until a tenant is verified (#7)
@@ -56,11 +60,28 @@ def load(path=None):
     cfg["ledger"]["path"] = str((root / cfg["ledger"]["path"]).resolve())
     cfg["state"]["path"] = str((root / cfg["state"]["path"]).resolve())
     cfg["secrets"] = {
-        "whatsapp_token": os.environ.get("WHATSAPP_TOKEN", "").strip(),
+        "whatsapp_token": whatsapp_token(),
         "openrouter_key": os.environ.get("OPENROUTER_API_KEY", "").strip(),
     }
     resolve_providers(cfg)
     return cfg
+
+
+_legacy_noted = False
+
+
+def whatsapp_token(env=None):
+    """TOKEN_ENV, else LEGACY_TOKEN_ENV with a one-line rename note (once per process, never the value), else ""."""
+    global _legacy_noted
+    env = os.environ if env is None else env
+    token = env.get(TOKEN_ENV, "").strip()
+    if token:
+        return token
+    token = env.get(LEGACY_TOKEN_ENV, "").strip()
+    if token and not _legacy_noted:
+        _legacy_noted = True
+        print(f"config: {LEGACY_TOKEN_ENV} is the old name; rename it to {TOKEN_ENV} in .env", file=sys.stderr)
+    return token
 
 
 def check_transcription(tc):

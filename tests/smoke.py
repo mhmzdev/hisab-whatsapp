@@ -121,7 +121,7 @@ try:
     assert led.match_rule("chai 300 easypaisa se") == "expenses:food:snacks"
     led.learn_rule(["bykea"], "expenses:transport"); assert led.match_rule("bykea 200") == "expenses:transport"
     # export-ledger: prove inclusion AND exclusion — a leaked key is the worst bug this repo could ship
-    (led.dir / ".env").write_text("WHATSAPP_TOKEN=secret\n", encoding="utf-8")
+    (led.dir / ".env").write_text("WHATSAPP_AGENT_TOKEN=secret\nWHATSAPP_TOKEN=secret\n", encoding="utf-8")
     (led.dir / "worker-state.json").write_text("{}", encoding="utf-8")
     (led.dir / "messages.jsonl").write_text('{"id":"1"}\n', encoding="utf-8")
     (led.dir / "receipt.jpg").write_bytes(b"\xff\xd8\xff\xe0")
@@ -474,6 +474,41 @@ try:
         cfgmod.load(tz_cfg); raise AssertionError("unknown timezone accepted")
     except SystemExit as e:
         assert "Mars/Olympus" in str(e), e
+
+    # the WhatsApp token (#68): WHATSAPP_AGENT_TOKEN wins, WHATSAPP_TOKEN is a fallback with a rename note, never the value
+    @contextlib.contextmanager
+    def _token_env(**vals):
+        names = (cfgmod.TOKEN_ENV, cfgmod.LEGACY_TOKEN_ENV)
+        saved = {n: os.environ.pop(n, None) for n in names}  # the shell may export real keys
+        os.environ.update(vals)
+        cfgmod._legacy_noted = False
+        try:
+            yield
+        finally:
+            for n in names:
+                os.environ.pop(n, None)
+                if saved[n] is not None:
+                    os.environ[n] = saved[n]
+
+    def _token_load(**vals):
+        err = io.StringIO()
+        with _token_env(**vals), contextlib.redirect_stderr(err):
+            toks = [cfgmod.load(tmp / "no-such-config.yaml")["secrets"]["whatsapp_token"] for _ in range(2)]
+        return toks, err.getvalue()
+
+    toks, err = _token_load(WHATSAPP_AGENT_TOKEN="tok-new")
+    assert toks == ["tok-new"] * 2 and err == "", (toks, err)
+    toks, err = _token_load(WHATSAPP_TOKEN="tok-old")
+    assert toks == ["tok-old"] * 2, toks
+    assert err.count("\n") == 1 and "WHATSAPP_TOKEN" in err and "WHATSAPP_AGENT_TOKEN" in err and "tok-old" not in err, err
+    toks, err = _token_load(WHATSAPP_AGENT_TOKEN="tok-new", WHATSAPP_TOKEN="tok-old")
+    assert toks == ["tok-new"] * 2 and err == "", (toks, err)
+    for blank in ("", "   "):  # `cp .env.example .env` leaves WHATSAPP_AGENT_TOKEN= empty next to an old WHATSAPP_TOKEN
+        toks, err = _token_load(WHATSAPP_AGENT_TOKEN=blank, WHATSAPP_TOKEN="tok-old")
+        assert toks == ["tok-old"] * 2 and "rename it to WHATSAPP_AGENT_TOKEN" in err and "tok-old" not in err, (blank, toks, err)
+    toks, err = _token_load()
+    assert toks == ["", ""] and err == "", (toks, err)
+    print("config: WHATSAPP_AGENT_TOKEN wins, WHATSAPP_TOKEN falls back with one rename note")
     print("export: octet-stream upload, 131053 -> export_rejected, hisab-2026-09-14-1110.zip + en/ur caption in Asia/Karachi")
 
     # #40: every "today" is the configured timezone's. 2026-09-30T20:30Z is 01:30 on 1 Oct in Pakistan: the model,
@@ -1046,11 +1081,44 @@ try:
         rtenant, launcher = "tenant-xyz", FakeLauncher()
         manager = WorkerManager(launcher=launcher)
         os.environ["RUNNER_PRIVATE_KEY"] = priv  # simulate the runner's own env; must never reach a tenant subprocess
+        # ...and the operator's own WhatsApp token under BOTH names (#68): a tenant must still poll with its own
+        saved_tokens = {n: os.environ.pop(n, None) for n in ("WHATSAPP_AGENT_TOKEN", "WHATSAPP_TOKEN", "HISAB_NO_DOTENV")}
+        os.environ["WHATSAPP_AGENT_TOKEN"], os.environ["WHATSAPP_TOKEN"] = "operator-new", "operator-old"
         try:
             reconcile({rtenant: {"status": "pending", "keyCiphertext": ciphertext, "lastSeenAt": "2026-09-01"}}, runner_cfg, manager)
             reconcile({rtenant: {"status": "pending", "keyCiphertext": ciphertext, "lastSeenAt": "2026-09-02", "entriesThisMonth": 5}}, runner_cfg, manager)
             assert launcher.calls == 1, launcher.calls  # idempotent: volatile-only changes don't restart
             assert "RUNNER_PRIVATE_KEY" not in launcher.last_env, "tenant subprocess must not inherit the runner's decryption key"
+            tenv = launcher.last_env
+            assert tenv["WHATSAPP_AGENT_TOKEN"] == "fake-wa-token" and "WHATSAPP_TOKEN" not in tenv, "tenant got the operator's token"
+            assert cfgmod.whatsapp_token(tenv) == "fake-wa-token" and tenv["HISAB_NO_DOTENV"] == "1"
+            from runner.reconcile import _tenant_env, state_hash
+            hash_cfg = {"pending": False, "model": {"id": "m"}, "transcription": {}, "ledger": {"template": "shop"}}
+            assert state_hash(_tenant_env("tok-a"), hash_cfg) != state_hash(_tenant_env("tok-b"), hash_cfg)
+            with_operator = state_hash(_tenant_env("tok-a"), hash_cfg)
+            os.environ.pop("WHATSAPP_AGENT_TOKEN"); os.environ.pop("WHATSAPP_TOKEN")
+            assert state_hash(_tenant_env("tok-a"), hash_cfg) == with_operator, "the operator's environ changed a tenant's hash"
+            os.environ["WHATSAPP_AGENT_TOKEN"], os.environ["WHATSAPP_TOKEN"] = "operator-new", "operator-old"
+            # a tenant worker never reads a .env (a runner run from the repo root would hand it the operator's); self-host still does
+            import hisab.loop as loop_mod
+            env_dir, cwd = tmp / "dotenv-cwd", os.getcwd()
+            env_dir.mkdir()
+            (env_dir / ".env").write_text("RUNNER_PRIVATE_KEY=op-key\nWHATSAPP_TOKEN=op-tok\n", encoding="utf-8")
+            saved_key = os.environ.pop("RUNNER_PRIVATE_KEY")
+            os.environ.pop("WHATSAPP_TOKEN")
+            os.chdir(env_dir)
+            try:
+                os.environ["HISAB_NO_DOTENV"] = "1"
+                loop_mod.load_env()
+                assert "RUNNER_PRIVATE_KEY" not in os.environ and "WHATSAPP_TOKEN" not in os.environ, "tenant worker read .env"
+                del os.environ["HISAB_NO_DOTENV"]
+                loop_mod.load_env()
+                assert os.environ.get("RUNNER_PRIVATE_KEY") == "op-key" and os.environ.get("WHATSAPP_TOKEN") == "op-tok", "self-host stopped reading .env"
+            finally:
+                os.chdir(cwd)
+                os.environ.pop("HISAB_NO_DOTENV", None)
+                os.environ["RUNNER_PRIVATE_KEY"], os.environ["WHATSAPP_TOKEN"] = saved_key, "operator-old"
+            print("runner: each tenant gets its own token as WHATSAPP_AGENT_TOKEN, never the operator's; tenant workers skip .env")
             reconcile({rtenant: {"status": "connected", "keyCiphertext": ciphertext, "lastSeenAt": "2026-09-03"}}, runner_cfg, manager)
             assert launcher.calls == 2, launcher.calls  # status flip -> exactly one restart
             assert manager.running_uids() == {rtenant}
@@ -1069,6 +1137,10 @@ try:
             assert manager.running_uids() == {good}, manager.running_uids()
         finally:
             del os.environ["RUNNER_PRIVATE_KEY"]
+            for n, v in saved_tokens.items():
+                os.environ.pop(n, None)
+                if v is not None:
+                    os.environ[n] = v
         print("runner: reconcile ok")
 
         # verification: pure, file-based, per tenant — see runner/verify.py

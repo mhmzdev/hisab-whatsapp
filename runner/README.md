@@ -41,9 +41,13 @@ cp runner/config.example.yaml runner/config.yaml     # paths resolve relative to
 python3 -m runner.keygen                              # public key → landing/.env.local; private key → .env
 ```
 
-`RUNNER_PRIVATE_KEY` is a secret exactly like `WHATSAPP_TOKEN`/`OPENROUTER_API_KEY` — `.env`,
+`RUNNER_PRIVATE_KEY` is a secret exactly like `WHATSAPP_AGENT_TOKEN`/`OPENROUTER_API_KEY` — `.env`,
 never committed. Rotation for this MVP is manual: regenerate, redeploy, and any tenant whose
 ciphertext was sealed under the retired key must resubmit it through the portal.
+
+A WhatsApp token in the runner's own `.env`, under either name, never reaches a tenant. The runner strips
+`WHATSAPP_AGENT_TOKEN`, `WHATSAPP_TOKEN` and `RUNNER_PRIVATE_KEY` from each worker's environment, sets only that
+tenant's decrypted token as `WHATSAPP_AGENT_TOKEN`, and sets `HISAB_NO_DOTENV=1` so the worker never reads a `.env` back in.
 
 ## The full local loop
 
