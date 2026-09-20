@@ -73,6 +73,12 @@ class Ledger:
         cur = self.settings().get("currency")
         return cur if isinstance(cur, str) and CURRENCY_RE.fullmatch(cur) else self.default_currency
 
+    @property
+    def holder(self):
+        """The name receipts show for the user, from setup's settings.json; "" when skipped, missing, blank or malformed (#43)."""
+        name = self.settings().get("holder")
+        return name.strip() if isinstance(name, str) else ""
+
     # ---------- files ----------
     def quarter_file(self, d=None, create=True):
         d = d or self.today()

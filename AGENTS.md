@@ -21,7 +21,7 @@ hisab/
   agent.py       the system prompt (SYSTEM) and the raw tool-calling loop on any OpenAI-compatible endpoint; retries with backoff
   tools.py       the SIX tools: append_entry, undo_last, report, learn_rule, read_accounts, add_account — schemas + execution
   ledger.py      hledger on markdown: quarter files, append under strict check with rollback, undo by entry number, reports, rules, periodic rules, settings
-  setup.py       the setup conversation: language first, then ≤8 questions, personal or shop; writes accounts/rules/hisab.md/settings.json from templates/
+  setup.py       the setup conversation: the first answer sets the language, then eight numbered questions (n/8) incl. the account holder name, personal or shop; writes accounts/rules/hisab.md/settings.json from templates/
   i18n.py        every fixed user-facing string in en / ur, plus the model's reply-shape line per language
   errors.py      THE error-code registry: every failure reply (chat) and runner lastError (portal) is a code; classify → log → reply
   clock.py       the one clock: every "today", quota month and export name in config `timezone`, never the container's UTC
@@ -44,7 +44,7 @@ runner/          hosted mode only: Firestore reconciler, one hisab.loop subproce
 landing/         hosted mode only: the static Next.js landing page + portal (phone auth, sealed-box key submit) — see landing/README.md
 firestore.rules  owner-scoped client writes on tenants/{uid}: five client fields only, never status/creatorId — tests/rules/ proves it
 tests/           smoke.py (no-network regression, THE check) · make_sample.py · demo_terminal.sh (terminal demo on a copy of the sample)
-                 check_endpoint.py (validate a key) · bakeoff.sh (compare models) · check_landing.py (run by smoke) · rules/ (firestore.rules tests)
+                 check_endpoint.py (validate a key) · check_receipts.py (model direction check, by hand) · bakeoff.sh (compare models) · check_landing.py (run by smoke) · rules/ (firestore.rules tests)
 examples/        config.openrouter.yaml, config.gemini.yaml, runner-config.openrouter.yaml — copied into the gitignored configs
 showcase/        README images: the cover and real-agent screenshots — check every screenshot for personal data before committing
 docs/            lifecycle artifacts, INDEX.md at every level (see below); docs/INDEX.md also routes to every README outside docs/
@@ -72,6 +72,7 @@ Makefile (`make help`) · Dockerfile · docker-compose.yml · docker-compose.run
 | Regenerate the sample ledger | `python3 tests/make_sample.py` |
 | Terminal demo on a copy of the sample (needs a model key in `.env`) | `bash tests/demo_terminal.sh` |
 | Validate a pasted key: model, tools, transcription | `python3 tests/check_endpoint.py [--audio note.ogg]` |
+| Check by hand that the model reads a receipt's direction (needs a key and the fixtures in `tests/fixtures/receipts/`; SKIP without them; never part of the check) | `python3 tests/check_receipts.py [--holder "Name"]` |
 | Compare a model on the fixed demo script | `bash tests/bakeoff.sh <model-id>` |
 | Switch endpoint | `cp examples/config.openrouter.yaml config.yaml` or `examples/config.gemini.yaml` |
 | Validate the sponsor config before a demo | `python3 tests/check_endpoint.py --config config-dev.yaml` |

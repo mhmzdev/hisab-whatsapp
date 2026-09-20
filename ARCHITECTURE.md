@@ -27,7 +27,7 @@ Read in this order: [`AGENTS.md`](AGENTS.md) (how to work here) → this file (h
                           fixed command? ──▶ export-ledger → archive.py ZIP → send_document
                                      │       /help · /clear · /setup · /lang   (no model call, no quota)
                                      ▼                                             ▼
-                          no ledger yet?  ──▶ setup.py  (language first, ≤8 Qs)  ──▶ templates/ → ledger folder
+                          no ledger yet?  ──▶ setup.py  (8 numbered Qs)  ──▶ templates/ → ledger folder
                                      │
                           voice note ──▶ wa.py → wa-agent (OpenRouter | Gemini) ──▶ text
                           photo      ──▶ base64 image in the model message
@@ -65,7 +65,7 @@ The same pipeline runs without WhatsApp: `python -m hisab.loop --stdin` reads li
 | [`hisab/errors.py`](hisab/errors.py) | The failure registry: every chat reply and portal `lastError` is a code; `classify` → `log` → `reply` | loop, agent, runner, landing check |
 | [`hisab/archive.py`](hisab/archive.py) | `export-ledger`'s ZIP: the canonical ledger files only, never state, keys or media | loop |
 | [`hisab/clock.py`](hisab/clock.py) | The one clock: every "today", quota month and export name in the configured `timezone`, never the container's UTC | ledger, store, loop, runner |
-| [`hisab/setup.py`](hisab/setup.py) | The first conversation: language, then personal/shop questions; writes the ledger folder from `templates/` | ledger, i18n, store |
+| [`hisab/setup.py`](hisab/setup.py) | The first conversation: eight numbered questions (personal/shop, the account holder name, …); writes the ledger folder from `templates/` | ledger, i18n, store |
 | [`hisab/i18n.py`](hisab/i18n.py) | Every fixed string in `en` / `ur`; the model's reply-shape line per language (the `en` line answers Roman Urdu in Roman Urdu) | setup, loop, agent |
 | [`hisab/agent.py`](hisab/agent.py) | The system prompt and the tool-calling loop; endpoint and key are config | the model API, tools |
 | [`hisab/tools.py`](hisab/tools.py) | The six tools: JSON schemas for the model and the Python that runs each | ledger |

@@ -12,6 +12,7 @@ Acceptance checklists written by /review, one per slug; /open-pr seeds the PR Te
 
 | Checklist | Slug | Proven / manual / failing | Date |
 |---|---|---|---|
+| [GH-43-transfer-direction](GH-43-transfer-direction.md) | GH-43-transfer-direction | 11 / 3 / 0 (1 finding fixed) | 2026-09-20 |
 | [GH-65-setup-currency](GH-65-setup-currency.md) | GH-65-setup-currency | 9 / 1 / 0 | 2026-09-20 |
 | [GH-68-agent-token](GH-68-agent-token.md) | GH-68-agent-token | 9 / 2 / 0 | 2026-09-20 |
 | [GH-63-self-host-vps](GH-63-self-host-vps.md) | GH-63-self-host-vps | 7 / 1 / 0 | 2026-09-20 |

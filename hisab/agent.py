@@ -23,7 +23,8 @@ Rules:
 - "balance <account> <amount>" sets a starting balance: posting account +amount, equity:opening null, tags ["opening:"].
 - After posting, reply exactly like: "posted #12 — chai 300 — month out 48,200" using the entry number and month figures the tool returns. After undo: "removed #12 — <description>". After a report, reply with the numbers in a ``` block, aligned, no prose.
 - Never comment on a purchase, never rate the month, never add advice or encouragement. Numbers and the fact only.
-- A forwarded bank or wallet SMS (HBL, Meezan, Alfalah, JazzCash, Easypaisa, SadaPay, NayaPay…) is an entry: read the amount, the direction (debited/paid/sent = out, credited/received = in), the merchant or counterparty for the description, and the masked account digits to pick the money account if one matches. Post it without asking unless the category is unclear.
+- A forwarded bank or wallet SMS (HBL, Meezan, Alfalah, JazzCash, Easypaisa, SadaPay, NayaPay…) is an entry: read the amount, the merchant or counterparty for the description, and the direction by the ladder below. Post it without asking unless the direction or the category is unclear.
+{direction}
 - "what can I afford" / "kitna bacha hai" / "free cash": call report kind=afford and reply with its lines.
 - Today is {today}.
 - Language: {language}
@@ -31,6 +32,28 @@ Rules:
 Declared accounts:
 {accounts}
 """
+
+
+# Direction for a typed message, a forwarded SMS and a receipt photo alike (#43). The holder rung is dropped, and the rest
+# renumbered, when setup's name question was skipped.
+DIRECTION_STEPS = [
+    'What the user said wins: "Uzair ko 35000 diye" is money out whatever the image shows. A photo\'s caption counts as what the user said.',
+    'The document\'s own words about the USER\'S OWN account or action: "your account was debited", "you sent", "you received", "credited to your account". A label that names a party ("Transferred To: <name>", "From Account: <name>", "Sent to: <name>", "Sent by: <name>") does not state a direction: it names a side, and the next rungs read it.',
+    "The account holder name (the user is {holder}): match the whole name, never one shared word. The holder on the to / transferred to / sent to side is money IN; the holder on the from / sent by side is money OUT.",
+    'Only one party is named and it is not the holder: the receipt is the user\'s own app view of their own action. "Sent to <other>" is money OUT, "Received from <other>" is money IN.',
+    'If none of those settles it, ask ONE question about direction alone: "did this money leave you or arrive?". Never mix money-in and money-out accounts in one question.',
+]
+BOTH_SIDES = """- Both sides name the account holder: the user moved their own money. When both institutions match declared money accounts, post the three-posting transfer (destination +amount, source -amount, bare equity:transfer) with no question, and name both accounts in the reply. When the other institution is not a declared account (a different person with the same name, or an account Hisab does not know), ask ONE question: your own account, or another person?"""
+DIRECTION_RULES = """- Direction known, category not: ask ONE question whose three candidates are all on that side. A transfer to a named person offers assets:receivable:<name> among the three; it is never the silent default.
+- A transfer entry's reply names the account used: "posted #4 — lent to Uzair 35,000 → assets:receivable:uzair — month out 3,000". Ordinary entries do not name the account."""
+
+
+def direction(holder):
+    """The holder rung and the both-sides rule need a name to match; without one they cannot fire, so they are left out. The own-app-view rung needs none."""
+    steps = [x for i, x in enumerate(DIRECTION_STEPS) if holder or i != 2]  # only the holder rung needs the name
+    ladder = "\n".join(f"  {n}. {x.format(holder=holder)}" for n, x in enumerate(steps, 1))
+    head = "- Direction, for a typed message, a forwarded SMS and a receipt photo alike, in this order:\n" + ladder
+    return "\n".join([head] + ([BOTH_SIDES] if holder else []) + [DIRECTION_RULES])
 
 
 class Agent:
@@ -49,7 +72,7 @@ class Agent:
         names = self.ledger.account_names()
         money = [a for a in names if a.startswith("assets:") and not a.startswith(("assets:receivable", "assets:staff"))]
         return SYSTEM.format(currency=self.ledger.currency, default_money=(money[0] if money else "assets:cash"),
-                             today=self.ledger.today().isoformat(), accounts="\n".join(names), language=MODEL_LANG.get(self.ledger.language(), MODEL_LANG["en"]))
+                             direction=direction(self.ledger.holder), today=self.ledger.today().isoformat(), accounts="\n".join(names), language=MODEL_LANG.get(self.ledger.language(), MODEL_LANG["en"]))
 
     def run(self, history, user_content, hint=None, max_rounds=6):
         """history: prior turns [{role, content}]. user_content: str or multimodal list. Returns (reply, tools)."""
