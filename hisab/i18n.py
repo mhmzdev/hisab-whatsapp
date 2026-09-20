@@ -89,6 +89,8 @@ S = {
 Q = {
  "mode": {"en": "Is this ledger *personal* or for a *shop*?",
           "ur": "یہ کھاتہ *ذاتی* ہے یا *دکان* کا؟"},
+ "holder": {"en": "What is the full name on your accounts, as your receipts show it (for a shop, the owner's or the shop's)? Not a nickname. Or *skip*.",
+            "ur": "آپ کے اکاؤنٹس پر پورا نام کیا ہے، جیسا رسیدوں پر آتا ہے (دکان ہو تو مالک یا دکان کا نام)؟ عرفیت نہیں۔ یا *skip*۔"},
  "currency": {"en": "Currency? (reply PKR, USD, …)", "ur": "کرنسی؟ (PKR, USD, …)"},
  "money": {"en": "Your money accounts, comma-separated, first one is the default. e.g. *Alfalah bank, cash, Easypaisa wallet*",
            "ur": "آپ کے پیسوں کے اکاؤنٹس، کوما سے الگ، پہلا ڈیفالٹ ہوگا۔ مثلاً *Alfalah bank, cash, Easypaisa wallet*"},
@@ -115,6 +117,7 @@ Q = {
                  "ur": "سیٹ اپ مکمل۔ کبھی بھی اندراج بھیجیں، مثلاً *2500 chai*، وائس نوٹ، یا رسید کی تصویر۔ *balance <account> <amount>* سے ابتدائی بیلنس سیٹ ہوتا ہے۔"},
  "done_parked": {"en": " Now posting what you sent first.", "ur": " اب آپ کا پہلا پیغام درج کر رہا ہوں۔"},
  "mode_again": {"en": "Reply *personal* or *shop*.", "ur": "*ذاتی* یا *دکان* لکھیں۔"},
+ "holder_again": {"en": "Just the name, no numbers. Or *skip*.", "ur": "صرف نام لکھیں، اعداد کے بغیر۔ یا *skip*۔"},
  "currency_again": {"en": "Reply with a currency code, e.g. *PKR*.", "ur": "کرنسی کوڈ لکھیں، مثلاً *PKR*۔"},
 }
 

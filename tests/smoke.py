@@ -63,15 +63,15 @@ try:
         raise AssertionError("agent started with no model key")
     print("config: provider auto picks OpenRouter, then Gemini; pins and explicit endpoints stay")
 
-    for mode, answers in (("personal", ["personal", "PKR", "Alfalah bank, cash, Easypaisa wallet", "Alfalah 15", "salary, freelance", "Meezan fund", "yes"]),
-                          ("shop", ["shop", "PKR", "cash, Meezan bank", "Metro, Ali traders", "Bilal, Ahmed", "none", "rent 40000, salaries 60000"])):
+    for mode, answers in (("personal", ["personal", "Hamza Shakeel", "PKR", "Alfalah bank, cash, Easypaisa wallet", "Alfalah 15", "salary, freelance", "Meezan fund", "yes"]),
+                          ("shop", ["shop", "Bilal Traders", "PKR", "cash, Meezan bank", "Metro, Ali traders", "Bilal, Ahmed", "none", "rent 40000, salaries 60000"])):
         led = Ledger(tmp / mode); st = Store(tmp / f"state-{mode}"); su = Setup(led, st)
         q = su.start(parked="2500 coffee"); assert "personal" in q and "ذاتی" in q, q  # no language question: one bilingual greeting
         replies = []
         for ans in answers:
             q, done, parked = su.answer(ans); replies.append(q)
         assert done and parked == "2500 coffee", (mode, done, parked)
-        assert "Currency" in replies[0] and "/lang اردو" in replies[0] and sum("/lang" in r for r in replies) == 1, replies  # the note shows once
+        assert "full name" in replies[0] and "/lang اردو" in replies[0] and sum("/lang" in r for r in replies) == 1, replies  # the note shows once
         assert led.language() == "en"
         assert led.exists() and led.check()
         names = led.account_names()
@@ -83,7 +83,7 @@ try:
     # #28: hosted setup never names the ledger folder (vault/<uid> — an internal id); self-host still does
     from hisab.i18n import Q as _Q
     assert _Q["done_hosted"]["en"] and _Q["done_hosted"]["ur"] and not any("{dir}" in v for v in _Q["done_hosted"].values())
-    personal = ["PKR", "cash", "none", "none", "no", "no"]
+    personal = ["skip", "PKR", "cash", "none", "none", "no", "no"]
     uid_like = "ZeMXFc4x4g9wGg4n5NMp79aXi7IN"
     for first, hosted in (("personal", True), ("ذاتی", True), ("personal", False)):
         hled = Ledger(tmp / f"h28-{first}-{hosted}" / uid_like); hst = Store(tmp / f"h28-state-{first}-{hosted}")
@@ -106,7 +106,7 @@ try:
         app = Hisab(cfg)
         assert app.ledger.currency == "PKR" and not app.ledger.exists(), app.ledger.currency
         app.setup.start()
-        for ans in ["personal", "usd", "cash", "none", "none", "no", "no"]:
+        for ans in ["personal", "skip", "usd", "cash", "none", "none", "no", "no"]:
             _, done, _ = app.setup.answer(ans)
         assert done and app.ledger.currency == "USD", app.ledger.currency
         app2 = Hisab(cfg)
@@ -376,21 +376,69 @@ try:
     print("afford:", af["can_afford"], "| August pending:", af8["not_yet_paid_this_month"])
     # urdu flow: the first answer is in Urdu script, so the questions are too; PKR and "cash" later do not flip it
     led = Ledger(tmp / "ur"); st = Store(tmp / "state-ur"); su = Setup(led, st); su.start()
-    r, _, _ = su.answer("ذاتی"); assert "کرنسی" in r and "/lang english" in r, r
+    r, _, _ = su.answer("ذاتی"); assert "پورا نام" in r and "/lang english" in r, r
+    r, _, _ = su.answer("حمزہ شکیل"); assert "کرنسی" in r and "/lang" not in r, r
     r, _, _ = su.answer("PKR"); assert "/lang" not in r and "اکاؤنٹس" in r, r
     for a in ["cash", "نہیں", "salary", "نہیں", "نہیں"]:
         r, done, _ = su.answer(a)
     assert done and led.language() == "ur" and "سیٹ اپ مکمل" in r, (done, r)
+    assert led.holder == "حمزہ شکیل", led.holder
     # an unrecognised first answer asks again in the language it was written in, and does not lock it
     led = Ledger(tmp / "ur-retry"); st = Store(tmp / "state-ur-retry"); su = Setup(led, st); su.start()
     r, _, _ = su.answer("سلام"); assert "ذاتی" in r and "personal" not in r, r
-    r, _, _ = su.answer("shop"); assert "Currency" in r and "/lang اردو" in r, r
+    r, _, _ = su.answer("shop"); assert "full name" in r and "/lang اردو" in r, r
     # a setup saved before the language question was dropped carries on at the mode question
     st.set_setup_state({"step": 0, "answers": {}, "parked": None, "flow": ["language", "mode", "currency", "money", "cards", "income", "investments", "donations"]})
-    r, _, _ = su.answer("personal"); assert "Currency" in r, r
+    r, _, _ = su.answer("personal"); assert "full name" in r, r  # the mode answer switches to the current flow, holder included
     st.set_setup_state({"step": 1, "answers": {"language": "roman"}, "parked": None, "flow": ["language", "mode", "currency", "money", "cards", "income", "investments", "donations"]})
-    r, _, _ = su.answer("personal"); assert "Currency" in r and "/lang" not in r, r
+    r, _, _ = su.answer("personal"); assert "full name" in r and "/lang" not in r, r
+    # a setup begun before holder existed and already past the mode question keeps its old seven-question flow: no holder, no raise, numbered out of its own length
+    led = Ledger(tmp / "legacy"); st = Store(tmp / "state-legacy"); su = Setup(led, st)
+    st.set_setup_state({"step": 1, "answers": {"mode": "personal", "language": "en"}, "parked": None, "flow": ["mode", "currency", "money", "cards", "income", "investments", "donations"]})
+    r, _, _ = su.answer("PKR"); assert r.startswith("3/7 · ") and "money accounts" in r, r
+    for a in ["cash", "none", "none", "no", "no"]:
+        r, done, _ = su.answer(a)
+    assert done and led.holder == "" and led.check(), (done, r)
     print("urdu setup ok")
+
+    # #43: setup asks who the user is as question 2 of 8, numbers every message n/8, and stores the name
+    import re as _re43
+    from hisab.setup import PERSONAL as _P43, SHOP as _S43
+    assert _P43[:2] == _S43[:2] == ["mode", "holder"] and len(_P43) == len(_S43) == 8, (_P43, _S43)
+    for lg, first, bad_mode, bad_cur, fill in (
+            ("en", "personal", "hmm", "1", {"personal": ["Hamza Shakeel", "PKR", "cash", "none", "none", "no", "no"], "shop": ["Bilal Traders", "PKR", "cash", "none", "none", "none", "skip"]}),
+            ("ur", "ذاتی", "؟", "١", {"personal": ["حمزہ شکیل", "PKR", "cash", "نہیں", "نہیں", "نہیں", "نہیں"], "shop": ["بلال ٹریڈرز", "PKR", "cash", "نہیں", "نہیں", "نہیں", "skip"]})):
+        for mode in ("personal", "shop"):
+            first = first if mode == "personal" else ("shop" if lg == "en" else "دکان")
+            led = Ledger(tmp / f"n43-{lg}-{mode}"); st = Store(tmp / f"n43-state-{lg}-{mode}"); su = Setup(led, st)
+            g = su.start(); assert g.startswith("1/8 · ") and "personal" in g, g
+            r, _, _ = su.answer(bad_mode); assert r.startswith("1/8 · "), r  # rejected: the step has not moved
+            r, _, _ = su.answer(first); assert r.startswith("2/8 · "), r
+            r, _, _ = su.answer("Al Falah 1234"); assert r.startswith("2/8 · ") and "1234" not in r, r  # a digit is an account number, not a name
+            r, _, _ = su.answer("x"); assert r.startswith("2/8 · "), r  # too short
+            r, _, _ = su.answer("x" * 61); assert r.startswith("2/8 · "), r  # too long
+            seen = []
+            for ans in fill[mode]:
+                r, done, _ = su.answer(ans); seen.append(r)
+                if len(seen) == 1:
+                    r, _, _ = su.answer(bad_cur); assert r.startswith("3/8 · "), r  # rejected currency repeats its number
+            assert done and led.holder == fill[mode][0], (lg, mode, led.holder)
+            assert [x.split(" · ")[0] for x in seen[:-1]] == [f"{n}/8" for n in range(3, 9)], seen  # 3/8 .. 8/8, Latin digits in both languages
+            assert all(_re43.match(r"^[1-8]/8 · ", x) for x in seen[:-1]) and "/8" not in seen[-1], seen
+    for skip_word in ("skip", "none", "نہیں"):
+        led = Ledger(tmp / f"skip43-{skip_word}"); st = Store(tmp / f"skip43-state-{skip_word}"); su = Setup(led, st); su.start()
+        su.answer("personal"); su.answer(skip_word)
+        for a in ["PKR", "cash", "none", "none", "no", "no"]:
+            r, done, _ = su.answer(a)
+        assert done and led.holder == "" and led.settings()["holder"] == "", (skip_word, led.settings())
+    led = Ledger(tmp / "holder43")
+    assert led.holder == "", "no settings.json yet"
+    for bad in (None, "", "   ", 7, ["Uzair"], {"n": 1}):
+        led.set_settings({"holder": bad}); assert led.holder == "", bad
+    led.set_settings({"holder": "  Hamza Shakeel "}); assert led.holder == "Hamza Shakeel"
+    (led.dir / "settings.json").write_text("{not json", encoding="utf-8"); assert led.holder == ""
+    (led.dir / "settings.json").write_text("[1]", encoding="utf-8"); assert led.holder == ""
+    print("setup: holder is question 2 of 8, every message numbered n/8, skip stores empty, a digit is re-asked; Ledger.holder is safe on bad settings")
 
     # fixed strings are written in en and ur only; Roman Urdu is something the model answers, not a language setting
     from hisab.i18n import S as I18N_S, Q as I18N_Q, MODEL_LANG, LANGS, parse_lang
@@ -399,6 +447,66 @@ try:
     assert parse_lang("roman urdu") is None and parse_lang("اردو") == "ur" and parse_lang(" English") == "en"
     led = Ledger(tmp / "legacy-roman"); led.set_settings({"language": "roman"}); assert led.language() == "en"
     print("i18n: en/ur only; stored roman reads as en")
+
+    # #43: the prompt carries one direction ladder; the holder rung is there only when setup learned the name
+    import hisab.agent as agent43
+    fake_cfg = {"model": {"id": "x", "base_url": None, "api_key_env": None}, "secrets": {"openrouter_key": "fake"}}
+    hled = Ledger(tmp / "prompt43"); Setup(hled, Store(tmp / "prompt43-state")).write({"mode": "personal", "holder": "Hamza Shakeel"})
+    sled = Ledger(tmp / "prompt43-skip"); Setup(sled, Store(tmp / "prompt43-skip-state")).write({"mode": "personal", "holder": ""})
+    with_name, without = agent43.Agent(fake_cfg, hled).system(), agent43.Agent(fake_cfg, sled).system()
+    assert "the user is Hamza Shakeel" in with_name and "The account holder name" in with_name and "match the whole name" in with_name and "Hamza" not in without, "holder rung"
+    assert "account holder" not in without.lower(), "no holder rung and no both-sides rung when skipped"
+    assert "Both sides name the account holder" in with_name and "equity:transfer" in with_name.split("Both sides name")[1]
+    assert "Both sides name" not in without and "equity:transfer" not in without.split("- Direction")[1], "no both-sides rung without a name"
+    for prompt, steps in ((with_name, 5), (without, 4)):
+        ladder = prompt[prompt.index("- Direction,"):prompt.index("- Direction known")]
+        ladder = ladder.split("- Both sides name")[0]
+        assert [l.strip()[:2] for l in ladder.splitlines()[1:]] == [f"{n}." for n in range(1, steps + 1)], ladder  # numbered without a gap
+        assert "What the user said wins" in ladder and "The document's own words" in ladder and "ask ONE question about direction alone" in ladder, ladder
+        assert "A transfer entry's reply names the account used" in prompt and "assets:receivable:<name> among the three" in prompt
+        assert 'does not state a direction: it names a side' in ladder and '"Transferred To: <name>"' in ladder and "USER'S OWN account or action" in ladder, ladder  # a party label is not a direction word (r4)
+        assert "the user's own app view of their own action" in ladder and '"Sent to <other>" is money OUT' in ladder and '"Received from <other>" is money IN' in ladder, ladder  # needs no name (r3)
+        assert "masked account digits" not in prompt and "Post it without asking unless the direction or the category is unclear" in prompt
+    assert "masked account digits" not in (Path(agent43.__file__)).read_text(encoding="utf-8")
+    assert MODEL_LANG["en"].endswith("Keep numbers as digits and account names as declared.") and MODEL_LANG["ur"].startswith("Reply in Urdu script")
+    # #43: the by-hand receipt check. Its judge is pure, so the repo check pins it; the model itself is only ever run by hand
+    import subprocess as _sp43, importlib as _il43
+    cr = _il43.import_module("check_receipts")
+    out_, in_ = [{"account": "expenses:family", "amount": 5000}, {"account": "assets:bank:alfalah", "amount": None}], [{"account": "assets:wallet:easypaisa", "amount": 5000}, {"account": "income:other", "amount": None}]
+    xfer = [{"account": "assets:wallet:easypaisa", "amount": 5000}, {"account": "assets:bank:alfalah", "amount": -5000}, {"account": "equity:transfer", "amount": None}]
+    ok_ = lambda postings: [("append_entry", {"postings": postings}, {"entry_number": 1})]
+    assert cr.money_delta(out_) == -5000 and cr.money_delta(in_) == 5000 and cr.money_delta(xfer) == 0
+    C = {c.name: c for c in cr.CASES}
+    assert list(C) == ["r1", "r2", "r3", "r4", "r1-stranger"] and C["r1-stranger"].fixture == "r1" and C["r1-stranger"].who == "stranger"
+    assert cr.judge(C["r1"], ok_(out_), "posted #1")[0] and not cr.judge(C["r1"], ok_(in_), "posted #1")[0] and not cr.judge(C["r4"], ok_(out_), "x")[0]
+    assert cr.judge(C["r4"], ok_(in_), "posted #1")[0] and not cr.judge(C["r1"], ok_(xfer), "posted #1")[0]
+    assert not cr.judge(C["r1"], [("append_entry", {"postings": out_}, {"error": "rejected"})], "")[0], "a rejected entry is not a posting"
+    mixed = "Which account: expenses:family, income:other, or equity:transfer?"
+    assert cr.question_side(mixed) is None and not cr.judge(C["r1"], [], mixed)[0] and not cr.judge(C["r4"], [], mixed)[0]
+    assert cr.judge(C["r1"], [], "Which is it: expenses:family, expenses:gifts or assets:receivable:uzair?")[0]
+    assert cr.judge(C["r4"], [], "Which is it: income:other, income:salary or assets:receivable:uzair?")[0] and not cr.judge(C["r1"], [], "income:other or income:salary?")[0]
+    # r2: a question must offer the receivable; r3: the recipient's name is not the holder, so never income
+    assert cr.judge(C["r2"], [], "Which: expenses:family, expenses:gifts or assets:receivable:inam?")[0] and not cr.judge(C["r2"], [], "Which: expenses:family or expenses:gifts?")[0]
+    in_from_bank = [{"account": "assets:wallet:easypaisa", "amount": -10000}, {"account": "income:other", "amount": 10000}]
+    assert cr.judge(C["r3"], ok_(out_), "posted")[0] and not cr.judge(C["r3"], ok_(in_), "posted")[0] and not cr.judge(C["r3"], ok_(in_from_bank), "posted")[0]
+    assert not cr.judge(C["r3"], [], "Which: income:other, income:salary or income:gift?")[0]
+    assert cr.judge(C["r1-stranger"], [], "Did this money leave you or arrive?")[0] and not cr.judge(C["r1-stranger"], ok_(out_), "posted #1")[0] and not cr.judge(C["r1-stranger"], [], "posted")[0]
+    assert not cr.judge(C["r1-stranger"], [("append_entry", {"postings": out_}, {"error": "x"})], "Did this leave you?")[0], "even a rejected attempt means it guessed"
+    empty = tmp / "no-fixtures"; empty.mkdir()
+    skip = _sp43.run([sys.executable, str(Path(__file__).resolve().parent / "check_receipts.py"), "--fixtures", str(empty)], capture_output=True, text=True, timeout=60)
+    assert skip.returncode == 0 and "SKIP" in skip.stdout and "FAIL" not in skip.stdout, (skip.returncode, skip.stdout, skip.stderr)
+    src = (Path(__file__).resolve().parent / "check_receipts.py").read_text(encoding="utf-8")
+    assert "vault" not in src and "tempfile" in src, "the script writes to a temp ledger only"
+    # the docs name the same question count the flow has (the next added question cannot leave them stale)
+    root43 = Path(__file__).resolve().parent.parent
+    words = dict(enumerate("zero one two three four five six seven eight nine ten eleven twelve".split()))
+    n_q = len(_P43)
+    for rel, needle in (("AGENTS.md", f"{words[n_q]} numbered questions"), ("ARCHITECTURE.md", f"setup.py  ({n_q} numbered Qs)"), ("ARCHITECTURE.md", f"The first conversation: {words[n_q]} numbered questions"),
+                        ("README.md", f"{words[n_q]} numbered questions"), ("README.md", f"{words[n_q - 1]} more numbered questions"), ("hisab/setup.py", f"{words[n_q]} numbered questions (n/{n_q})")):
+        assert needle in (root43 / rel).read_text(encoding="utf-8"), f"{rel} no longer says {needle!r}: the flow has {n_q} questions"
+    assert "check_receipts.py" in (root43 / "AGENTS.md").read_text(encoding="utf-8").split("## Commands")[1].split("## Docker")[0], "AGENTS.md Commands row"
+    print("check_receipts: judge pins direction by tool calls, SKIP exits 0 with no fixtures, temp ledger only; docs match the flow length")
+    print("prompt: one direction ladder (5 steps with the holder, 4 without); party labels are not direction words; own-app-view rung kept without a name; both-sides rung only with a name; transfer-reply rule; no masked-digits claim")
 
     # export-ledger over the WhatsApp transport: exact command, intercepted before the model loop,
     # ships a document (not chat text), respects the 16 MB cap, and never needs a model key to run
@@ -598,8 +706,9 @@ try:
     r, _ = lang_app.handle("hello"); assert "ابھی کوئی کھاتہ نہیں" in r and "No ledger" in r and "ذاتی" in r, r
     r, _ = lang_app.handle("/lang roman urdu"); assert "/lang English" in r, r
     r, _ = lang_app.handle("/lang اردو"); assert r == "زبان: اردو۔", r
-    r, _ = lang_app.handle("shop"); assert "کرنسی" in r and "/lang" not in r, r
+    r, _ = lang_app.handle("shop"); assert "پورا نام" in r and "/lang" not in r, r
     r, _ = lang_app.handle("/lang english"); assert r == "Language: English.", r
+    r, _ = lang_app.handle("Bilal Traders"); assert "Currency" in r, r
     r, _ = lang_app.handle("PKR"); assert "money accounts" in r, r
     print("lang: /lang mid-setup ok")
 
@@ -1043,7 +1152,7 @@ try:
         assert wa_w2.sent == [], wa_w2.sent
         assert app_w2.setup.active(), "the welcome opens setup so the next reply answers personal or shop"
         assert "ذاتی" in wa_w1.sent[0][2] and "personal" in wa_w1.sent[0][2], wa_w1.sent
-        reply, done, _ = app_w2.setup.answer("دکان"); assert not done and "کرنسی" in reply, reply  # answered in Urdu, next question in Urdu
+        reply, done, _ = app_w2.setup.answer("دکان"); assert not done and "پورا نام" in reply, reply  # answered in Urdu, next question in Urdu
         selfhost_cfg = dict(hosted_cfg, hosted=False, state={"path": str(tmp / "selfhost-state")})
         Store(selfhost_cfg["state"]["path"]).set_creator("923001234567")
         wa_sh = FakeWA(); Hisab(selfhost_cfg)._welcome_if_due(wa_sh)

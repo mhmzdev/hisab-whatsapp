@@ -1,4 +1,4 @@
-"""Setup as a conversation: at most eight questions, then the ledger files exist. State lives in the store."""
+"""Setup as a conversation: eight numbered questions (n/8), then the ledger files exist. State lives in the store."""
 import json
 import re
 from pathlib import Path
@@ -6,8 +6,8 @@ from .i18n import q, s, detect_lang, norm_lang
 
 TEMPLATES = Path(__file__).resolve().parent.parent / "templates"
 
-PERSONAL = ["mode", "currency", "money", "cards", "income", "investments", "donations"]
-SHOP = ["mode", "currency", "money", "suppliers", "staff", "income_shop", "fixed"]
+PERSONAL = ["mode", "holder", "currency", "money", "cards", "income", "investments", "donations"]
+SHOP = ["mode", "holder", "currency", "money", "suppliers", "staff", "income_shop", "fixed"]
 
 
 def slug(s):
@@ -16,6 +16,11 @@ def slug(s):
 
 def _split(s):
     return [x.strip() for x in re.split(r"[,،]|\band\b|\baur\b", s) if x.strip()]
+
+
+def _numbered(text, step, total):
+    """Every onboarding message opens with n/total, Latin digits in both languages; a rejected answer repeats its number."""
+    return f"{step + 1}/{total} · {text}"
 
 
 def _none(x):
@@ -34,7 +39,7 @@ class Setup:
     def start(self, parked=None):
         state = {"step": 0, "answers": {}, "parked": parked, "flow": PERSONAL}
         self.store.set_setup_state(state)
-        return s("greeting", "en")
+        return _numbered(s("greeting", "en"), 0, len(PERSONAL))
 
     def lang(self):
         st = self.store.setup_state()
@@ -58,22 +63,31 @@ class Setup:
         detected = "language" not in st["answers"]
         lang = detect_lang(t) if detected else norm_lang(st["answers"]["language"])
         note = ""
+        step, total = st["step"], len(st["flow"])
         if key == "mode":
             if re.search(r"shop|dukan|dukaan|store|business|kiryana|karyana|دکان|دوکان", t, re.I):
                 mode = "shop"
             elif re.search(r"personal|apna|mera|myself|me\b|home|ghar|ذاتی|زاتی|اپنا", t, re.I):
                 mode = "personal"
             else:
-                return q("mode_again", lang), False, None
+                return _numbered(q("mode_again", lang), step, total), False, None
             st["answers"]["mode"] = mode
             if detected:
                 st["answers"]["language"] = lang
                 note = "\n" + s("lang_note", lang)
             st["flow"] = SHOP if mode == "shop" else PERSONAL
+        elif key == "holder":
+            name = " ".join(t.split())
+            if _none(name):
+                st["answers"]["holder"] = ""  # skipped: the prompt's direction ladder falls through to asking
+            elif not (2 <= len(name) <= 60) or re.search(r"\d", name):  # a digit is an account number pasted where a name was asked
+                return _numbered(q("holder_again", lang), step, total), False, None
+            else:
+                st["answers"]["holder"] = name
         elif key == "currency":
             cur = re.sub(r"[^A-Za-z]", "", t).upper()
             if not (3 <= len(cur) <= 4):
-                return q("currency_again", lang), False, None
+                return _numbered(q("currency_again", lang), step, total), False, None
             st["answers"]["currency"] = cur
         else:
             st["answers"][key] = t
@@ -85,7 +99,7 @@ class Setup:
             done = q("done_hosted", lang) if self.hosted else q("done", lang, dir=self.ledger.dir.name)
             return (done + (q("done_parked", lang) if parked else ""), True, parked)
         self.store.set_setup_state(st)
-        return q(st["flow"][st["step"]], lang) + note, False, None
+        return _numbered(q(st["flow"][st["step"]], lang), st["step"], len(st["flow"])) + note, False, None
 
     # ---------- file generation ----------
     def write(self, a):
@@ -138,7 +152,7 @@ class Setup:
         (d / "accounts.md").write_text(text, encoding="utf-8")
         (d / "rules.md").write_text(rules_src.read_text(encoding="utf-8"), encoding="utf-8")
         (d / "hisab.md").write_text(f"# Hisab — master file\n\ncommodity {cur} 1,000.00\ncommodity USD 1,000.00\n\ninclude accounts.md\n", encoding="utf-8")
-        self.ledger.set_settings({"language": norm_lang(a.get("language", "en")), "mode": mode, "currency": cur})
+        self.ledger.set_settings({"language": norm_lang(a.get("language", "en")), "mode": mode, "currency": cur, "holder": a.get("holder", "")})
         self.ledger.quarter_file(self.ledger.today())
         self.ledger.check()
 

@@ -1,11 +1,11 @@
 ---
 slug: GH-43-transfer-direction
 issue: 43
-status: backlog
+status: completed
 open_questions: none
 ---
 
-# feat: a transfer receipt knows which side the user is on          ⬜ BACKLOG
+# feat: a transfer receipt knows which side the user is on          ✅ COMPLETED — 2026-09-20
 
 ## Problem
 
@@ -102,22 +102,22 @@ Six tools — no new tool; the name is written by setup, which is the loop, not 
 
 ## Success criteria
 
-- [ ] Setup asks the holder name as question 2 in both flows, in `en` and `ur`, and stores it in `settings.json`; *skip* stores `""`; an answer containing a digit is re-asked — `verify: python3 tests/smoke.py`
-- [ ] Every onboarding message is numbered `n/8` with Latin digits in both languages, the greeting is `1/8`, the last question is `8/8`, and a rejected answer repeats its own number — `verify: python3 tests/smoke.py`
-- [ ] `Ledger.holder` returns the stored name, and `""` when it is missing, blank, not a string or the settings file is malformed — `verify: python3 tests/smoke.py`
-- [ ] `agent.system()` names the holder when set and contains no holder rung when it was skipped; both renderings carry the four-step ladder, the both-sides-match rung and the transfer-reply rule — `verify: python3 tests/smoke.py`
-- [ ] `hisab/agent.py` no longer claims to match masked account digits — `verify: ! grep -n "masked account digits" hisab/agent.py`
-- [ ] A setup begun before this change (a stored flow without `holder`) finishes without raising and without a holder — `verify: python3 tests/smoke.py`
-- [ ] `tests/check_receipts.py` exits 0 with a clear skip message when `tests/fixtures/receipts/` is empty, and never touches `vault/` — `verify: python3 tests/check_receipts.py` (exit 0, prints SKIP)
-- [ ] AGENTS.md's Commands table has a row for it, and the question-count wording in `AGENTS.md:24`, `ARCHITECTURE.md:30`, `README.md:107` and `hisab/setup.py:1` still matches the code — `verify: python3 tests/smoke.py` (a docs assertion: the flow length equals the number in those files)
-- [ ] The sample ledger still checks, and a regenerated sample is byte-identical — `verify: hledger -f sample-vault/hisab.md check --strict`
-- [ ] **Post-merge, owner + lead, left unticked:** the three blurred fixtures pass `python3 tests/check_receipts.py` with a real key; then on the demo agent, a receipt where the owner is the sender, one where they are the receiver, and one naming neither — the first two post the right direction, the third asks about direction — `verify: manual`
-- [ ] Repo check passes — `verify: python3 tests/smoke.py`
+- [x] Setup asks the holder name as question 2 in both flows, in `en` and `ur`, and stores it in `settings.json`; *skip* stores `""`; an answer containing a digit is re-asked — `verify: python3 tests/smoke.py`
+- [x] Every onboarding message is numbered `n/8` with Latin digits in both languages, the greeting is `1/8`, the last question is `8/8`, and a rejected answer repeats its own number — `verify: python3 tests/smoke.py`
+- [x] `Ledger.holder` returns the stored name, and `""` when it is missing, blank, not a string or the settings file is malformed — `verify: python3 tests/smoke.py`
+- [x] `agent.system()` names the holder when set and contains no holder rung and no both-sides rung when it was skipped; both renderings carry the direction ladder (party labels are not direction words; the own-app-view rung needs no name) and the transfer-reply rule (amended after sign-off, 2026-09-20: the fixtures r1–r4 showed the "Transferred To: <holder>" label read as money out) — `verify: python3 tests/smoke.py`
+- [x] `hisab/agent.py` no longer claims to match masked account digits — `verify: ! grep -n "masked account digits" hisab/agent.py`
+- [x] A setup begun before this change (a stored flow without `holder`) finishes without raising and without a holder — `verify: python3 tests/smoke.py`
+- [x] `tests/check_receipts.py` exits 0 with a clear skip message when `tests/fixtures/receipts/` is empty, and never touches `vault/` — `verify: python3 tests/smoke.py` (it runs the script against an empty fixtures directory: exit 0, prints SKIP; the owner has since placed r1–r4, so a bare run is now a live run)
+- [x] AGENTS.md's Commands table has a row for it, and the question-count wording in `AGENTS.md:24`, `ARCHITECTURE.md:30`, `README.md:107` and `hisab/setup.py:1` still matches the code — `verify: python3 tests/smoke.py` (a docs assertion: the flow length equals the number in those files)
+- [x] The committed sample still passes `hledger -f sample-vault/hisab.md check --strict`, and `tests/make_sample.py` runs to completion — `verify: hledger -f sample-vault/hisab.md check --strict` (the committed sample carries two phone-posted entries, #35 and #36, that the generator does not produce; it is left as committed and never regenerated over them; lead decision, 2026-09-20)
+- [ ] **Post-merge, owner + lead, left unticked:** the fixtures r1–r4 (and r1 with a stranger holder) pass `python3 tests/check_receipts.py` with a real key; then on the demo agent, a receipt where the owner is the sender, one where they are the receiver, and one naming neither — the first two post the right direction, the third asks about direction — `verify: manual`
+- [x] Repo check passes — `verify: python3 tests/smoke.py`
 
 ## Phases
 
 ### Phase 1 — Setup learns the name, and counts its questions
-**Status:** Not started
+**Status:** Done — `holder` is question 2 in both flows, every onboarding message is numbered `n/8`, `Ledger.holder` reads it back; smoke green
 - Files: `hisab/setup.py:1, 9-10, 49-89, 141`, `hisab/i18n.py` (`Q`, near `:88`), `hisab/ledger.py:70-73`, `tests/smoke.py:65-66, 87, 108-110, 389-393, 1044`
 - Change:
   - `PERSONAL`/`SHOP` gain `holder` as the second key; the module docstring says nine questions counting the greeting, or keeps "at most eight" if that stays true — whichever the docs assertion below checks.
@@ -129,14 +129,14 @@ Six tools — no new tool; the name is written by setup, which is the loop, not 
 - Verify: `python3 tests/smoke.py`
 
 ### Phase 2 — The prompt carries the ladder
-**Status:** Not started
+**Status:** Done — `agent.direction(holder)` renders the ladder (4 steps, 3 without a name), both-sides and transfer-reply rules; masked-digits clause deleted; smoke green
 - Files: `hisab/agent.py:16-33, 49-52`, `tests/smoke.py` (the prompt section)
 - Change: the holder line and the ladder as written above; delete the masked-digits clause; `system()` renders the holder rung only when the name is set.
 - Test: `agent.system()` on a ledger with a holder contains the name and the ladder's four steps; on one without, contains neither the name nor the holder rung, and still contains the other three steps; the string "masked account digits" appears nowhere in `hisab/`; the reply-shape lines in `MODEL_LANG` are unchanged.
 - Verify: `python3 tests/smoke.py`
 
 ### Phase 3 — The by-hand model check, and the docs
-**Status:** Not started
+**Status:** Done — `tests/check_receipts.py` (SKIP exit 0 without fixtures, judge pinned by smoke), fixtures README, docs and Commands row, docs-vs-flow-length assertion; `tests/make_sample.py` answer list gained the holder answer
 - Files: `tests/check_receipts.py` (new), `tests/fixtures/receipts/README.md` (new: what each fixture must show, and the blurring rule), `AGENTS.md:24` and its Commands table, `ARCHITECTURE.md:30`, `README.md:107`
 - Change:
   - The script: `--config` like `check_endpoint.py`, a temp ledger, a fixed holder name matching the fixtures, the three cases, PASS/FAIL per case, exit 1 on any failure, exit 0 with SKIP when the fixtures are absent. It wraps `Tools.call` to record calls rather than touching `hisab/tools.py`.
