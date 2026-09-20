@@ -63,7 +63,7 @@ try:
         raise AssertionError("agent started with no model key")
     print("config: provider auto picks OpenRouter, then Gemini; pins and explicit endpoints stay")
 
-    for mode, answers in (("personal", ["personal", "Hamza Shakeel", "PKR", "Alfalah bank, cash, Easypaisa wallet", "Alfalah 15", "salary, freelance", "Meezan fund", "yes"]),
+    for mode, answers in (("personal", ["personal", "Ayesha Khan", "PKR", "Alfalah bank, cash, Easypaisa wallet", "Alfalah 15", "salary, freelance", "Meezan fund", "yes"]),
                           ("shop", ["shop", "Bilal Traders", "PKR", "cash, Meezan bank", "Metro, Ali traders", "Bilal, Ahmed", "none", "rent 40000, salaries 60000"])):
         led = Ledger(tmp / mode); st = Store(tmp / f"state-{mode}"); su = Setup(led, st)
         q = su.start(parked="2500 coffee"); assert "personal" in q and "ذاتی" in q, q  # no language question: one bilingual greeting
@@ -377,12 +377,12 @@ try:
     # urdu flow: the first answer is in Urdu script, so the questions are too; PKR and "cash" later do not flip it
     led = Ledger(tmp / "ur"); st = Store(tmp / "state-ur"); su = Setup(led, st); su.start()
     r, _, _ = su.answer("ذاتی"); assert "پورا نام" in r and "/lang english" in r, r
-    r, _, _ = su.answer("حمزہ شکیل"); assert "کرنسی" in r and "/lang" not in r, r
+    r, _, _ = su.answer("عائشہ خان"); assert "کرنسی" in r and "/lang" not in r, r
     r, _, _ = su.answer("PKR"); assert "/lang" not in r and "اکاؤنٹس" in r, r
     for a in ["cash", "نہیں", "salary", "نہیں", "نہیں"]:
         r, done, _ = su.answer(a)
     assert done and led.language() == "ur" and "سیٹ اپ مکمل" in r, (done, r)
-    assert led.holder == "حمزہ شکیل", led.holder
+    assert led.holder == "عائشہ خان", led.holder
     # an unrecognised first answer asks again in the language it was written in, and does not lock it
     led = Ledger(tmp / "ur-retry"); st = Store(tmp / "state-ur-retry"); su = Setup(led, st); su.start()
     r, _, _ = su.answer("سلام"); assert "ذاتی" in r and "personal" not in r, r
@@ -406,8 +406,8 @@ try:
     from hisab.setup import PERSONAL as _P43, SHOP as _S43
     assert _P43[:2] == _S43[:2] == ["mode", "holder"] and len(_P43) == len(_S43) == 8, (_P43, _S43)
     for lg, first, bad_mode, bad_cur, fill in (
-            ("en", "personal", "hmm", "1", {"personal": ["Hamza Shakeel", "PKR", "cash", "none", "none", "no", "no"], "shop": ["Bilal Traders", "PKR", "cash", "none", "none", "none", "skip"]}),
-            ("ur", "ذاتی", "؟", "١", {"personal": ["حمزہ شکیل", "PKR", "cash", "نہیں", "نہیں", "نہیں", "نہیں"], "shop": ["بلال ٹریڈرز", "PKR", "cash", "نہیں", "نہیں", "نہیں", "skip"]})):
+            ("en", "personal", "hmm", "1", {"personal": ["Ayesha Khan", "PKR", "cash", "none", "none", "no", "no"], "shop": ["Bilal Traders", "PKR", "cash", "none", "none", "none", "skip"]}),
+            ("ur", "ذاتی", "؟", "١", {"personal": ["عائشہ خان", "PKR", "cash", "نہیں", "نہیں", "نہیں", "نہیں"], "shop": ["بلال ٹریڈرز", "PKR", "cash", "نہیں", "نہیں", "نہیں", "skip"]})):
         for mode in ("personal", "shop"):
             first = first if mode == "personal" else ("shop" if lg == "en" else "دکان")
             led = Ledger(tmp / f"n43-{lg}-{mode}"); st = Store(tmp / f"n43-state-{lg}-{mode}"); su = Setup(led, st)
@@ -435,7 +435,7 @@ try:
     assert led.holder == "", "no settings.json yet"
     for bad in (None, "", "   ", 7, ["Uzair"], {"n": 1}):
         led.set_settings({"holder": bad}); assert led.holder == "", bad
-    led.set_settings({"holder": "  Hamza Shakeel "}); assert led.holder == "Hamza Shakeel"
+    led.set_settings({"holder": "  Ayesha Khan "}); assert led.holder == "Ayesha Khan"
     (led.dir / "settings.json").write_text("{not json", encoding="utf-8"); assert led.holder == ""
     (led.dir / "settings.json").write_text("[1]", encoding="utf-8"); assert led.holder == ""
     print("setup: holder is question 2 of 8, every message numbered n/8, skip stores empty, a digit is re-asked; Ledger.holder is safe on bad settings")
@@ -451,10 +451,10 @@ try:
     # #43: the prompt carries one direction ladder; the holder rung is there only when setup learned the name
     import hisab.agent as agent43
     fake_cfg = {"model": {"id": "x", "base_url": None, "api_key_env": None}, "secrets": {"openrouter_key": "fake"}}
-    hled = Ledger(tmp / "prompt43"); Setup(hled, Store(tmp / "prompt43-state")).write({"mode": "personal", "holder": "Hamza Shakeel"})
+    hled = Ledger(tmp / "prompt43"); Setup(hled, Store(tmp / "prompt43-state")).write({"mode": "personal", "holder": "Ayesha Khan"})
     sled = Ledger(tmp / "prompt43-skip"); Setup(sled, Store(tmp / "prompt43-skip-state")).write({"mode": "personal", "holder": ""})
     with_name, without = agent43.Agent(fake_cfg, hled).system(), agent43.Agent(fake_cfg, sled).system()
-    assert "the user is Hamza Shakeel" in with_name and "The account holder name" in with_name and "match the whole name" in with_name and "Hamza" not in without, "holder rung"
+    assert "the user is Ayesha Khan" in with_name and "The account holder name" in with_name and "match the whole name" in with_name and "Ayesha" not in without, "holder rung"
     assert "account holder" not in without.lower(), "no holder rung and no both-sides rung when skipped"
     assert "Both sides name the account holder" in with_name and "equity:transfer" in with_name.split("Both sides name")[1]
     assert "Both sides name" not in without and "equity:transfer" not in without.split("- Direction")[1], "no both-sides rung without a name"
