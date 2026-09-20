@@ -13,6 +13,7 @@ Up: [docs/INDEX.md](../INDEX.md). Written by `/create-plan` into `backlog/`; `/i
 ## Backlog
 | Plan | Problem it solves | Depends on |
 |---|---|---|
+| [GH-43-transfer-direction](backlog/GH-43-transfer-direction.md) | A transfer receipt never said which side the user was on, so the model asked a question mixing money-in and money-out accounts. Setup learns the account holder name (question 2 of 8, numbered `n/8`), the prompt carries one direction ladder for typed text, SMS and photos, both sides matching means the user's own money moved, and `tests/check_receipts.py` proves the model follows it against three blurred fixtures | #43, grilled 2026-09-20; the fixtures are the owner's to place |
 
 ## Active
 | Plan | Started | Issue |
